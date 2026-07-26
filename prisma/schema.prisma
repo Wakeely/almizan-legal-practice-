@@ -1,0 +1,489 @@
+// =============================================================================
+// Al Mizan Legal Practice — Multi-tenant Prisma schema
+// -----------------------------------------------------------------------------
+// ARCHITECTURE RULES (from master system prompt):
+// 1. Every tenant-owned model carries `organizationId` and a relation to
+//    Organization. There is NO global shared data across firms.
+// 2. SQLite is the dev DB (fullstack-dev sandbox restriction). To switch to
+//    PostgreSQL in production, change `provider = "sqlite"` to
+//    `provider = "postgresql"` and update DATABASE_URL. Schema is portable.
+// 3. Enums are encoded as String + Zod validation in API routes (SQLite has
+//    no native enum support).
+// 4. AuditLog is append-only — no update/delete endpoints exposed.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// Identity & Multi-tenancy
+// -----------------------------------------------------------------------------
+
+model Organization {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  barAssociationId String?  // firm-level bar registration (e.g. JBA-2026-881)
+  jurisdiction    String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations — every tenant-owned model lives here
+  users           User[]
+  matters         Matter[]
+  documents       Document[]
+  tasks           Task[]
+  timeEntries     TimeEntry[]
+  invoices        Invoice[]
+  calendarEvents  CalendarEvent[]
+  timelineEvents  TimelineEvent[]
+  clientMessages  ClientMessage[]
+  privilegeLog    PrivilegeLogEntry[]
+  depositions     DepositionTranscript[]
+  warRoomWitnesses WarRoomWitness[]
+  warRoomExhibits WarRoomExhibit[]
+  conflictChecks  ConflictCheck[]
+  auditLogs       AuditLog[]
+  sessions        Session[]
+  accounts        Account[]
+}
+
+// Role is encoded as String + Zod validation in API routes (SQLite has no enum).
+// Allowed values: 'MANAGING_PARTNER' | 'SENIOR_ASSOCIATE' | 'IN_HOUSE_COUNSEL'
+// | 'LEGAL_EXECUTIVE' | 'CLIENT_REPRESENTATIVE'
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  name            String
+  passwordHash    String
+  barAssociationId String?
+  jurisdiction    String?
+  accountType     String   @default("Law Firm") // 'Law Firm' | 'Solo Practitioner' | 'Corporate Counsel' | 'Client'
+  role            String   @default("MANAGING_PARTNER") // enum Role, validated server-side
+  avatarUrl       String?
+
+  // Subscription fields
+  subscriptionTier String  @default("Free Trial")
+  planStatus       String  @default("Trial")
+  trialDaysLeft    Int     @default(14)
+  seats            Int     @default(1)
+  maxSeats         Int     @default(10)
+  billingCycle     String  @default("Monthly")
+  renewalDate      String?
+  biometricEnabled Boolean  @default(false)
+
+  // Multi-tenancy
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  accounts        Account[]
+  sessions        Session[]
+  auditLogs       AuditLog[]
+}
+
+// NextAuth standard models — kept org-scoped for isolation
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+// -----------------------------------------------------------------------------
+// Matter / Case Management
+// -----------------------------------------------------------------------------
+
+model Matter {
+  id                   String   @id @default(cuid())
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  title                String
+  description          String?
+  clientName           String
+  clientEmail          String
+  jurisdiction         String
+  opposingParty        String?
+  opposingCounsel      String?
+  budget               Float    @default(0)
+  expenses             Float    @default(0)
+  riskLevel            String   @default("Medium") // 'High' | 'Medium' | 'Low'
+  winProbability        Int      @default(50) // 0-100
+  judge                 String?
+  court                 String?
+  statuteOfLimitations  String?
+  statuteDeadline      String?
+  status                String   @default("Active")
+  aiStrategy            String?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  documents            Document[]
+  tasks                Task[]
+  timeEntries          TimeEntry[]
+  invoices             Invoice[]
+  calendarEvents       CalendarEvent[]
+  timelineEvents       TimelineEvent[]
+  clientMessages       ClientMessage[]
+  privilegeLog         PrivilegeLogEntry[]
+  depositions          DepositionTranscript[]
+  warRoomWitnesses     WarRoomWitness[]
+  warRoomExhibits      WarRoomExhibit[]
+  // Audit log entries are queryable via AuditLog.matterId — no back-relation
+  // needed; keeping AuditLog structurally independent prevents accidental
+  // cascade-delete of audit history when a matter is deleted.
+
+  @@index([organizationId])
+}
+
+// -----------------------------------------------------------------------------
+// Documents
+// -----------------------------------------------------------------------------
+
+model Document {
+  id                String   @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId          String
+  matter            Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+
+  name              String
+  category          String
+  fileSize          String
+  uploadedBy        String
+  uploadedAt        DateTime @default(now())
+  visibleToClient   Boolean  @default(false)
+  version           Int      @default(1)
+  aiSummary         String?
+  aiTags            String?  // JSON-encoded array (SQLite has no array type)
+  isRedacted        Boolean  @default(false)
+  redactedVersionId String?
+  redactionCount    Int      @default(0)
+
+  @@index([organizationId, matterId])
+}
+
+// -----------------------------------------------------------------------------
+// Tasks & Workflow
+// -----------------------------------------------------------------------------
+
+model Task {
+  id               String   @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId         String
+  matter           Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+
+  title            String
+  description      String?
+  assignedTo       String
+  dueDate          String
+  priority         String   @default("Medium") // 'Low' | 'Medium' | 'High'
+  visibleToClient  Boolean  @default(false)
+  status           String   @default("To Do") // 'To Do' | 'In Progress' | 'Under Review' | 'Completed'
+  dependsOnTaskIds String?  // JSON-encoded array of task IDs
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([organizationId, matterId])
+}
+
+// -----------------------------------------------------------------------------
+// Billing & Timekeeping
+// -----------------------------------------------------------------------------
+
+model TimeEntry {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId       String
+  matter         Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+
+  description    String
+  hours          Float
+  rate           Float
+  date           String
+  billed         Boolean  @default(false)
+  taskCode       String?  // UTBMS Task Code (L110–L420)
+  activityCode   String?  // UTBMS Activity Code (A101–A106)
+  isBillable     Boolean  @default(true)
+
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, matterId])
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  organizationId String
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId      String
+  matter        Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+
+  invoiceNumber String
+  totalAmount   Float
+  status        String   @default("Draft") // 'Draft' | 'Sent' | 'Paid' | 'Overdue'
+  dueDate       String
+  issueDate     String?
+  paymentTxId   String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([organizationId, matterId])
+}
+
+// -----------------------------------------------------------------------------
+// Calendar & Court Rules
+// -----------------------------------------------------------------------------
+
+model CalendarEvent {
+  id                  String   @id @default(cuid())
+  organizationId      String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId           String
+  matter             Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+
+  title              String
+  description        String?
+  startDate          String
+  endDate            String?
+  time               String?
+  location           String?
+  category           String   @default("Hearing") // 'Hearing' | 'Court Deadline' | 'Client Meeting' | 'Filing' | 'Arbitration'
+  syncedToGoogleCalendar Boolean @default(false)
+  googleEventId      String?
+
+  createdAt          DateTime @default(now())
+
+  @@index([organizationId, matterId])
+}
+
+// -----------------------------------------------------------------------------
+// Timeline & Client Messaging
+// -----------------------------------------------------------------------------
+
+model TimelineEvent {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId        String
+  matter          Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String
+  date            String
+  visibleToClient Boolean  @default(false)
+  type            String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId, matterId])
+}
+
+model ClientMessage {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId        String
+  matter          Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+
+  sender          String   @default("Lawyer") // 'Lawyer' | 'Client'
+  text            String
+  timestamp       DateTime @default(now())
+
+  @@index([organizationId, matterId])
+}
+
+// -----------------------------------------------------------------------------
+// Privilege Log
+// -----------------------------------------------------------------------------
+
+model PrivilegeLogEntry {
+  id               String   @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId         String
+  matter           Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+
+  docControlNum    String
+  docDate          String
+  author           String
+  recipients       String
+  docType          String
+  subject          String
+  privilegeClaimed String   @default("Attorney-Client Privilege")
+  justification    String
+  isRedacted       Boolean  @default(false)
+  reviewStatus     String   @default("Flagged") // 'Flagged' | 'Verified' | 'Withheld'
+
+  createdAt        DateTime @default(now())
+
+  @@index([organizationId, matterId])
+}
+
+// -----------------------------------------------------------------------------
+// Deposition / Transcript Indexer
+// -----------------------------------------------------------------------------
+
+model DepositionTranscript {
+  id                   String   @id @default(cuid())
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId             String
+  matter               Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+
+  witnessName          String
+  witnessRole          String
+  depositionDate       String
+  deponentParty        String   @default("Fact Witness")
+  pagesCount           Int      @default(0)
+  pages                TranscriptPage[]
+  keyAdmissionsSummary String?
+  uploadedAt           DateTime @default(now())
+
+  @@index([organizationId, matterId])
+}
+
+model TranscriptPage {
+  id                   String   @id @default(cuid())
+  organizationId       String
+  transcriptId         String
+  transcript           DepositionTranscript @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+
+  pageNumber           Int
+  lineNumber           String?
+  timestamp            String?
+  speaker              String
+  text                 String
+  isKeyAdmission       Boolean  @default(false)
+  tags                 String?  // JSON-encoded array
+
+  @@index([organizationId, transcriptId])
+}
+
+// -----------------------------------------------------------------------------
+// Trial War Room
+// -----------------------------------------------------------------------------
+
+model WarRoomWitness {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId        String
+  matter          Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+
+  name            String
+  type            String   @default("Fact") // 'Fact' | 'Expert' | 'Adverse'
+  examinationNotes String?
+  order           Int      @default(0)
+
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId, matterId])
+}
+
+model WarRoomExhibit {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId        String
+  matter          Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+
+  exhibitNumber   String   // P-1, D-1, etc.
+  description     String
+  admissionStatus String   @default("Pending") // 'Pending' | 'Admitted' | 'Excluded'
+  party           String   @default("Plaintiff")
+
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId, matterId])
+}
+
+// -----------------------------------------------------------------------------
+// Conflict of Interest Engine
+// -----------------------------------------------------------------------------
+
+model ConflictCheck {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  certificateNumber String  @default("") // WKL-ETH-XXXXXX
+  searchQuery     String
+  matchedEntities String?  // JSON-encoded array
+  clearanceStatus String   @default("Pending") // 'Pending' | 'Cleared' | 'Conflict'
+  ethicalWallSet  Boolean  @default(false)
+  notes           String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId])
+}
+
+// -----------------------------------------------------------------------------
+// Audit Log — APPEND ONLY. Never expose update/delete endpoints.
+// -----------------------------------------------------------------------------
+
+model AuditLog {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action          String   // e.g. 'matter.create', 'auth.login', 'document.redact'
+  entity          String?  // 'matter' | 'document' | 'task' | ...
+  entityId        String?
+  matterId        String?
+  details         String?  // JSON-encoded
+  ipAddress       String?
+  userAgent       String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([userId])
+}
