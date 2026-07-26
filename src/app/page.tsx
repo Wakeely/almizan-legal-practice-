@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-// Al Mizan — single-page app entry (state-driven)
+// Al Mizan Legal Practice — single-page app entry (state-driven)
 // -----------------------------------------------------------------------------
 // The fullstack-dev sandbox only exposes the `/` route to the user. The
 // reference Vite app is also a single-page app driven by `useState`, so this
@@ -10,51 +10,79 @@
 // Flow:
 //   landing  → user clicks "Launch Workspace" or "Client Portal"
 //   auth     → AuthModal opens (sign-in / sign-up / forgot-password)
-//   authed   → workspace renders (Turn 2 ships the actual modules; for Turn 1
-//              we render a placeholder that confirms the session is active).
+//   authed   → workspace renders:
+//               Row 1: AnalyticsModule         (Turn 2)
+//               Row 2: MattersModule + TasksModule (Turn 2)
+//               Row 3-4: DocumentsModule, BillingModule, CalendarModule,
+//                        AiModule, WarRoomModule, ClientPortal (Turns 3-5)
 // =============================================================================
 
-import React, { useState } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import LandingPage from "@/components/landing/landing-page";
 import AuthModal from "@/components/auth/auth-modal";
+import Header from "@/components/header/header";
+import AnalyticsModule from "@/components/analytics/analytics-module";
+import MattersModule from "@/components/matters/matters-module";
+import TasksModule from "@/components/tasks/tasks-module";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useLanguage } from "@/components/providers/language-provider";
-import { useTheme } from "next-themes";
-import {
-  Scale,
-  ShieldCheck,
-  Globe,
-  Sun,
-  Moon,
-  LogOut,
-  RefreshCw,
-  Lock,
-  AlertTriangle,
-} from "lucide-react";
+import type { Matter } from "@/lib/types";
+import { RefreshCw, Lock, AlertTriangle, FolderOpen, Sparkles, Clock, FileText, CreditCard } from "lucide-react";
+
+type View = "landing" | "workspace";
 
 export default function Page() {
-  const { user, loading, isAuthenticated, logout, refresh } = useAuth();
-  const { t, isRtl, language, toggleLanguage } = useLanguage();
-  const { theme, setTheme } = useTheme();
+  const { user, loading, isAuthenticated, logout } = useAuth();
+  const { t, isRtl } = useLanguage();
 
+  const [view, setView] = useState<View>("landing");
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [mode, setMode] = useState<"Lawyer" | "Client">("Lawyer");
-  // Tracks whether the user has clicked "Launch Workspace" / "Client Portal"
-  // from the landing page. Once true, we render the auth gate (or workspace
-  // if already authenticated).
-  const [hasEntered, setHasEntered] = useState(false);
+
+  // Workspace state
+  const [matters, setMatters] = useState<Matter[]>([]);
+  const [activeMatterId, setActiveMatterId] = useState<string>("");
+  const [mattersLoading, setMattersLoading] = useState(true);
+  const [activeMobileTab, setActiveMobileTab] = useState<"all" | "analytics" | "tasks" | "docs" | "ai">("all");
+
+  const fetchMatters = useCallback(async () => {
+    setMattersLoading(true);
+    try {
+      const res = await fetch("/api/matters", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setMatters(data);
+        if (data.length > 0 && !activeMatterId) {
+          setActiveMatterId(data[0].id);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch matters:", err);
+    } finally {
+      setMattersLoading(false);
+    }
+  }, [activeMatterId]);
+
+  // Listen for mobile-tab-changed events emitted by MobileBottomNav
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) setActiveMobileTab(detail);
+    };
+    window.addEventListener("mobile-tab-changed", handler);
+    return () => window.removeEventListener("mobile-tab-changed", handler);
+  }, []);
 
   // ----- LANDING VIEW -----
-  // User is on landing if (a) not authenticated and (b) hasn't clicked Enter.
-  if (!isAuthenticated && !hasEntered) {
+  if (view === "landing" && !isAuthenticated) {
     return (
       <>
         <LandingPage
           onEnterWorkspace={() => {
             if (isAuthenticated) {
               setMode("Lawyer");
-              setHasEntered(true);
+              setView("workspace");
             } else {
               setAuthMode("signin");
               setAuthOpen(true);
@@ -63,7 +91,7 @@ export default function Page() {
           onEnterClientPortal={() => {
             if (isAuthenticated) {
               setMode("Client");
-              setHasEntered(true);
+              setView("workspace");
             } else {
               setAuthMode("signin");
               setAuthOpen(true);
@@ -76,7 +104,7 @@ export default function Page() {
           initialMode={authMode}
           onSuccess={() => {
             setMode("Lawyer");
-            setHasEntered(true);
+            setView("workspace");
           }}
         />
       </>
@@ -104,7 +132,7 @@ export default function Page() {
             <Lock className="w-8 h-8" />
           </div>
           <div className="text-center max-w-md">
-            <h2 className="text-xl font-extrabold text-foreground">
+            <h2 className="text-xl font-extrabold">
               {isRtl ? "يجب تسجيل الدخول للوصول لبيئة العمل" : "Authentication required"}
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -132,164 +160,176 @@ export default function Page() {
           isOpen={authOpen}
           onClose={() => setAuthOpen(false)}
           initialMode={authMode}
-          onSuccess={() => setHasEntered(true)}
+          onSuccess={() => setView("workspace")}
         />
       </>
     );
   }
 
-  // ----- WORKSPACE VIEW (Turn 1 placeholder — full modules ship in Turn 2) -----
+  // ----- WORKSPACE VIEW -----
+  // Fetch matters on first workspace entry
+  if (view === "workspace" && matters.length === 0 && !mattersLoading) {
+    fetchMatters();
+  }
+
+  const handleNewMatterCreated = (newMatter: Matter) => {
+    setMatters((prev) => [...prev, newMatter]);
+    setActiveMatterId(newMatter.id);
+  };
+
+  const handleMatterUpdated = (updated: Matter) => {
+    setMatters((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+  };
+
+  const handleRefreshMatter = () => {
+    fetchMatters();
+  };
+
+  const activeMatter = matters.find((m) => m.id === activeMatterId);
+
   return (
-    <div className="app-theme-wrapper min-h-screen p-4 md:p-8 pb-24 lg:pb-8 text-foreground flex flex-col">
-      {/* Top bar — minimal until Header ships in Turn 2 */}
-      <header className="flex items-center justify-between mb-6 px-1">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-amber-400 p-0.5">
-            <div className="w-full h-full bg-background rounded-[10px] flex items-center justify-center">
-              <Scale className="w-4 h-4 text-primary" />
-            </div>
-          </div>
-          <div>
-            <div className="text-sm font-extrabold leading-none">
-              {isRtl ? "الميزان" : "Al Mizan"}
-            </div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">
-              {isRtl ? "مساحة العمل — المرحلة 1" : "Workspace — Phase 1"}
-            </div>
-          </div>
-        </div>
+    <div className="app-theme-wrapper min-h-screen p-2 sm:p-4 md:p-8 pb-24 lg:pb-8 text-foreground flex flex-col">
+      {/* Header with profile widget, matter selector, mode toggle */}
+      <Header
+        currentMode={mode}
+        onModeChange={(m) => setMode(m)}
+        matters={matters}
+        activeMatterId={activeMatterId}
+        onActiveMatterChange={(id) => setActiveMatterId(id)}
+        onNewMatterCreated={handleNewMatterCreated}
+        onShowLandingPage={() => setView("landing")}
+      />
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleLanguage}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold bg-secondary border border-border rounded-xl hover:bg-accent transition cursor-pointer"
-            aria-label="Toggle language"
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span>{language === "ar" ? "English" : "العربية"}</span>
-          </button>
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="p-2 text-xs font-bold bg-secondary border border-border rounded-xl hover:bg-accent transition cursor-pointer"
-            aria-label="Toggle theme"
-          >
-            {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-          </button>
-          <button
-            onClick={async () => { await logout(); setHasEntered(false); }}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-500/20 transition cursor-pointer"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>{isRtl ? "خروج" : "Sign Out"}</span>
-          </button>
-        </div>
-      </header>
+      {/* Main Panel Controller */}
+      {activeMatter ? (
+        <main className="flex-grow flex flex-col gap-3 sm:gap-4 md:gap-8 mt-4">
+          {mode === "Lawyer" ? (
+            <div className="flex flex-col gap-3 sm:gap-4 md:gap-6" id="lawyer-workspace">
+              {/* Row 1: Analytics */}
+              <div id="analytics-module" className={activeMobileTab !== "all" && activeMobileTab !== "analytics" ? "hidden lg:block" : "block"}>
+                <AnalyticsModule activeMatter={activeMatter} />
+              </div>
 
-      {/* Welcome card — confirms session + multi-tenancy work */}
-      <main className="flex-grow flex flex-col gap-6">
-        <section className="bg-card border border-border rounded-3xl p-6 md:p-8 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <ShieldCheck className="w-5 h-5 text-emerald-500" />
-            <h1 className="text-xl md:text-2xl font-extrabold">
-              {isRtl
-                ? `مرحباً ${user?.name} — تم إنشاء الجلسة المشفّرة بنجاح`
-                : `Welcome ${user?.name} — encrypted session established`}
-            </h1>
-          </div>
-          <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl">
+              {/* Row 2: Matter details + Kanban */}
+              <div id="tasks-module" className={activeMobileTab !== "all" && activeMobileTab !== "tasks" ? "hidden lg:block" : "block"}>
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 sm:gap-4 md:gap-6">
+                  <div className="xl:col-span-4">
+                    <MattersModule activeMatter={activeMatter} onMatterUpdated={handleMatterUpdated} />
+                  </div>
+                  <div className="xl:col-span-8">
+                    <TasksModule matterId={activeMatter.id} matters={matters} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 3: Documents + Billing — Turn 3 placeholder */}
+              <ComingSoonRow
+                tabId="docs"
+                activeTab={activeMobileTab}
+                icon={<FileText className="w-5 h-5" />}
+                title={isRtl ? "المستندات والفوترة" : "Documents & Billing"}
+                turnNumber={3}
+                isRtl={isRtl}
+              />
+
+              {/* Row 4: Calendar — Turn 3 placeholder */}
+              <ComingSoonRow
+                tabId="calendar"
+                activeTab={activeMobileTab}
+                icon={<Clock className="w-5 h-5" />}
+                title={isRtl ? "التقويم وقواعد المحاكم" : "Calendar & Court Rules"}
+                turnNumber={3}
+                isRtl={isRtl}
+              />
+
+              {/* Row 5: AI + War Room — Turn 4 placeholder */}
+              <ComingSoonRow
+                tabId="ai"
+                activeTab={activeMobileTab}
+                icon={<Sparkles className="w-5 h-5" />}
+                title={isRtl ? "المساعد القانوني وغرفة المحاكمة" : "AI Copilot & War Room"}
+                turnNumber={4}
+                isRtl={isRtl}
+              />
+            </div>
+          ) : (
+            /* CLIENT PORTAL — Turn 4 */
+            <div className="flex-grow bg-card border border-border rounded-3xl p-12 text-center shadow-sm flex flex-col items-center justify-center gap-4">
+              <FolderOpen className="w-16 h-16 text-muted-foreground/40 animate-pulse" />
+              <h3 className="text-xl font-bold">
+                {isRtl ? "بوابة الموكل" : "Client Portal"}
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
+                {isRtl
+                  ? "بوابة الموكل الآمنة ستتوفر في المرحلة القادمة من خطة التطوير."
+                  : "The secure Client Portal ships in Turn 4 of the rollout plan."}
+              </p>
+            </div>
+          )}
+        </main>
+      ) : (
+        <div className="flex-grow bg-card border border-border rounded-3xl p-12 text-center shadow-sm flex flex-col items-center justify-center gap-4 mt-4">
+          <FolderOpen className="w-16 h-16 text-muted-foreground/40 animate-pulse" />
+          <h3 className="text-xl font-bold">
+            {isRtl ? "لا توجد قضية مفتوحة" : "No Case Files Open"}
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
             {isRtl
-              ? "تم تسجيل دخولك بأمان باستخدام ملفات تعريف ارتباط HttpOnly. جميع استعلامات البيانات ستقتصر على مؤسستك (organizationId). المرحلة الأولى جاهزة — ستتبعها وحدات القضايا والمهام والمستندات والفوترة والتقويم والذكاء الاصطناعي في المراحل القادمة."
-              : "You are signed in via HttpOnly cookies. All data queries will be scoped to your organization (organizationId). Phase 1 foundation is live — the Matters, Tasks, Documents, Billing, Calendar, and AI modules ship in the upcoming turns of the rollout plan."}
+              ? "يرجى قيد ملف قضية جديد أو تحديد نزاع تجاري نشط من القائمة العلوية للبدء."
+              : "Create an intake file or select an active matter from the header dropdown to begin."}
           </p>
-        </section>
+        </div>
+      )}
 
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Session card */}
-          <div className="bg-card border border-border rounded-2xl p-5">
-            <div className="text-[11px] font-bold text-primary uppercase tracking-wider mb-2">
-              {isRtl ? "بيانات الجلسة" : "Session"}
-            </div>
-            <dl className="text-xs space-y-1.5">
-              <div className="flex justify-between"><dt className="text-muted-foreground">{isRtl ? "الاسم" : "Name"}</dt><dd className="font-bold">{user?.name}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">{isRtl ? "البريد" : "Email"}</dt><dd className="font-mono text-[11px]">{user?.email}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">{isRtl ? "المكتب" : "Firm"}</dt><dd className="font-bold">{user?.firmName}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">{isRtl ? "الدور" : "Role"}</dt><dd className="font-bold">{user?.role}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">{isRtl ? "النطاق" : "Jurisdiction"}</dt><dd className="font-bold">{user?.jurisdiction}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">Organization ID</dt><dd className="font-mono text-[10px]">{user?.organizationId}</dd></div>
-            </dl>
-          </div>
-
-          {/* Subscription card */}
-          <div className="bg-card border border-border rounded-2xl p-5">
-            <div className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-2">
-              {isRtl ? "الاشتراك" : "Subscription"}
-            </div>
-            <dl className="text-xs space-y-1.5">
-              <div className="flex justify-between"><dt className="text-muted-foreground">{isRtl ? "الباقة" : "Tier"}</dt><dd className="font-bold">{user?.subscriptionTier}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">{isRtl ? "الحالة" : "Status"}</dt><dd className="font-bold">{user?.planStatus}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">{isRtl ? "أيام التجربة" : "Trial Days"}</dt><dd className="font-bold">{user?.trialDaysLeft}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">{isRtl ? "المقاعد" : "Seats"}</dt><dd className="font-bold">{user?.seats} / {user?.maxSeats}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">{isRtl ? "دورة الفوترة" : "Billing"}</dt><dd className="font-bold">{user?.billingCycle}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">{isRtl ? "التجديد" : "Renewal"}</dt><dd className="font-bold">{user?.renewalDate || "—"}</dd></div>
-            </dl>
-          </div>
-
-          {/* Status card */}
-          <div className="bg-card border border-border rounded-2xl p-5">
-            <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-2">
-              {isRtl ? "حالة النظام" : "System Status"}
-            </div>
-            <ul className="text-xs space-y-2">
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>{isRtl ? "ملفات تعريف الارتباط HttpOnly مفعّلة" : "HttpOnly cookies active"}</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>{isRtl ? "عزل المؤسسات مفعّل (organizationId)" : "Multi-tenant isolation (organizationId)"}</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>{isRtl ? "تشفير bcrypt لكلمات المرور (12 جولة)" : "bcrypt password hashing (12 rounds)"}</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>{isRtl ? "سجل التدقيق مفعّل" : "Audit logging enabled"}</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                <span>{isRtl ? "تحديد المعدل في الذاكرة (MVP)" : "In-memory rate limit (MVP)"}</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                <span>{isRtl ? "قاعدة بيانات SQLite (تطوير)" : "SQLite database (dev)"}</span>
-              </li>
-            </ul>
-          </div>
-        </section>
-
-        {/* Roadmap card */}
-        <section className="bg-card border border-border rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
-            <h3 className="text-sm font-extrabold">
-              {isRtl ? "خطة التطوير القادمة" : "Upcoming Rollout"}
-            </h3>
-          </div>
-          <ol className="text-xs text-muted-foreground space-y-1.5 list-decimal list-inside">
-            <li>{isRtl ? "المرحلة 2: الترويسة + القضايا + التحليلات + المهام" : "Turn 2: Header + Matters + Analytics + Tasks"}</li>
-            <li>{isRtl ? "المرحلة 3: المستندات + الفوترة + التقويم" : "Turn 3: Documents + Billing + Calendar"}</li>
-            <li>{isRtl ? "المرحلة 4: الذكاء الاصطناعي + غرفة الحرب + بوابة الموكل" : "Turn 4: AI Copilot + War Room + Client Portal"}</li>
-            <li>{isRtl ? "المرحلة 5: تعارض المصالح + البحث + التصلب" : "Turn 5: Conflict Check + Global Search + Hardening"}</li>
-          </ol>
-        </section>
-      </main>
-
-      <footer className="mt-auto pt-6 border-t border-border flex flex-col md:flex-row justify-between items-center text-[10px] text-muted-foreground uppercase tracking-widest gap-2">
-        <span>WAKEELY PRO © 2026</span>
-        <span>BILINGUAL • MULTI-TENANT • RTL-READY</span>
-        <span>v0.1.0 — PHASE 1</span>
+      {/* Footer */}
+      <footer className="mt-8 pt-6 border-t border-border flex flex-col md:flex-row justify-between items-center text-[10px] text-muted-foreground uppercase tracking-widest gap-3">
+        <span>AL MIZAN LEGAL PRACTICE © 2026</span>
+        <span className="text-center">BILINGUAL • MULTI-TENANT • RTL-READY</span>
+        <span>v0.2.0 — PHASE 2</span>
       </footer>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// ComingSoonRow — placeholder card for modules shipping in later turns
+// -----------------------------------------------------------------------------
+function ComingSoonRow({
+  tabId,
+  activeTab,
+  icon,
+  title,
+  turnNumber,
+  isRtl,
+}: {
+  tabId: "docs" | "calendar" | "ai";
+  activeTab: string;
+  icon: React.ReactNode;
+  title: string;
+  turnNumber: number;
+  isRtl: boolean;
+}) {
+  const hidden = activeTab !== "all" && activeTab !== tabId;
+  if (hidden) return null;
+  return (
+    <div className="bg-card/60 border border-dashed border-border rounded-3xl p-6 md:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+      <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/30 text-primary flex items-center justify-center shrink-0">
+        {icon}
+      </div>
+      <div className="flex-grow">
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="text-base font-extrabold">{title}</h3>
+          <span className="text-[10px] font-bold uppercase bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30">
+            {isRtl ? `المرحلة ${turnNumber}` : `Turn ${turnNumber}`}
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {isRtl
+            ? "هذه الوحدة قيد التطوير وستتوفر في المرحلة القادمة من خطة الإصدار."
+            : "This module is under active development and ships in the next phase of the rollout plan."}
+        </p>
+      </div>
+      <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
     </div>
   );
 }
