@@ -24,10 +24,13 @@ import Header from "@/components/header/header";
 import AnalyticsModule from "@/components/analytics/analytics-module";
 import MattersModule from "@/components/matters/matters-module";
 import TasksModule from "@/components/tasks/tasks-module";
+import DocumentsModule from "@/components/documents/documents-module";
+import BillingModule from "@/components/billing/billing-module";
+import CalendarModule from "@/components/calendar/calendar-module";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useLanguage } from "@/components/providers/language-provider";
 import type { Matter } from "@/lib/types";
-import { RefreshCw, Lock, AlertTriangle, FolderOpen, Sparkles, Clock, FileText, CreditCard } from "lucide-react";
+import { RefreshCw, Lock, AlertTriangle, FolderOpen, Sparkles } from "lucide-react";
 
 type View = "landing" | "workspace";
 
@@ -222,27 +225,30 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Row 3: Documents + Billing — Turn 3 placeholder */}
-              <ComingSoonRow
-                tabId="docs"
-                activeTab={activeMobileTab}
-                icon={<FileText className="w-5 h-5" />}
-                title={isRtl ? "المستندات والفوترة" : "Documents & Billing"}
-                turnNumber={3}
-                isRtl={isRtl}
-              />
+              {/* Row 3: Documents + Billing */}
+              <div id="documents-module" className={activeMobileTab !== "all" && activeMobileTab !== "docs" ? "hidden lg:block" : "block"}>
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 sm:gap-4 md:gap-6">
+                  <div className="xl:col-span-6">
+                    <DocumentsModule
+                      matterId={activeMatter.id}
+                      onRefreshExpenses={handleRefreshMatter}
+                    />
+                  </div>
+                  <div className="xl:col-span-6">
+                    <BillingModule
+                      activeMatter={activeMatter}
+                      onRefreshMatter={handleRefreshMatter}
+                    />
+                  </div>
+                </div>
+              </div>
 
-              {/* Row 4: Calendar — Turn 3 placeholder */}
-              <ComingSoonRow
-                tabId="calendar"
-                activeTab={activeMobileTab}
-                icon={<Clock className="w-5 h-5" />}
-                title={isRtl ? "التقويم وقواعد المحاكم" : "Calendar & Court Rules"}
-                turnNumber={3}
-                isRtl={isRtl}
-              />
+              {/* Row 4: Calendar (includes Court Rules Calculator + Print Preview) */}
+              <div id="calendar-module" className={activeMobileTab !== "all" && activeMobileTab !== "calendar" ? "hidden lg:block" : "block"}>
+                <CalendarModule matterId={activeMatter.id} matters={matters} />
+              </div>
 
-              {/* Row 5: AI + War Room — Turn 4 placeholder */}
+              {/* Row 5: AI Copilot + War Room — Turn 4 placeholder */}
               <ComingSoonRow
                 tabId="ai"
                 activeTab={activeMobileTab}

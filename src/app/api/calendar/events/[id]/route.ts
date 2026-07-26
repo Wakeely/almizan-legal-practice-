@@ -1,6 +1,6 @@
 // =============================================================================
-// PATCH /api/documents/[id] — update a document (visibility, version, AI summary)
-// DELETE /api/documents/[id] — delete a document (org-scoped)
+// PATCH /api/calendar/events/[id] — update event
+// DELETE /api/calendar/events/[id] — delete event
 // =============================================================================
 
 import { NextResponse } from "next/server";
@@ -10,16 +10,14 @@ import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
 import { audit } from "@/lib/audit";
 
-const documentUpdateSchema = z.object({
-  name: z.string().min(1).max(300).optional(),
-  category: z.string().min(1).max(80).optional(),
-  visibleToClient: z.boolean().optional(),
-  version: z.number().int().min(1).optional(),
-  aiSummary: z.string().max(4000).optional().or(z.literal("")),
-  aiTags: z.array(z.string()).optional(),
-  isRedacted: z.boolean().optional(),
-  redactionCount: z.number().int().min(0).optional(),
-  redactedVersionId: z.string().max(100).optional().or(z.literal("")),
+const eventUpdateSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().max(2000).optional().or(z.literal("")),
+  startDate: z.string().min(1).max(40).optional(),
+  endDate: z.string().max(40).optional().or(z.literal("")),
+  time: z.string().max(20).optional().or(z.literal("")),
+  location: z.string().max(200).optional().or(z.literal("")),
+  category: z.enum(["Hearing", "Court Deadline", "Client Meeting", "Filing", "Arbitration"]).optional(),
 });
 
 export async function PATCH(
@@ -30,35 +28,30 @@ export async function PATCH(
   if (!r.ok) return r.response;
   const { id } = await params;
 
-  const existing = await db.document.findFirst({
+  const existing = await db.calendarEvent.findFirst({
     where: { id, ...orgWhere(r.session) },
     select: { id: true, matterId: true },
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json().catch(() => null);
-  const parsed = parseBody(documentUpdateSchema, body);
+  const parsed = parseBody(eventUpdateSchema, body);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const updates = parsed.data;
 
-  // Serialize array field
   const cleanUpdates: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(updates)) {
-    if (v === undefined) continue;
-    cleanUpdates[k] = k === "aiTags" ? JSON.stringify(v) : v;
+    if (v !== undefined) cleanUpdates[k] = v;
   }
 
-  const updated = await db.document.update({
+  const updated = await db.calendarEvent.update({
     where: { id },
     data: cleanUpdates,
   });
 
-  await audit({ action: "document.update", entity: "document", entityId: id, matterId: existing.matterId, details: cleanUpdates }, req);
+  await audit({ action: "calendar-event.update", entity: "calendarEvent", entityId: id, matterId: existing.matterId, details: cleanUpdates }, req);
 
-  return NextResponse.json({
-    ...updated,
-    aiTags: updated.aiTags ? JSON.parse(updated.aiTags) : [],
-  });
+  return NextResponse.json(updated);
 }
 
 export async function DELETE(
@@ -69,15 +62,15 @@ export async function DELETE(
   if (!r.ok) return r.response;
   const { id } = await params;
 
-  const existing = await db.document.findFirst({
+  const existing = await db.calendarEvent.findFirst({
     where: { id, ...orgWhere(r.session) },
-    select: { id: true, matterId: true, name: true },
+    select: { id: true, matterId: true, title: true },
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await db.document.delete({ where: { id } });
+  await db.calendarEvent.delete({ where: { id } });
 
-  await audit({ action: "document.delete", entity: "document", entityId: id, matterId: existing.matterId, details: { name: existing.name } }, req);
+  await audit({ action: "calendar-event.delete", entity: "calendarEvent", entityId: id, matterId: existing.matterId, details: { title: existing.title } }, req);
 
   return NextResponse.json({ ok: true });
 }

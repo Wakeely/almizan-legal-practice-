@@ -1,11 +1,6 @@
 // =============================================================================
-// GET /api/matters/[id]/documents — list documents for a matter (org-scoped)
-// POST /api/matters/[id]/documents — create a new document metadata record
-// -----------------------------------------------------------------------------
-// NOTE: This route stores DOCUMENT METADATA only. Actual file upload (S3 / Vercel
-// Blob / local file system) is a separate concern and is documented as a
-// CURRENT LIMITATION in the README. The reference UI simulates file uploads by
-// recording name + category + size + uploader; we preserve that pattern.
+// GET /api/matters/[id]/calendar — list calendar events for a matter
+// POST /api/matters/[id]/calendar — create a calendar event
 // =============================================================================
 
 import { NextResponse } from "next/server";
@@ -15,13 +10,14 @@ import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
 import { audit } from "@/lib/audit";
 
-const documentCreateSchema = z.object({
-  name: z.string().min(1).max(300),
-  category: z.string().min(1).max(80).default("General"),
-  fileSize: z.string().max(40).default("0 KB"),
-  uploadedBy: z.string().min(1).max(200),
-  visibleToClient: z.boolean().default(false),
-  version: z.number().int().min(1).default(1),
+const calendarEventCreateSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(2000).optional().or(z.literal("")),
+  startDate: z.string().min(1).max(40),
+  endDate: z.string().max(40).optional().or(z.literal("")),
+  time: z.string().max(20).optional().or(z.literal("")),
+  location: z.string().max(200).optional().or(z.literal("")),
+  category: z.enum(["Hearing", "Court Deadline", "Client Meeting", "Filing", "Arbitration"]).default("Hearing"),
 });
 
 export async function GET(
@@ -35,18 +31,12 @@ export async function GET(
   const owns = await verifyMatterBelongsToOrg(id, r.session);
   if (!owns) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const docs = await db.document.findMany({
+  const events = await db.calendarEvent.findMany({
     where: { matterId: id, ...orgWhere(r.session) },
-    orderBy: { uploadedAt: "desc" },
+    orderBy: { startDate: "asc" },
   });
 
-  // Parse JSON fields
-  return NextResponse.json(
-    docs.map((d) => ({
-      ...d,
-      aiTags: d.aiTags ? JSON.parse(d.aiTags) : [],
-    })),
-  );
+  return NextResponse.json(events);
 }
 
 export async function POST(
@@ -61,19 +51,23 @@ export async function POST(
   if (!owns) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json().catch(() => null);
-  const parsed = parseBody(documentCreateSchema, body);
+  const parsed = parseBody(calendarEventCreateSchema, body);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const data = parsed.data;
 
-  const doc = await db.document.create({
+  const event = await db.calendarEvent.create({
     data: {
       ...data,
+      description: data.description || null,
+      endDate: data.endDate || null,
+      time: data.time || null,
+      location: data.location || null,
       matterId: id,
       organizationId: r.session.organizationId,
     },
   });
 
-  await audit({ action: "document.create", entity: "document", entityId: doc.id, matterId: id, details: { name: doc.name } }, req);
+  await audit({ action: "calendar-event.create", entity: "calendarEvent", entityId: event.id, matterId: id, details: { title: event.title, startDate: event.startDate } }, req);
 
-  return NextResponse.json({ ...doc, aiTags: [] }, { status: 201 });
+  return NextResponse.json(event, { status: 201 });
 }
