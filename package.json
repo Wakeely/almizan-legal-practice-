@@ -1,16 +1,19 @@
 {
-  "name": "nextjs_tailwind_shadcn_ts",
+  "name": "almizan-legal-practice",
   "version": "0.2.1",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
-    "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
-    "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
+    "build": "prisma generate && next build",
+    "start": "next start",
     "lint": "eslint .",
-    "db:push": "prisma db push --accept-data-loss",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:reset": "prisma migrate reset"
+    "db:push": "prisma db push --accept-data-loss --schema=prisma/schema.prisma",
+    "db:push:dev": "prisma db push --accept-data-loss --schema=prisma/schema.dev.prisma",
+    "db:generate": "prisma generate --schema=prisma/schema.prisma",
+    "db:generate:dev": "prisma generate --schema=prisma/schema.dev.prisma",
+    "db:migrate": "prisma migrate dev --schema=prisma/schema.prisma",
+    "db:reset": "prisma migrate reset --schema=prisma/schema.prisma",
+    "postinstall": "prisma generate --schema=prisma/schema.dev.prisma"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

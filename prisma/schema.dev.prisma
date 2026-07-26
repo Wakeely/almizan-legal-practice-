@@ -1,25 +1,22 @@
 // =============================================================================
-// Al Mizan Legal Practice — Multi-tenant Prisma schema
+// Al Mizan Legal Practice — DEV-ONLY Prisma schema (SQLite)
 // -----------------------------------------------------------------------------
-// ARCHITECTURE RULES (from master system prompt):
-// 1. Every tenant-owned model carries `organizationId` and a relation to
-//    Organization. There is NO global shared data across firms.
-// 2. Production: PostgreSQL (Vercel Postgres / Neon / Supabase).
-//    This file (schema.prisma) uses `postgresql` and is what Vercel uses
-//    at build time via `prisma generate` + `prisma db push`.
-//    For local dev without a Postgres instance, use prisma/schema.dev.prisma
-//    (SQLite) with the package.json `db:push:dev` / `db:generate:dev` scripts.
-// 3. Enums are encoded as String + Zod validation in API routes (keeps the
-//    schema portable across SQLite + Postgres without enum drift).
-// 4. AuditLog is append-only — no update/delete endpoints exposed.
+// This is the local dev schema. It is IDENTICAL to schema.prisma except for
+// the datasource provider ("sqlite" instead of "postgresql"). Used by the
+// package.json scripts `db:push:dev`, `db:generate:dev`, `db:migrate:dev`.
+//
+// Production builds (Vercel) use prisma/schema.prisma (postgresql) directly.
+// The Prisma client API is identical regardless of provider, so app code in
+// src/lib/* does not need to change between dev and prod.
 // =============================================================================
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
