@@ -59,8 +59,9 @@ export default function Page() {
       if (res.ok) {
         const data = await res.json();
         setMatters(data);
-        if (data.length > 0 && !activeMatterId) {
-          setActiveMatterId(data[0].id);
+        if (data.length > 0) {
+          // Only set active matter if none is currently selected
+          setActiveMatterId((prev) => prev || data[0].id);
         }
       }
     } catch (err) {
@@ -68,7 +69,7 @@ export default function Page() {
     } finally {
       setMattersLoading(false);
     }
-  }, [activeMatterId]);
+  }, []);
 
   // Listen for mobile-tab-changed events emitted by MobileBottomNav
   useEffect(() => {
@@ -79,6 +80,20 @@ export default function Page() {
     window.addEventListener("mobile-tab-changed", handler);
     return () => window.removeEventListener("mobile-tab-changed", handler);
   }, []);
+
+  // Auto-enter workspace + fetch matters when authenticated (handles page refresh)
+  useEffect(() => {
+    if (isAuthenticated && view === "landing") {
+      setView("workspace");
+    }
+  }, [isAuthenticated, view]);
+
+  // Fetch matters when workspace view is active
+  useEffect(() => {
+    if (view === "workspace" && isAuthenticated) {
+      fetchMatters();
+    }
+  }, [view, isAuthenticated, fetchMatters]);
 
   // ----- LANDING VIEW -----
   if (view === "landing" && !isAuthenticated) {
@@ -173,10 +188,6 @@ export default function Page() {
   }
 
   // ----- WORKSPACE VIEW -----
-  // Fetch matters on first workspace entry
-  if (view === "workspace" && matters.length === 0 && !mattersLoading) {
-    fetchMatters();
-  }
 
   const handleNewMatterCreated = (newMatter: Matter) => {
     setMatters((prev) => [...prev, newMatter]);
