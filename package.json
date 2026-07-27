@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "db:push": "prisma db push --accept-data-loss --schema=prisma/schema.prisma",
     "db:push:dev": "prisma db push --accept-data-loss --schema=prisma/schema.dev.prisma",
+    "db:push:prod": "prisma db push --accept-data-loss --schema=prisma/schema.prisma",
     "db:generate": "prisma generate --schema=prisma/schema.prisma",
     "db:generate:dev": "prisma generate --schema=prisma/schema.dev.prisma",
     "db:migrate": "prisma migrate dev --schema=prisma/schema.prisma",
