@@ -28,6 +28,7 @@ import {
 import { useLanguage } from '@/components/providers/language-provider';
 import { translateStaticText } from '@/lib/i18n';
 import { Matter } from '@/lib/types';
+import ThemeAwareLogo from '@/components/branding/theme-aware-logo';
 
 interface MobileBottomNavProps {
   currentMode: 'Lawyer' | 'Client';
@@ -191,8 +192,9 @@ export default function MobileBottomNav({
             <div className="p-4 bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white relative flex flex-col gap-3">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
+                  {/* Mobile drawer is dark-themed — use white logo explicitly */}
                   { }
-                  <img src="/logo-header.svg" alt="Al Mizan" className="h-9 w-auto shrink-0" />
+                  <img src="/logo-header-white.png" alt="Al Mizan" className="h-9 w-auto shrink-0" />
                   <div>
                     <h3 className="font-bold text-sm font-display text-white leading-none">Al Mizan</h3>
                     <p className="text-[10px] text-indigo-300 mt-0.5">DIFC & SCCA Legal System</p>

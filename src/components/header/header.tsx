@@ -12,6 +12,7 @@ import GlobalSearchModal from '@/components/search/global-search-modal';
 import ConflictCheckModal from '@/components/conflict/conflict-check-modal';
 import AuthModal from '@/components/auth/auth-modal';
 import SubscriptionPaywallModal from '@/components/subscription/subscription-paywall-modal';
+import ThemeAwareLogo from '@/components/branding/theme-aware-logo';
 
 interface HeaderProps {
   currentMode: 'Lawyer' | 'Client';
@@ -365,8 +366,7 @@ export default function Header({
       <header className="hidden lg:flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4" id="app-header">
       {/* Brand Logo & Current Matter Status */}
       <div className="flex items-center gap-3">
-        { }
-        <img src="/logo-header.svg" alt="Al Mizan" className="h-12 sm:h-14 w-auto shrink-0" />
+        <ThemeAwareLogo className="h-12 sm:h-14 w-auto shrink-0" alt="Al Mizan Legal Practice" />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-slate-800 font-display">{t.appName}</h1>
