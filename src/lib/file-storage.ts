@@ -4,7 +4,6 @@
 // Dual-strategy file storage:
 // 1. Vercel Blob (production) — if BLOB_READ_WRITE_TOKEN is set in env
 //    Files are stored with PRIVATE access (no public URLs).
-//    Downloads use @vercel/blob's download() which handles auth internally.
 // 2. DB fallback (dev / no Blob token) — stores raw bytes in the Document
 //    model's fileContent column
 // =============================================================================
@@ -61,9 +60,10 @@ export async function storeFile(
 /**
  * Retrieves file content for serving through our authenticated API.
  *
- * For private Vercel Blob files, uses @vercel/blob's download() which
- * handles the BLOB_READ_WRITE_TOKEN authentication internally and returns
- * a readable stream. We convert it to a Buffer.
+ * For private Vercel Blob files, we try multiple strategies:
+ * 1. @vercel/blob's download() — handles auth internally
+ * 2. Raw fetch with Authorization header
+ * 3. If both fail, the file might have been stored in DB (fallback during upload)
  */
 export async function retrieveFile(
   blobUrl: string | null,
@@ -72,36 +72,36 @@ export async function retrieveFile(
 ): Promise<{ buffer: Buffer; mimeType: string }> {
   // Strategy 1: Vercel Blob (private)
   if (blobUrl) {
+    // Try 1: @vercel/blob download()
     try {
       const { download } = await import("@vercel/blob");
-      // download() returns a Blob for private files — it handles auth
-      // using the BLOB_READ_WRITE_TOKEN env var automatically.
       const blob = await download(blobUrl);
       const arrayBuffer = await blob.arrayBuffer();
       return {
         buffer: Buffer.from(arrayBuffer),
         mimeType: fileMimeType ?? blob.type ?? "application/octet-stream",
       };
-    } catch (err: any) {
-      console.error("[file-storage] download() failed:", err?.message ?? err);
+    } catch (err1: any) {
+      console.error("[file-storage] download() failed:", err1?.message ?? err1);
+    }
 
-      // Fallback: try raw fetch with Authorization header
-      try {
-        const response = await fetch(blobUrl, {
-          headers: { Authorization: `Bearer ${BLOB_TOKEN}` },
-        });
-        if (response.ok) {
-          const arrayBuffer = await response.arrayBuffer();
-          return {
-            buffer: Buffer.from(arrayBuffer),
-            mimeType: fileMimeType ?? response.headers.get("content-type") ?? "application/octet-stream",
-          };
-        }
-      } catch (fetchErr) {
-        console.error("[file-storage] raw fetch fallback also failed:", fetchErr);
+    // Try 2: Raw fetch with Authorization header
+    try {
+      const response = await fetch(blobUrl, {
+        headers: {
+          Authorization: `Bearer ${BLOB_TOKEN}`,
+        },
+      });
+      if (response.ok) {
+        const arrayBuffer = await response.arrayBuffer();
+        return {
+          buffer: Buffer.from(arrayBuffer),
+          mimeType: fileMimeType ?? response.headers.get("content-type") ?? "application/octet-stream",
+        };
       }
-
-      throw new Error("File could not be retrieved from storage.");
+      console.error("[file-storage] raw fetch failed:", response.status, response.statusText);
+    } catch (err2: any) {
+      console.error("[file-storage] raw fetch error:", err2?.message ?? err2);
     }
   }
 

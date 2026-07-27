@@ -363,7 +363,7 @@ export default function Header({
       />
 
       {/* Desktop Header Bar (Hidden on Mobile) */}
-      <header className="hidden lg:flex items-center justify-between gap-2 mb-6 overflow-x-hidden" id="app-header">
+      <header className="hidden lg:flex items-center justify-between gap-2 mb-6" id="app-header">
       {/* === ZONE 1: Brand === */}
       <div className="flex items-center gap-2 shrink-0 min-w-0">
         <ThemeAwareLogo className="h-12 w-auto shrink-0" alt="Al Mizan Legal Practice" />
