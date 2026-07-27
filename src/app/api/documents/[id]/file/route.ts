@@ -62,6 +62,10 @@ export async function GET(
       },
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("[file-download] Error retrieving file:", err?.message ?? err);
+    return NextResponse.json(
+      { error: "Failed to retrieve file. It may have been deleted from storage." },
+      { status: 500 },
+    );
   }
 }
