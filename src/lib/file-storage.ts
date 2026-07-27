@@ -8,9 +8,11 @@
 //
 // The caller doesn't need to know which strategy is active — this module
 // abstracts the choice and returns a consistent result.
+//
+// IMPORTANT: The @vercel/blob import is lazy (dynamic import inside the
+// function) so the module doesn't crash on startup if the package isn't
+// available or the token isn't set.
 // =============================================================================
-
-import { put } from "@vercel/blob";
 
 const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB hard limit
@@ -25,6 +27,9 @@ export interface StoredFile {
 /**
  * Stores a file using the best available strategy.
  * Returns metadata about where the file was stored.
+ *
+ * If Vercel Blob is configured but the upload fails, it falls back to DB
+ * storage so the user's upload doesn't fail entirely.
  */
 export async function storeFile(
   filename: string,
@@ -37,20 +42,29 @@ export async function storeFile(
 
   // Strategy 1: Vercel Blob (production)
   if (BLOB_TOKEN) {
-    const blob = await put(filename, fileBuffer, {
-      access: "public", // Files are served through our org-scoped API endpoint
-      contentType: mimeType,
-      addRandomSuffix: true,
-    });
-    return {
-      blobUrl: blob.url,
-      fileContent: null,
-      fileMimeType: mimeType,
-      fileSize: fileBuffer.length,
-    };
+    try {
+      // Lazy import so the module doesn't crash if @vercel/blob isn't installed
+      const { put } = await import("@vercel/blob");
+      const blob = await put(filename, fileBuffer, {
+        access: "public",
+        contentType: mimeType,
+        addRandomSuffix: true,
+      });
+      return {
+        blobUrl: blob.url,
+        fileContent: null,
+        fileMimeType: mimeType,
+        fileSize: fileBuffer.length,
+      };
+    } catch (err: any) {
+      // If Blob upload fails, fall back to DB storage so the upload
+      // doesn't fail entirely. Log the error for debugging.
+      console.error("[file-storage] Vercel Blob upload failed, falling back to DB:", err?.message ?? err);
+      // Fall through to DB fallback
+    }
   }
 
-  // Strategy 2: DB fallback (dev / no Blob token configured)
+  // Strategy 2: DB fallback (dev / no Blob token / Blob upload failed)
   return {
     blobUrl: null,
     fileContent: fileBuffer,
@@ -98,8 +112,12 @@ export async function retrieveFile(
  */
 export async function deleteFile(blobUrl: string | null): Promise<void> {
   if (blobUrl && BLOB_TOKEN) {
-    const { del } = await import("@vercel/blob");
-    await del(blobUrl);
+    try {
+      const { del } = await import("@vercel/blob");
+      await del(blobUrl);
+    } catch (err) {
+      console.error("[file-storage] Failed to delete Blob file:", err);
+    }
   }
   // DB fallback: no explicit delete needed — the Document row deletion
   // cascades the fileContent column automatically.

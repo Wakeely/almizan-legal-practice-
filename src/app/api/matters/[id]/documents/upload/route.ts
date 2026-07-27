@@ -97,21 +97,46 @@ export async function POST(
   const uploadedBy = userProfile?.name ?? r.session.name ?? "Unknown";
 
   // Save document metadata in DB
-  const doc = await db.document.create({
-    data: {
-      name: name || file.name,
-      category,
-      fileSize: formatFileSize(stored.fileSize),
-      uploadedBy,
-      visibleToClient,
-      version: 1,
-      matterId: id,
-      organizationId: r.session.organizationId,
-      blobUrl: stored.blobUrl,
-      fileContent: stored.fileContent,
-      fileMimeType: stored.fileMimeType,
-    },
-  });
+  let doc;
+  try {
+    doc = await db.document.create({
+      data: {
+        name: name || file.name,
+        category,
+        fileSize: formatFileSize(stored.fileSize),
+        uploadedBy,
+        visibleToClient,
+        version: 1,
+        matterId: id,
+        organizationId: r.session.organizationId,
+        blobUrl: stored.blobUrl,
+        fileContent: stored.fileContent,
+        fileMimeType: stored.fileMimeType,
+      },
+    });
+  } catch (dbErr: any) {
+    // If the DB doesn't have the new columns yet (blobUrl, fileContent,
+    // fileMimeType), the Prisma create will fail with "Unknown argument".
+    // In that case, retry WITHOUT the new fields so the upload still works
+    // (metadata-only, no file content stored — user needs to run migration).
+    if (dbErr?.message?.includes("Unknown argument") || dbErr?.message?.includes("does not exist")) {
+      console.error("[upload] DB missing file columns — falling back to metadata-only create:", dbErr.message);
+      doc = await db.document.create({
+        data: {
+          name: name || file.name,
+          category,
+          fileSize: formatFileSize(stored.fileSize),
+          uploadedBy,
+          visibleToClient,
+          version: 1,
+          matterId: id,
+          organizationId: r.session.organizationId,
+        },
+      });
+    } else {
+      throw dbErr; // Re-throw unexpected errors
+    }
+  }
 
   await audit({
     action: "document.upload",

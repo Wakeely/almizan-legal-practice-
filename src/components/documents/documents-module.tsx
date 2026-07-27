@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Folder, FileText, UploadCloud, Eye, EyeOff, Sparkles, RefreshCw, FileCheck, Check, Plus, HelpCircle, ShieldCheck, Scissors, Quote, Lock } from 'lucide-react';
+import { Folder, FileText, UploadCloud, Eye, EyeOff, Sparkles, RefreshCw, FileCheck, Check, Plus, HelpCircle, ShieldCheck, Scissors, Quote, Lock, AlertCircle } from 'lucide-react';
 import { Document } from '@/lib/types';
 import { useLanguage } from '@/components/providers/language-provider';
 import { translateStaticText } from '@/lib/i18n';
@@ -102,11 +102,14 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
     }
   };
 
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile && !newDocName) return;
 
     setUploading(true);
+    setUploadError(null);
     try {
       if (selectedFile) {
         // Real file upload via multipart form data
@@ -129,7 +132,8 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
           setSelectedFile(null);
         } else {
           const err = await res.json().catch(() => ({ error: 'Upload failed' }));
-          console.error('Upload error:', err.error);
+          setUploadError(err.error || 'Upload failed. Please try again.');
+          console.error('Upload error:', err);
         }
       } else {
         // Fallback: metadata-only creation (no file, for backward compat)
@@ -152,9 +156,12 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
           setDocs(prev => [...prev, data]);
           setSelectedDoc(data);
           setNewDocName('');
+        } else {
+          setUploadError('Failed to create document. Please try again.');
         }
       }
     } catch (err) {
+      setUploadError('Network error during upload. Please check your connection.');
       console.error(err);
     } finally {
       setUploading(false);
@@ -295,6 +302,15 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
           <div className="flex flex-col gap-4 overflow-y-auto max-h-[480px] pr-1">
           {/* Upload Box */}
           <form onSubmit={handleUploadSubmit} className="space-y-3">
+            {uploadError && (
+              <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold p-2.5 rounded-xl flex items-center gap-2 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{uploadError}</span>
+                <button type="button" onClick={() => setUploadError(null)} className="ms-auto text-rose-400 hover:text-rose-600 cursor-pointer shrink-0">
+                  ×
+                </button>
+              </div>
+            )}
             <div
               onDragEnter={handleDrag}
               onDragOver={handleDrag}
