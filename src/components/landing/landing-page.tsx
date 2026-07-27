@@ -113,7 +113,7 @@ export default function LandingPage({ onEnterWorkspace, onEnterClientPortal }: L
           {/* Brand Logo — ONLY the logo, no text (per user request) */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             { }
-            <img src="/logo-header.svg" alt="Al Mizan Legal Practice" className="h-12 sm:h-16 w-auto shrink-0" />
+            <img src="/logo-header-dark.png" alt="Al Mizan Legal Practice" className="h-12 sm:h-16 w-auto shrink-0" />
           </div>
 
           {/* Center Quick Nav */}
@@ -857,7 +857,7 @@ export default function LandingPage({ onEnterWorkspace, onEnterClientPortal }: L
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
             { }
-            <img src="/logo-header.svg" alt="Al Mizan Legal Practice" className="h-10 w-auto" />
+            <img src="/logo-header-dark.png" alt="Al Mizan Legal Practice" className="h-10 w-auto" />
           </div>
           <span>{isRtl ? 'جميع الحقوق محفوظة © ٢٠٢٦ الميزان' : '© 2026 Al Mizan. All Rights Reserved.'}</span>
           <div className="flex gap-4">
