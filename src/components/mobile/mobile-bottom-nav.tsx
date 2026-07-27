@@ -28,7 +28,6 @@ import {
 import { useLanguage } from '@/components/providers/language-provider';
 import { translateStaticText } from '@/lib/i18n';
 import { Matter } from '@/lib/types';
-import ThemeAwareLogo from '@/components/branding/theme-aware-logo';
 
 interface MobileBottomNavProps {
   currentMode: 'Lawyer' | 'Client';

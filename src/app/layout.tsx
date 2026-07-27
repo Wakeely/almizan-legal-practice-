@@ -101,7 +101,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           }}
         />
       </head>
-      <body className={`${tajawal.variable} ${jetbrains.variable} antialiased bg-background text-foreground`}>
+      <body className={`${tajawal.variable} ${jetbrains.variable} antialiased bg-background text-foreground`} suppressHydrationWarning>
         <ThemeProvider>
           <LanguageProvider>
             <AuthProvider>
