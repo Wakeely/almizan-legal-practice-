@@ -1,0 +1,21 @@
+{
+  "name": "Al Mizan Legal Practice",
+  "short_name": "Al Mizan",
+  "description": "Bilingual (Arabic/English) legal practice & litigation management platform for GCC/MENA jurisdictions.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#042f2e",
+  "theme_color": "#0f766e",
+  "orientation": "any",
+  "categories": ["business", "productivity", "legal"],
+  "icons": [
+    {
+      "src": "/logo-square.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

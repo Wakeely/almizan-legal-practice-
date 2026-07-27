@@ -112,11 +112,8 @@ export default function LandingPage({ onEnterWorkspace, onEnterClientPortal }: L
           
           {/* Brand Logo */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-amber-400 p-0.5 shadow-lg shadow-indigo-500/20 shrink-0">
-              <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                <Scale className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
-              </div>
-            </div>
+            { }
+            <img src="/logo-header.svg" alt="Al Mizan Legal Practice" className="h-9 sm:h-12 w-auto shrink-0" />
             <div className="flex flex-col justify-center">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <span className="text-sm sm:text-lg font-black tracking-tight text-white font-display whitespace-nowrap">
@@ -872,7 +869,8 @@ export default function LandingPage({ onEnterWorkspace, onEnterClientPortal }: L
       <footer className="py-8 border-t border-slate-800 text-center text-xs text-slate-500 font-medium">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
-            <Scale className="w-4 h-4 text-indigo-400" />
+            { }
+            <img src="/logo-header.svg" alt="Al Mizan" className="h-6 w-auto" />
             <span className="font-bold text-slate-300">Al Mizan AI Legal System</span>
           </div>
           <span>{isRtl ? 'جميع الحقوق محفوظة © ٢٠٢٦ الميزان' : '© 2026 Al Mizan. All Rights Reserved.'}</span>

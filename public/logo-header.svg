@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 100" width="280" height="100">
+  <!-- Transparent background version for header -->
+  <!-- Scales of Justice icon (teal) -->
+  <g transform="translate(30, 50) scale(1.8)" fill="none" stroke="#0f766e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="0" y1="-25" x2="0" y2="18"/>
+    <line x1="-28" y1="-18" x2="28" y2="-18"/>
+    <line x1="-12" y1="18" x2="12" y2="18"/>
+    <path d="M -28 -18 L -36 0 L -20 0 Z" fill="#0f766e" fill-opacity="0.15"/>
+    <path d="M 28 -18 L 20 0 L 36 0 Z" fill="#0f766e" fill-opacity="0.15"/>
+    <circle cx="0" cy="-28" r="3.5" fill="#0f766e"/>
+  </g>
+
+  <!-- Brand text -->
+  <text x="75" y="42" font-family="Tajawal, Arial, sans-serif" font-size="28" font-weight="900" fill="#0f172a">Al Mizan</text>
+  <text x="75" y="65" font-family="Tajawal, Arial, sans-serif" font-size="14" font-weight="600" fill="#0f766e">Legal Practice</text>
+  <text x="75" y="82" font-family="Tajawal, Arial, sans-serif" font-size="11" font-weight="500" fill="#94a3b8">Litigation &amp; AI Copilot</text>
+</svg>

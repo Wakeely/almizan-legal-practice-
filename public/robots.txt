@@ -1,14 +1,6 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
+# Al Mizan Legal Practice — robots.txt
 User-agent: *
 Allow: /
+Disallow: /api/
+
+Sitemap: https://almizan.legalwakeely.com/sitemap.xml

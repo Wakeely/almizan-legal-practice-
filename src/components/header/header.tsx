@@ -365,9 +365,8 @@ export default function Header({
       <header className="hidden lg:flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4" id="app-header">
       {/* Brand Logo & Current Matter Status */}
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 bg-gradient-to-br from-teal-800 to-teal-950 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-teal-900/20 font-display">
-          {isRtl ? 'و' : 'W'}
-        </div>
+        { }
+        <img src="/logo-header.svg" alt="Al Mizan" className="h-12 sm:h-14 w-auto shrink-0" />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-slate-800 font-display">{t.appName}</h1>

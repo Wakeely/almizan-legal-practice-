@@ -191,9 +191,8 @@ export default function MobileBottomNav({
             <div className="p-4 bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white relative flex flex-col gap-3">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-base shadow-md font-display">
-                    {isRtl ? 'و' : 'W'}
-                  </div>
+                  { }
+                  <img src="/logo-header.svg" alt="Al Mizan" className="h-9 w-auto shrink-0" />
                   <div>
                     <h3 className="font-bold text-sm font-display text-white leading-none">Al Mizan</h3>
                     <p className="text-[10px] text-indigo-300 mt-0.5">DIFC & SCCA Legal System</p>
