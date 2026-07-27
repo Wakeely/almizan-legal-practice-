@@ -48,10 +48,12 @@ export async function PATCH(
     cleanUpdates[k] = k === "aiTags" ? JSON.stringify(v) : v;
   }
 
-  const updated = await db.document.update({
-    where: { id },
+  const result = await db.document.updateMany({
+    where: { id, ...orgWhere(r.session) },
     data: cleanUpdates,
   });
+  if (result.count === 0) return NextResponse.json({ error: 'Not found or not owned by your organization' }, { status: 404 });
+  const updated = await db.document.findFirst({ where: { id, ...orgWhere(r.session) } });
 
   await audit({ action: "document.update", entity: "document", entityId: id, matterId: existing.matterId, details: cleanUpdates }, req);
 
@@ -75,7 +77,10 @@ export async function DELETE(
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await db.document.delete({ where: { id } });
+  const result = await db.document.deleteMany({
+    where: { id, ...orgWhere(r.session) },
+  });
+  if (result.count === 0) return NextResponse.json({ error: 'Not found or not owned by your organization' }, { status: 404 });
 
   await audit({ action: "document.delete", entity: "document", entityId: id, matterId: existing.matterId, details: { name: existing.name } }, req);
 

@@ -5,7 +5,7 @@
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireUser, orgWhere } from "@/lib/org";
+import { requireUser, orgWhere, verifyMatterBelongsToOrg } from "@/lib/org";
 import { parseBody, matterUpdateSchema } from "@/lib/validation/auth";
 import { audit } from "@/lib/audit";
 
@@ -16,6 +16,10 @@ export async function GET(
   const r = await requireUser();
   if (!r.ok) return r.response;
   const { id } = await params;
+
+  // Verify matter belongs to user's org (consistent with all other matter-scoped routes)
+  const owns = await verifyMatterBelongsToOrg(id, r.session);
+  if (!owns) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const matter = await db.matter.findFirst({
     where: { id, ...orgWhere(r.session) },
@@ -33,12 +37,9 @@ export async function PATCH(
   if (!r.ok) return r.response;
   const { id } = await params;
 
-  // Verify ownership
-  const existing = await db.matter.findFirst({
-    where: { id, ...orgWhere(r.session) },
-    select: { id: true },
-  });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // Verify matter belongs to user's org before allowing update
+  const owns = await verifyMatterBelongsToOrg(id, r.session);
+  if (!owns) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json().catch(() => null);
   const parsed = parseBody(matterUpdateSchema, { ...body, id });
@@ -51,10 +52,13 @@ export async function PATCH(
     if (v !== undefined) cleanUpdates[k] = v;
   }
 
-  const updated = await db.matter.update({
-    where: { id },
+  // Use updateMany with orgWhere so the org check is atomic with the update
+  const result = await db.matter.updateMany({
+    where: { id, ...orgWhere(r.session) },
     data: cleanUpdates,
   });
+  if (result.count === 0) return NextResponse.json({ error: "Not found or not owned by your organization" }, { status: 404 });
+  const updated = await db.matter.findFirst({ where: { id, ...orgWhere(r.session) } });
 
   await audit({ action: "matter.update", entity: "matter", entityId: id, details: cleanUpdates }, req);
 

@@ -14,7 +14,7 @@ import { audit } from "@/lib/audit";
 
 const conflictCheckCreateSchema = z.object({
   searchQuery: z.string().min(1).max(500),
-  matchedEntities: z.array(z.any()).optional().default([]),
+  matchedEntities: z.array(z.any()).max(100).optional().default([]),
   clearanceStatus: z.enum(["Pending", "Cleared", "Conflict"]).default("Pending"),
   ethicalWallSet: z.boolean().default(false),
   notes: z.string().max(2000).optional().or(z.literal("")),

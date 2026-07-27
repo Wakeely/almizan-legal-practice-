@@ -44,10 +44,12 @@ export async function PATCH(
     cleanUpdates[k] = k === "matchedEntities" && Array.isArray(v) ? JSON.stringify(v) : v;
   }
 
-  const updated = await db.conflictCheck.update({
-    where: { id },
+  const result = await db.conflictCheck.updateMany({
+    where: { id, ...orgWhere(r.session) },
     data: cleanUpdates,
   });
+  if (result.count === 0) return NextResponse.json({ error: 'Not found or not owned by your organization' }, { status: 404 });
+  const updated = await db.conflictCheck.findFirst({ where: { id, ...orgWhere(r.session) } });
 
   await audit({
     action: "conflict-check.update",
@@ -80,7 +82,10 @@ export async function DELETE(
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await db.conflictCheck.delete({ where: { id } });
+  const result = await db.conflictCheck.deleteMany({
+    where: { id, ...orgWhere(r.session) },
+  });
+  if (result.count === 0) return NextResponse.json({ error: 'Not found or not owned by your organization' }, { status: 404 });
 
   await audit({
     action: "conflict-check.delete",

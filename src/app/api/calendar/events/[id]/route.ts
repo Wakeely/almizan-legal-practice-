@@ -44,10 +44,12 @@ export async function PATCH(
     if (v !== undefined) cleanUpdates[k] = v;
   }
 
-  const updated = await db.calendarEvent.update({
-    where: { id },
+  const result = await db.calendarEvent.updateMany({
+    where: { id, ...orgWhere(r.session) },
     data: cleanUpdates,
   });
+  if (result.count === 0) return NextResponse.json({ error: 'Not found or not owned by your organization' }, { status: 404 });
+  const updated = await db.calendarEvent.findFirst({ where: { id, ...orgWhere(r.session) } });
 
   await audit({ action: "calendar-event.update", entity: "calendarEvent", entityId: id, matterId: existing.matterId, details: cleanUpdates }, req);
 
@@ -68,7 +70,10 @@ export async function DELETE(
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await db.calendarEvent.delete({ where: { id } });
+  const result = await db.calendarEvent.deleteMany({
+    where: { id, ...orgWhere(r.session) },
+  });
+  if (result.count === 0) return NextResponse.json({ error: 'Not found or not owned by your organization' }, { status: 404 });
 
   await audit({ action: "calendar-event.delete", entity: "calendarEvent", entityId: id, matterId: existing.matterId, details: { title: existing.title } }, req);
 

@@ -99,10 +99,12 @@ export async function PATCH(req: Request) {
     if (v !== undefined) cleanUpdates[k] = v;
   }
 
-  const updated = await db.timeEntry.update({
-    where: { id },
+  const result = await db.timeEntry.updateMany({
+    where: { id, ...orgWhere(r.session) },
     data: cleanUpdates,
   });
+  if (result.count === 0) return NextResponse.json({ error: 'Not found or not owned by your organization' }, { status: 404 });
+  const updated = await db.timeEntry.findFirst({ where: { id, ...orgWhere(r.session) } });
 
   await audit({ action: "time-entry.update", entity: "timeEntry", entityId: id, matterId: existing.matterId, details: cleanUpdates }, req);
 
@@ -123,7 +125,10 @@ export async function DELETE(req: Request) {
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await db.timeEntry.delete({ where: { id } });
+  const result = await db.timeEntry.deleteMany({
+    where: { id, ...orgWhere(r.session) },
+  });
+  if (result.count === 0) return NextResponse.json({ error: 'Not found or not owned by your organization' }, { status: 404 });
 
   await audit({ action: "time-entry.delete", entity: "timeEntry", entityId: id, matterId: existing.matterId }, req);
 

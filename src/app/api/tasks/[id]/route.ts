@@ -70,9 +70,20 @@ export async function PATCH(
     }
   }
 
-  const updated = await db.task.update({
-    where: { id },
+  // Use updateMany with orgWhere so the org check is atomic with the update
+  // (eliminates the TOCTOU window between findFirst and update)
+  const result = await db.task.updateMany({
+    where: { id, ...orgWhere(r.session) },
     data: cleanUpdates,
+  });
+
+  if (result.count === 0) {
+    return NextResponse.json({ error: "Not found or not owned by your organization" }, { status: 404 });
+  }
+
+  // Fetch the updated record for the response
+  const updated = await db.task.findFirst({
+    where: { id, ...orgWhere(r.session) },
   });
 
   await audit({
@@ -103,7 +114,14 @@ export async function DELETE(
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await db.task.delete({ where: { id } });
+  // Use deleteMany with orgWhere so the org check is atomic with the delete
+  const result = await db.task.deleteMany({
+    where: { id, ...orgWhere(r.session) },
+  });
+
+  if (result.count === 0) {
+    return NextResponse.json({ error: "Not found or not owned by your organization" }, { status: 404 });
+  }
 
   await audit({
     action: "task.delete",

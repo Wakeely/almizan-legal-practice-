@@ -53,10 +53,12 @@ export async function PATCH(
     if (v !== undefined) cleanUpdates[k] = v;
   }
 
-  const updated = await db.privilegeLogEntry.update({
-    where: { id },
+  const result = await db.privilegeLogEntry.updateMany({
+    where: { id, ...orgWhere(r.session) },
     data: cleanUpdates,
   });
+  if (result.count === 0) return NextResponse.json({ error: 'Not found or not owned by your organization' }, { status: 404 });
+  const updated = await db.privilegeLogEntry.findFirst({ where: { id, ...orgWhere(r.session) } });
 
   await audit({ action: "privilege-log.update", entity: "privilegeLogEntry", entityId: id, matterId: existing.matterId, details: cleanUpdates }, req);
 
@@ -77,7 +79,10 @@ export async function DELETE(
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await db.privilegeLogEntry.delete({ where: { id } });
+  const result = await db.privilegeLogEntry.deleteMany({
+    where: { id, ...orgWhere(r.session) },
+  });
+  if (result.count === 0) return NextResponse.json({ error: 'Not found or not owned by your organization' }, { status: 404 });
 
   await audit({ action: "privilege-log.delete", entity: "privilegeLogEntry", entityId: id, matterId: existing.matterId, details: { docControlNum: existing.docControlNum } }, req);
 
