@@ -363,50 +363,42 @@ export default function Header({
       />
 
       {/* Desktop Header Bar (Hidden on Mobile) */}
-      <header className="hidden lg:flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4" id="app-header">
-      {/* Brand Logo — ONLY the logo, no text/icons (per user request) */}
-      <div className="flex items-center gap-3">
-        <ThemeAwareLogo className="h-20 sm:h-24 w-auto shrink-0" alt="Al Mizan Legal Practice" />
+      <header className="hidden lg:flex items-center justify-between gap-4 mb-6" id="app-header">
+      {/* === ZONE 1: Brand === */}
+      <div className="flex items-center gap-3 shrink-0">
+        <ThemeAwareLogo className="h-14 w-auto shrink-0" alt="Al Mizan Legal Practice" />
         {activeMatter && (
-          <p className="text-sm text-slate-600 dark:text-slate-400 font-sans flex items-center gap-1.5 mt-0.5">
-            <Folder className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-            {t.activeCase}: <span className="text-teal-950 dark:text-teal-300 font-bold">{translateStaticText(activeMatter.title, isRtl)}</span>
-          </p>
+          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-700/50 rounded-lg">
+            <Folder className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+            <span className="text-xs font-semibold text-teal-800 dark:text-teal-200 truncate max-w-[180px]">
+              {translateStaticText(activeMatter.title, isRtl)}
+            </span>
+          </div>
         )}
       </div>
 
-      {/* Controls & Active Actions */}
-      <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+      {/* === ZONE 2: Search + Matter Selector === */}
+      <div className="flex items-center gap-2 flex-grow max-w-2xl">
         {/* Global Legal Search Input Trigger */}
         <button
           onClick={() => setShowSearchModal(true)}
-          className="flex items-center gap-2.5 bg-white border border-slate-200 hover:border-teal-400 text-slate-500 hover:text-slate-800 px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer group w-64 lg:w-72"
+          className="flex items-center gap-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-teal-400 dark:hover:border-teal-500 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 px-3.5 py-2 h-9 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer group flex-grow min-w-[200px]"
           title={t.globalSearchTitle}
         >
-          <Search className="w-4 h-4 text-teal-700 group-hover:scale-110 transition-transform shrink-0 stroke-[2.2]" />
-          <span className="truncate flex-grow text-left rtl:text-right rtl:text-left font-sans text-slate-400 group-hover:text-slate-600">{t.globalSearchPlaceholder}</span>
-          <kbd className="hidden sm:inline-block bg-teal-50 border border-teal-200 text-teal-800 px-1.5 py-0.5 rounded text-[10px] font-mono shadow-2xs font-bold shrink-0">
+          <Search className="w-4 h-4 text-teal-700 dark:text-teal-400 group-hover:scale-110 transition-transform shrink-0 stroke-[2.2]" />
+          <span className="truncate flex-grow text-left rtl:text-right font-sans text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300">{t.globalSearchPlaceholder}</span>
+          <kbd className="hidden sm:inline-block bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-700/50 text-teal-800 dark:text-teal-300 px-1.5 py-0.5 rounded text-[10px] font-mono shadow-2xs font-bold shrink-0">
             ⌘K
           </kbd>
         </button>
 
-        {/* Language Switcher */}
-        <button
-          onClick={handleLanguageToggle}
-          className="px-3.5 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-teal-50/50 hover:border-teal-300 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-          title="Toggle Language / تغيير اللغة"
-        >
-          <Languages className="w-4 h-4 text-teal-700" />
-          <span>{t.languageToggle}</span>
-        </button>
-
         {/* Matter Dropdown selector */}
-        <div className="flex items-center gap-2 bg-white border border-slate-200 hover:border-teal-300 rounded-xl px-3 py-1.5 shadow-sm">
-          <Landmark className="w-4 h-4 text-teal-700" />
+        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-teal-300 dark:hover:border-teal-500 rounded-lg px-3 h-9 shadow-sm shrink-0">
+          <Landmark className="w-4 h-4 text-teal-700 dark:text-teal-400 shrink-0" />
           <select
             value={activeMatterId}
             onChange={(e) => onActiveMatterChange(e.target.value)}
-            className="text-sm font-bold text-teal-950 bg-transparent focus:outline-none border-none cursor-pointer"
+            className="text-sm font-bold text-teal-950 dark:text-teal-200 bg-transparent focus:outline-none border-none cursor-pointer max-w-[160px]"
           >
             {matters.map(m => {
               const localizedTitle = translateStaticText(m.title, isRtl);
@@ -418,7 +410,52 @@ export default function Header({
             })}
           </select>
         </div>
+      </div>
 
+      {/* === ZONE 3: Grouped Action Buttons === */}
+      <div className="flex items-center gap-2 shrink-0">
+
+      {/* Group A: Primary Actions */}
+      <div className="flex items-center gap-1.5">
+        {/* Create Matter Trigger (Lawyer Only) */}
+        {currentMode === 'Lawyer' && (
+          <button
+            onClick={() => setShowModal(true)}
+            className="h-9 px-3 bg-teal-700 hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-500 rounded-lg text-xs font-bold text-white shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden xl:inline">{t.newIntake}</span>
+          </button>
+        )}
+
+        {/* Conflict Check Trigger */}
+        {currentMode === 'Lawyer' && (
+          <button
+            onClick={() => setShowConflictModal(true)}
+            className="h-9 px-2.5 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-700/50 rounded-lg text-xs font-bold text-indigo-700 dark:text-indigo-300 shadow-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+            title={isRtl ? 'فحص تعارض المصالح الأخلاقي' : 'Ethics & Conflict Check'}
+          >
+            <ShieldCheck className="w-4 h-4 shrink-0" />
+            <span className="hidden xl:inline">{isRtl ? 'فحص التعارض' : 'Conflict Check'}</span>
+          </button>
+        )}
+
+        {/* Dedicated Case Summary Print Button */}
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('open-print-preview'))}
+          className="h-9 px-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0 no-print"
+          title={isRtl ? 'معاينة وطباعة تقرير ملخص القضية للمحكمة' : 'Preview & Print Case Summary Report for Court'}
+        >
+          <Printer className="w-4 h-4 shrink-0" />
+          <span className="hidden xl:inline">{isRtl ? 'طباعة' : 'Print'}</span>
+        </button>
+      </div>
+
+      {/* Visual Separator */}
+      <div className="w-px h-7 bg-slate-200 dark:bg-slate-700 shrink-0" />
+
+      {/* Group B: Notifications */}
         {/* Notification Bell Icon */}
         <div className="relative">
           <button
@@ -585,85 +622,64 @@ export default function Header({
           )}
         </div>
 
-        {/* Conflict Check Trigger */}
-        {currentMode === 'Lawyer' && (
+        {/* Visual Separator */}
+        <div className="w-px h-7 bg-slate-200 dark:bg-slate-700 shrink-0" />
+
+        {/* Group C: Utility Toggles */}
+        <div className="flex items-center gap-1.5">
+          {/* Language Switcher */}
           <button
-            onClick={() => setShowConflictModal(true)}
-            className="px-2.5 py-2 bg-indigo-900 hover:bg-indigo-950 border border-indigo-700/80 rounded-xl text-xs font-bold text-indigo-100 shadow-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
-            title={isRtl ? 'فحص تعارض المصالح الأخلاقي' : 'Ethics & Conflict Check'}
+            onClick={handleLanguageToggle}
+            className="h-9 px-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 hover:border-teal-300 dark:hover:border-teal-500 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+            title="Toggle Language / تغيير اللغة"
           >
-            <ShieldCheck className="w-4 h-4 text-indigo-300 shrink-0" />
-            <span className="hidden xl:inline">{isRtl ? 'فحص التعارض' : 'Conflict Check'}</span>
+            <Languages className="w-4 h-4 text-teal-700 dark:text-teal-400" />
+            <span>{t.languageToggle}</span>
           </button>
-        )}
 
-        {/* Create Matter Trigger (Lawyer Only) */}
-        {currentMode === 'Lawyer' && (
+          {/* Global Dark / Light Theme Toggle Button */}
           <button
-            onClick={() => setShowModal(true)}
-            className="p-2 md:px-4 md:py-2 bg-teal-800 hover:bg-teal-900 border border-teal-700 rounded-xl text-sm font-bold text-white shadow-md shadow-teal-900/10 flex items-center gap-1.5 transition-colors cursor-pointer"
+            onClick={toggleTheme}
+            className={`h-9 w-9 flex items-center justify-center rounded-lg border transition-all cursor-pointer shrink-0 ${
+              isDark
+                ? 'bg-slate-800 text-amber-400 border-slate-700 hover:bg-slate-700'
+                : 'bg-white text-teal-800 border-slate-200 hover:bg-teal-50 shadow-xs'
+            }`}
+            title={
+              isDark
+                ? isRtl
+                  ? 'التبديل إلى الوضع المضيء (نهار)'
+                  : 'Switch to Light Mode'
+                : isRtl
+                ? 'التبديل إلى الوضع الليلي (داكن)'
+                : 'Switch to Dark Mode'
+            }
           >
-            <Plus className="w-4 h-4" />
-            <span>{t.newIntake}</span>
+            {isDark ? (
+              <Sun className="w-4 h-4" />
+            ) : (
+              <Moon className="w-4 h-4" />
+            )}
           </button>
-        )}
 
-        {/* Dedicated Case Summary Print Button */}
-        <button
-          type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent('open-print-preview'))}
-          className="px-2.5 py-2 bg-teal-950 text-amber-300 hover:bg-teal-900 border border-teal-700/80 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0 no-print"
-          title={isRtl ? 'معاينة وطباعة تقرير ملخص القضية للمحكمة' : 'Preview & Print Case Summary Report for Court'}
-        >
-          <Printer className="w-4 h-4 text-amber-400 shrink-0" />
-          <span className="hidden md:inline">{isRtl ? 'طباعة القضية' : 'Print Case Summary'}</span>
-        </button>
-
-        {/* Global Dark / Light Theme Toggle Button */}
-        <button
-          onClick={toggleTheme}
-          className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
-            isDark
-              ? 'bg-teal-950 text-amber-300 border-teal-700 hover:bg-teal-900'
-              : 'bg-teal-50 text-teal-950 border-teal-200 hover:bg-teal-100 shadow-xs'
-          }`}
-          title={
-            isDark
-              ? isRtl
-                ? 'التبديل إلى الوضع المضيء (نهار)'
-                : 'Switch to Light Mode'
-              : isRtl
-              ? 'التبديل إلى الوضع الليلي (داكن)'
-              : 'Switch to Dark Mode'
-          }
-        >
-          {isDark ? (
-            <>
-              <Sun className="w-4 h-4 text-amber-400" />
-              <span className="hidden sm:inline text-[11px]">{isRtl ? 'وضع نهار' : 'Light Mode'}</span>
-            </>
-          ) : (
-            <>
-              <Moon className="w-4 h-4 text-teal-800" />
-              <span className="hidden sm:inline text-[11px]">{isRtl ? 'وضع ليلي' : 'Dark Mode'}</span>
-            </>
+          {/* Landing Page Showcase Button */}
+          {onShowLandingPage && (
+            <button
+              onClick={onShowLandingPage}
+              className="h-9 w-9 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-teal-700 dark:hover:text-teal-400 hover:border-teal-300 dark:hover:border-teal-500 rounded-lg shadow-xs transition-all cursor-pointer shrink-0"
+              title={isRtl ? 'الصفحة التعريفية للموقع' : 'View Landing Showcase'}
+            >
+              <Sparkles className="w-4 h-4" />
+            </button>
           )}
-        </button>
+        </div>
 
-        {/* Landing Page Showcase Button */}
-        {onShowLandingPage && (
-          <button
-            onClick={onShowLandingPage}
-            className="hidden sm:flex px-3 py-2 bg-teal-950 text-teal-100 hover:bg-teal-900 border border-teal-700/80 rounded-xl text-xs font-bold items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0"
-            title={isRtl ? 'الصفحة التعريفية للموقع' : 'View Landing Showcase'}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>{isRtl ? 'الصفحة التعريفية' : 'Landing Showcase'}</span>
-          </button>
-        )}
+        {/* Visual Separator */}
+        <div className="w-px h-7 bg-slate-200 dark:bg-slate-700 shrink-0" />
 
+        {/* Group D: Identity (Mode + User) */}
         {/* Dual-Sided Mode Selector Toggle */}
-        <div className="flex bg-slate-100 p-1 rounded-xl shadow-inner border border-slate-200 ml-auto lg:ml-0">
+        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg shadow-inner border border-slate-200 dark:border-slate-700">
           <button
             onClick={() => onModeChange('Lawyer')}
             className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
@@ -689,7 +705,7 @@ export default function Header({
         </div>
 
         {/* User Account & Subscription Badge Dropdown */}
-        <div className="relative">
+        <div className="relative ml-1">
           {user ? (
             <button
               onClick={() => setShowUserDropdown(!showUserDropdown)}
