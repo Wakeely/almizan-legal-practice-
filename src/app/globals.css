@@ -137,6 +137,32 @@ html, body, button, input, select, textarea {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* -----------------------------------------------------------------------------
+   FORM INPUT TEXT COLOR — fix for invisible text in dark theme
+   -----------------------------------------------------------------------------
+   The reference UI uses Tailwind utility classes (bg-slate-50, bg-white) on
+   inputs, but inherits the body's foreground color. In dark theme the body
+   foreground is light (#f8fafc), making typed text invisible against the
+   light input background. Force all form inputs to dark slate text + medium
+   gray placeholder, regardless of theme. This matches the reference design
+   intent: forms always have white backgrounds with dark text.
+----------------------------------------------------------------------------- */
+input, textarea, select {
+  color: #0f172a !important; /* slate-900 — always dark for readability */
+}
+input::placeholder, textarea::placeholder {
+  color: #94a3b8 !important; /* slate-400 — visible against white bg */
+  opacity: 1;
+}
+input:focus, textarea:focus, select:focus {
+  color: #0f172a !important;
+}
+/* Select dropdown options inherit the OS picker — ensure dark text there too */
+option {
+  color: #0f172a;
+  background: #ffffff;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-tajawal), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
   font-weight: 800;
