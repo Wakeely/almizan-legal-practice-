@@ -192,13 +192,9 @@ export default function MobileBottomNav({
             <div className="p-4 bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white relative flex flex-col gap-3">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  {/* Mobile drawer is dark-themed — use white logo explicitly */}
+                  {/* Mobile drawer is dark-themed — use white logo explicitly. Only logo, no text (per user request) */}
                   { }
-                  <img src="/logo-header-white.png" alt="Al Mizan" className="h-9 w-auto shrink-0" />
-                  <div>
-                    <h3 className="font-bold text-sm font-display text-white leading-none">Al Mizan</h3>
-                    <p className="text-[10px] text-indigo-300 mt-0.5">DIFC & SCCA Legal System</p>
-                  </div>
+                  <img src="/logo-header-white.png" alt="Al Mizan Legal Practice" className="h-14 w-auto shrink-0" />
                 </div>
 
                 <button

@@ -110,23 +110,10 @@ export default function LandingPage({ onEnterWorkspace, onEnterClientPortal }: L
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-2.5 sm:px-8 py-2.5 sm:py-3 transition-all">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           
-          {/* Brand Logo */}
+          {/* Brand Logo — ONLY the logo, no text (per user request) */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             { }
-            <img src="/logo-header.svg" alt="Al Mizan Legal Practice" className="h-9 sm:h-12 w-auto shrink-0" />
-            <div className="flex flex-col justify-center">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="text-sm sm:text-lg font-black tracking-tight text-slate-900 font-display whitespace-nowrap">
-                  {isRtl ? 'الميزان' : 'Al Mizan'}
-                </span>
-                <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 border border-indigo-500/30 px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap">
-                  AI Legal OS
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-500 font-medium hidden md:block">
-                {isRtl ? 'منظومة إدارة المحاماة والقضايا الذكية' : 'Litigation & Legal Practice System'}
-              </p>
-            </div>
+            <img src="/logo-header.svg" alt="Al Mizan Legal Practice" className="h-12 sm:h-16 w-auto shrink-0" />
           </div>
 
           {/* Center Quick Nav */}
@@ -870,8 +857,7 @@ export default function LandingPage({ onEnterWorkspace, onEnterClientPortal }: L
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
             { }
-            <img src="/logo-header.svg" alt="Al Mizan" className="h-6 w-auto" />
-            <span className="font-bold text-slate-700">Al Mizan AI Legal System</span>
+            <img src="/logo-header.svg" alt="Al Mizan Legal Practice" className="h-10 w-auto" />
           </div>
           <span>{isRtl ? 'جميع الحقوق محفوظة © ٢٠٢٦ الميزان' : '© 2026 Al Mizan. All Rights Reserved.'}</span>
           <div className="flex gap-4">

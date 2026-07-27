@@ -364,25 +364,15 @@ export default function Header({
 
       {/* Desktop Header Bar (Hidden on Mobile) */}
       <header className="hidden lg:flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4" id="app-header">
-      {/* Brand Logo & Current Matter Status */}
+      {/* Brand Logo — ONLY the logo, no text/icons (per user request) */}
       <div className="flex items-center gap-3">
-        <ThemeAwareLogo className="h-12 sm:h-14 w-auto shrink-0" alt="Al Mizan Legal Practice" />
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-800 font-display">{t.appName}</h1>
-            <span className="px-2.5 py-0.5 text-[10px] uppercase font-bold tracking-normal bg-teal-50 text-teal-800 border border-teal-200 rounded-full">
-              {t.middleEastEdition}
-            </span>
-          </div>
-          {activeMatter ? (
-            <p className="text-sm text-slate-600 font-sans flex items-center gap-1.5 mt-0.5">
-              <Folder className="w-3.5 h-3.5 text-teal-600" />
-              {t.activeCase}: <span className="text-teal-950 font-bold">{translateStaticText(activeMatter.title, isRtl)}</span>
-            </p>
-          ) : (
-            <p className="text-sm text-slate-400">{t.selectCase}</p>
-          )}
-        </div>
+        <ThemeAwareLogo className="h-20 sm:h-24 w-auto shrink-0" alt="Al Mizan Legal Practice" />
+        {activeMatter && (
+          <p className="text-sm text-slate-600 dark:text-slate-400 font-sans flex items-center gap-1.5 mt-0.5">
+            <Folder className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+            {t.activeCase}: <span className="text-teal-950 dark:text-teal-300 font-bold">{translateStaticText(activeMatter.title, isRtl)}</span>
+          </p>
+        )}
       </div>
 
       {/* Controls & Active Actions */}
