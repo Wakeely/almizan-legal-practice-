@@ -168,6 +168,36 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
     }
   };
 
+  const [downloadingDocId, setDownloadingDocId] = useState<string | null>(null);
+
+  const handleDownload = async (docId: string, docName: string) => {
+    setDownloadingDocId(docId);
+    try {
+      const res = await fetch(`/api/documents/${docId}/file`, {
+        credentials: 'same-origin', // ensures session cookie is sent
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Download failed' }));
+        setUploadError(err.error || `Download failed (${res.status})`);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = docName || 'document';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setUploadError('Network error during download.');
+      console.error(err);
+    } finally {
+      setDownloadingDocId(null);
+    }
+  };
+
   const toggleClientVisibility = async (doc: Document) => {
     const updatedVisible = !doc.visibleToClient;
     try {
@@ -499,15 +529,20 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
                   <Scissors className="w-3 h-3" />
                   {isRtl ? 'طمس وتنقيح سرّي' : 'Redact Canvas'}
                 </button>
-                <a
-                  href={`/api/documents/${selectedDoc.id}/file`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-700 rounded-md flex items-center gap-1 transition-colors cursor-pointer"
+                <button
+                  onClick={() => handleDownload(selectedDoc.id, selectedDoc.name)}
+                  disabled={downloadingDocId === selectedDoc.id}
+                  className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-700 rounded-md flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  <FileText className="w-3 h-3" />
-                  {isRtl ? 'عرض/تحميل' : 'View/Download'}
-                </a>
+                  {downloadingDocId === selectedDoc.id ? (
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <FileText className="w-3 h-3" />
+                  )}
+                  {downloadingDocId === selectedDoc.id
+                    ? (isRtl ? 'جاري التحميل...' : 'Downloading...')
+                    : (isRtl ? 'عرض/تحميل' : 'View/Download')}
+                </button>
               </div>
 
               {/* AI Clause analysis & Summarization body */}
