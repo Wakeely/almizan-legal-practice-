@@ -24,6 +24,7 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
   const [newDocName, setNewDocName] = useState('');
   const [newDocCat, setNewDocCat] = useState('Pleading');
   const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [aiAnalyzingId, setAiAnalyzingId] = useState<string | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [unlockedDocIds, setUnlockedDocIds] = useState<string[]>([]);
@@ -88,35 +89,70 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
+      setSelectedFile(file);
+      setNewDocName(file.name);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
       setNewDocName(file.name);
     }
   };
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newDocName) return;
+    if (!selectedFile && !newDocName) return;
 
     setUploading(true);
     try {
-      const sizeStr = `${(Math.random() * 4 + 1).toFixed(1)} MB`;
-      const res = await fetch('/api/documents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          matterId,
-          name: newDocName,
-          category: newDocCat,
-          fileSize: sizeStr,
-          uploadedBy: "Farah Al-Sabah (Senior Associate)",
-          visibleToClient: false
-        })
-      });
+      if (selectedFile) {
+        // Real file upload via multipart form data
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('name', newDocName || selectedFile.name);
+        formData.append('category', newDocCat);
+        formData.append('visibleToClient', 'false');
 
-      if (res.ok) {
-        const data = await res.json();
-        setDocs(prev => [...prev, data]);
-        setSelectedDoc(data);
-        setNewDocName('');
+        const res = await fetch(`/api/matters/${matterId}/documents/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setDocs(prev => [...prev, data]);
+          setSelectedDoc(data);
+          setNewDocName('');
+          setSelectedFile(null);
+        } else {
+          const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+          console.error('Upload error:', err.error);
+        }
+      } else {
+        // Fallback: metadata-only creation (no file, for backward compat)
+        const sizeStr = `${(Math.random() * 4 + 1).toFixed(1)} MB`;
+        const res = await fetch('/api/documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            matterId,
+            name: newDocName,
+            category: newDocCat,
+            fileSize: sizeStr,
+            uploadedBy: "Farah Al-Sabah (Senior Associate)",
+            visibleToClient: false
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setDocs(prev => [...prev, data]);
+          setSelectedDoc(data);
+          setNewDocName('');
+        }
       }
     } catch (err) {
       console.error(err);
@@ -264,13 +300,30 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
               onDragOver={handleDrag}
               onDragLeave={handleDrag}
               onDrop={handleDrop}
+              onClick={() => document.getElementById('file-input-' + matterId)?.click()}
               className={`border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 ${
                 dragActive ? 'border-indigo-500 bg-indigo-50/40' : 'border-slate-200 bg-slate-50 hover:bg-slate-50/80'
-              }`}
+              } ${selectedFile ? 'border-emerald-400 bg-emerald-50/40' : ''}`}
             >
-              <UploadCloud className="w-7 h-7 text-slate-400" />
-              <p className="text-xs font-semibold text-slate-600">{t.dragDrop}</p>
-              <p className="text-[10px] text-slate-400">{t.fileLimits}</p>
+              <input
+                id={`file-input-${matterId}`}
+                type="file"
+                className="hidden"
+                onChange={handleFileSelect}
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.gif,.webp,.zip"
+              />
+              <UploadCloud className={`w-7 h-7 ${selectedFile ? 'text-emerald-500' : 'text-slate-400'}`} />
+              {selectedFile ? (
+                <>
+                  <p className="text-xs font-semibold text-emerald-700">{selectedFile.name}</p>
+                  <p className="text-[10px] text-slate-400">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB — {isRtl ? 'اضغط للتغيير' : 'Click to change'}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold text-slate-600">{t.dragDrop}</p>
+                  <p className="text-[10px] text-slate-400">{t.fileLimits}</p>
+                </>
+              )}
             </div>
 
             <div className="flex gap-2">
@@ -430,6 +483,15 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
                   <Scissors className="w-3 h-3" />
                   {isRtl ? 'طمس وتنقيح سرّي' : 'Redact Canvas'}
                 </button>
+                <a
+                  href={`/api/documents/${selectedDoc.id}/file`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-700 rounded-md flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <FileText className="w-3 h-3" />
+                  {isRtl ? 'عرض/تحميل' : 'View/Download'}
+                </a>
               </div>
 
               {/* AI Clause analysis & Summarization body */}

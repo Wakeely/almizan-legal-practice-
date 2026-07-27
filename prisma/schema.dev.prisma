@@ -196,10 +196,14 @@ model Document {
   visibleToClient   Boolean  @default(false)
   version           Int      @default(1)
   aiSummary         String?
-  aiTags            String?  // JSON-encoded array (SQLite has no array type)
+  aiTags            String?
   isRedacted        Boolean  @default(false)
   redactedVersionId String?
   redactionCount    Int      @default(0)
+
+  blobUrl           String?
+  fileContent       Bytes?
+  fileMimeType      String?
 
   @@index([organizationId, matterId])
 }

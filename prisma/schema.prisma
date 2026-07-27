@@ -213,6 +213,14 @@ model Document {
   redactedVersionId String?
   redactionCount    Int      @default(0)
 
+  // File storage — three fields supporting two strategies:
+  // 1. Vercel Blob (production): blobUrl is set, fileContent/fileMimeType are null
+  // 2. DB fallback (dev / no Blob token): fileContent holds the raw bytes,
+  //    fileMimeType holds the content type, blobUrl is null
+  blobUrl           String?
+  fileContent       Bytes?
+  fileMimeType      String?
+
   @@index([organizationId, matterId])
 }
 

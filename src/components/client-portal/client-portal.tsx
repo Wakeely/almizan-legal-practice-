@@ -36,10 +36,10 @@ export default function ClientPortal({ activeMatter, onRefreshMatter }: ClientPo
       const sanitizedDocs = dRes.ok ? await dRes.json() : [];
       setDocs(sanitizedDocs);
 
-      // Billing/Invoices
-      const bRes = await fetch(`/api/matters/${activeMatter.id}/billing`);
-      const bData = bRes.ok ? await bRes.json() : { invoices: [] };
-      setInvoices(bData.invoices); // Show all invoices sent to client
+      // Server-filtered Invoices — clients only see Sent + Paid (NOT Draft/Overdue)
+      const bRes = await fetch(`/api/client-portal/matters/${activeMatter.id}/invoices`);
+      const clientInvoices = bRes.ok ? await bRes.json() : [];
+      setInvoices(clientInvoices);
 
       // Messages
       const mRes = await fetch(`/api/matters/${activeMatter.id}/messages`);
