@@ -12,6 +12,14 @@
 // 3. Enums are encoded as String + Zod validation in API routes (keeps the
 //    schema portable across SQLite + Postgres without enum drift).
 // 4. AuditLog is append-only — no update/delete endpoints exposed.
+//
+// CONNECTION STRATEGY (Vercel Postgres):
+// - `url` is the POOLED connection (DATABASE_URL via PgBouncer) — used by the
+//   Prisma Client at runtime for fast, scalable queries.
+// - `directUrl` is the DIRECT connection (PRISMA_DATABASE_URL) — used by
+//   `prisma db push` / `prisma migrate` because DDL operations (CREATE TABLE,
+//   ALTER TABLE) require a direct, non-pooled connection.
+// Both env vars are auto-injected by Vercel when you link a Postgres store.
 // =============================================================================
 
 generator client {
@@ -19,8 +27,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("PRISMA_DATABASE_URL")
 }
 
 // -----------------------------------------------------------------------------

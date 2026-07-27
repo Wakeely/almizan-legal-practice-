@@ -76,3 +76,6 @@ server.log
 # Local-only scripts that contain temporary working data
 # (note: scripts/rebrand-to-almizan.sh and scripts/port-landing-auth.sh ARE
 #  committed because they document the build process)
+
+# User-uploaded files (screenshots, etc.)
+/upload/
