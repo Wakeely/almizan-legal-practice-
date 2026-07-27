@@ -27,10 +27,13 @@ import TasksModule from "@/components/tasks/tasks-module";
 import DocumentsModule from "@/components/documents/documents-module";
 import BillingModule from "@/components/billing/billing-module";
 import CalendarModule from "@/components/calendar/calendar-module";
+import AiModule from "@/components/ai/ai-module";
+import WarRoomModule from "@/components/war-room/war-room-module";
+import ClientPortal from "@/components/client-portal/client-portal";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useLanguage } from "@/components/providers/language-provider";
 import type { Matter } from "@/lib/types";
-import { RefreshCw, Lock, AlertTriangle, FolderOpen, Sparkles } from "lucide-react";
+import { RefreshCw, Lock, FolderOpen } from "lucide-react";
 
 type View = "landing" | "workspace";
 
@@ -248,29 +251,21 @@ export default function Page() {
                 <CalendarModule matterId={activeMatter.id} matters={matters} />
               </div>
 
-              {/* Row 5: AI Copilot + War Room — Turn 4 placeholder */}
-              <ComingSoonRow
-                tabId="ai"
-                activeTab={activeMobileTab}
-                icon={<Sparkles className="w-5 h-5" />}
-                title={isRtl ? "المساعد القانوني وغرفة المحاكمة" : "AI Copilot & War Room"}
-                turnNumber={4}
-                isRtl={isRtl}
-              />
+              {/* Row 5: AI Copilot + War Room (Turn 4) */}
+              <div id="ai-module" className={activeMobileTab !== "all" && activeMobileTab !== "ai" ? "hidden lg:block" : "block"}>
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 sm:gap-4 md:gap-6">
+                  <div className="xl:col-span-6">
+                    <WarRoomModule activeMatter={activeMatter} />
+                  </div>
+                  <div className="xl:col-span-6">
+                    <AiModule activeMatter={activeMatter} />
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
-            /* CLIENT PORTAL — Turn 4 */
-            <div className="flex-grow bg-card border border-border rounded-3xl p-12 text-center shadow-sm flex flex-col items-center justify-center gap-4">
-              <FolderOpen className="w-16 h-16 text-muted-foreground/40 animate-pulse" />
-              <h3 className="text-xl font-bold">
-                {isRtl ? "بوابة الموكل" : "Client Portal"}
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
-                {isRtl
-                  ? "بوابة الموكل الآمنة ستتوفر في المرحلة القادمة من خطة التطوير."
-                  : "The secure Client Portal ships in Turn 4 of the rollout plan."}
-              </p>
-            </div>
+            /* CLIENT PORTAL — server-filtered view (only visibleToClient records exposed) */
+            <ClientPortal activeMatter={activeMatter} onRefreshMatter={handleRefreshMatter} />
           )}
         </main>
       ) : (
@@ -291,51 +286,8 @@ export default function Page() {
       <footer className="mt-8 pt-6 border-t border-border flex flex-col md:flex-row justify-between items-center text-[10px] text-muted-foreground uppercase tracking-widest gap-3">
         <span>AL MIZAN LEGAL PRACTICE © 2026</span>
         <span className="text-center">BILINGUAL • MULTI-TENANT • RTL-READY</span>
-        <span>v0.2.0 — PHASE 2</span>
+        <span>v0.4.0 — PHASE 4</span>
       </footer>
-    </div>
-  );
-}
-
-// -----------------------------------------------------------------------------
-// ComingSoonRow — placeholder card for modules shipping in later turns
-// -----------------------------------------------------------------------------
-function ComingSoonRow({
-  tabId,
-  activeTab,
-  icon,
-  title,
-  turnNumber,
-  isRtl,
-}: {
-  tabId: "docs" | "calendar" | "ai";
-  activeTab: string;
-  icon: React.ReactNode;
-  title: string;
-  turnNumber: number;
-  isRtl: boolean;
-}) {
-  const hidden = activeTab !== "all" && activeTab !== tabId;
-  if (hidden) return null;
-  return (
-    <div className="bg-card/60 border border-dashed border-border rounded-3xl p-6 md:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-      <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/30 text-primary flex items-center justify-center shrink-0">
-        {icon}
-      </div>
-      <div className="flex-grow">
-        <div className="flex items-center gap-2 mb-1">
-          <h3 className="text-base font-extrabold">{title}</h3>
-          <span className="text-[10px] font-bold uppercase bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30">
-            {isRtl ? `المرحلة ${turnNumber}` : `Turn ${turnNumber}`}
-          </span>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {isRtl
-            ? "هذه الوحدة قيد التطوير وستتوفر في المرحلة القادمة من خطة الإصدار."
-            : "This module is under active development and ships in the next phase of the rollout plan."}
-        </p>
-      </div>
-      <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
     </div>
   );
 }

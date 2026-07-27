@@ -1,7 +1,6 @@
 // =============================================================================
-// /api/matters/[id]/messages — real route (replaces Turn 2 stub)
-// GET: list messages for a matter (org-scoped)
-// POST: create a new message (org-scoped, used by ClientPortal + Header)
+// GET /api/matters/[id]/war-room/exhibits — list exhibits
+// POST /api/matters/[id]/war-room/exhibits — create exhibit
 // =============================================================================
 
 import { NextResponse } from "next/server";
@@ -11,9 +10,11 @@ import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
 import { audit } from "@/lib/audit";
 
-const messageCreateSchema = z.object({
-  sender: z.enum(["Lawyer", "Client"]).default("Lawyer"),
-  text: z.string().min(1).max(4000),
+const exhibitCreateSchema = z.object({
+  exhibitNumber: z.string().min(1).max(40),
+  description: z.string().min(1).max(1000),
+  admissionStatus: z.enum(["Pending", "Admitted", "Excluded"]).default("Pending"),
+  party: z.enum(["Plaintiff", "Defense"]).default("Plaintiff"),
 });
 
 export async function GET(
@@ -27,12 +28,12 @@ export async function GET(
   const owns = await verifyMatterBelongsToOrg(id, r.session);
   if (!owns) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const messages = await db.clientMessage.findMany({
+  const exhibits = await db.warRoomExhibit.findMany({
     where: { matterId: id, ...orgWhere(r.session) },
-    orderBy: { timestamp: "asc" },
+    orderBy: { createdAt: "asc" },
   });
 
-  return NextResponse.json(messages);
+  return NextResponse.json(exhibits);
 }
 
 export async function POST(
@@ -47,20 +48,19 @@ export async function POST(
   if (!owns) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json().catch(() => null);
-  const parsed = parseBody(messageCreateSchema, body);
+  const parsed = parseBody(exhibitCreateSchema, body);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const data = parsed.data;
 
-  const message = await db.clientMessage.create({
+  const exhibit = await db.warRoomExhibit.create({
     data: {
-      sender: data.sender,
-      text: data.text,
+      ...data,
       matterId: id,
       organizationId: r.session.organizationId,
     },
   });
 
-  await audit({ action: "client-message.create", entity: "clientMessage", entityId: message.id, matterId: id, details: { sender: message.sender } }, req);
+  await audit({ action: "war-room.exhibit.create", entity: "warRoomExhibit", entityId: exhibit.id, matterId: id, details: { exhibitNumber: exhibit.exhibitNumber, party: exhibit.party } }, req);
 
-  return NextResponse.json(message, { status: 201 });
+  return NextResponse.json(exhibit, { status: 201 });
 }
