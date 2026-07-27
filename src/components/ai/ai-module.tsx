@@ -198,7 +198,7 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
                   type="button"
                   onClick={() => setDraftType(tpl.value)}
                   className={`p-3 text-xs font-semibold rounded-2xl border transition-all flex flex-col justify-between cursor-pointer ${
-                    isRtl ? 'text-right' : 'text-left'
+                    isRtl ? 'text-right' : 'text-left rtl:text-right rtl:text-left'
                   } ${
                     draftType === tpl.value
                       ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'

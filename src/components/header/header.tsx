@@ -384,7 +384,7 @@ export default function Header({
           title={t.globalSearchTitle}
         >
           <Search className="w-4 h-4 text-teal-700 group-hover:scale-110 transition-transform shrink-0 stroke-[2.2]" />
-          <span className="truncate flex-grow text-left font-sans text-slate-400 group-hover:text-slate-600">{t.globalSearchPlaceholder}</span>
+          <span className="truncate flex-grow text-left rtl:text-right rtl:text-left font-sans text-slate-400 group-hover:text-slate-600">{t.globalSearchPlaceholder}</span>
           <kbd className="hidden sm:inline-block bg-teal-50 border border-teal-200 text-teal-800 px-1.5 py-0.5 rounded text-[10px] font-mono shadow-2xs font-bold shrink-0">
             ⌘K
           </kbd>
@@ -698,7 +698,7 @@ export default function Header({
               <div className="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-extrabold text-[11px]">
                 {user.name.charAt(0)}
               </div>
-              <div className="hidden lg:block text-left rtl:text-right">
+              <div className="hidden lg:block text-left rtl:text-right rtl:text-left">
                 <span className="block text-[11px] font-bold text-white leading-tight truncate max-w-[110px]">
                   {user.name}
                 </span>
@@ -753,14 +753,14 @@ export default function Header({
                 <div className="space-y-1 text-xs font-medium text-slate-700 pt-1">
                   <button
                     onClick={() => { setShowUserDropdown(false); setShowConflictModal(true); }}
-                    className="w-full text-left rtl:text-right px-2.5 py-1.5 hover:bg-slate-50 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
+                    className="w-full text-left rtl:text-right rtl:text-left px-2.5 py-1.5 hover:bg-slate-50 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
                   >
                     <ShieldCheck className="w-4 h-4 text-indigo-600" />
                     <span>{isRtl ? 'فحص تعارض المصالح الأخلاقي' : 'Ethics & Conflict Check'}</span>
                   </button>
                   <button
                     onClick={() => { setShowUserDropdown(false); logout(); }}
-                    className="w-full text-left rtl:text-right px-2.5 py-1.5 hover:bg-rose-50 text-rose-600 rounded-lg flex items-center gap-2 transition-colors cursor-pointer pt-2 border-t border-slate-100"
+                    className="w-full text-left rtl:text-right rtl:text-left px-2.5 py-1.5 hover:bg-rose-50 text-rose-600 rounded-lg flex items-center gap-2 transition-colors cursor-pointer pt-2 border-t border-slate-100"
                   >
                     <LogOut className="w-4 h-4" />
                     <span>{isRtl ? 'تسجيل الخروج' : 'Sign Out'}</span>

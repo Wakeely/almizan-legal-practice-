@@ -366,7 +366,7 @@ export default function PrivilegeLogModule({ matterId }: PrivilegeLogModuleProps
       {/* Privilege Log Master Table */}
       <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs bg-white">
         <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full text-left rtl:text-right rtl:text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white font-display text-[11px] uppercase tracking-wider">
                 <th className="p-3 border-b border-slate-800">{isRtl ? 'رقم القيد' : 'Control #'}</th>

@@ -251,7 +251,7 @@ export default function MattersModule({ activeMatter, onMatterUpdated }: Matters
               {isRtl ? 'ملخص ملف الدعوى المعتمد للمحكمة الموقرة' : 'OFFICIAL COURTROOM CASE FILE DOCKET & SUMMARY'}
             </div>
           </div>
-          <div className="text-right text-xs text-slate-600 font-mono">
+          <div className="text-right rtl:text-left text-xs text-slate-600 font-mono">
             <div><strong>{isRtl ? 'التاريخ:' : 'Date:'}</strong> {new Date().toLocaleDateString()}</div>
             <div><strong>{isRtl ? 'رمز الملف:' : 'Docket ID:'}</strong> #{activeMatter.id}</div>
           </div>
@@ -262,7 +262,7 @@ export default function MattersModule({ activeMatter, onMatterUpdated }: Matters
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 border-b border-slate-300 pb-1">
             {isRtl ? 'أولاً: بيانات ومعلومات الدعوى الأساسية' : 'I. Primary Case Identification Data'}
           </h4>
-          <table className="w-full text-xs text-left border border-slate-800 border-collapse">
+          <table className="w-full text-xs text-left rtl:text-right rtl:text-left border border-slate-800 border-collapse">
             <tbody>
               <tr className="border-b border-slate-800">
                 <td className="p-2.5 font-bold bg-slate-100 border-r border-slate-800 w-1/4">{isRtl ? 'عنوان القضية' : 'Matter Title'}</td>

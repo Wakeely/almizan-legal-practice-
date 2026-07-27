@@ -175,7 +175,7 @@ export default function ClientPortal({ activeMatter, onRefreshMatter }: ClientPo
             <h2 className="text-sm sm:text-base font-extrabold text-slate-900 font-display mt-0.5">{translateStaticText(activeMatter.title, isRtl)}</h2>
           </div>
         </div>
-        <div className={isRtl ? 'text-left' : 'text-right'}>
+        <div className={isRtl ? 'text-left rtl:text-right rtl:text-left' : 'text-right rtl:text-left'}>
           <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">{t.loggedClient}</span>
           <span className="text-xs sm:text-sm font-bold text-teal-950 block mt-0.5">{translateStaticText(activeMatter.clientName, isRtl)}</span>
         </div>

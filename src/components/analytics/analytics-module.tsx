@@ -408,7 +408,7 @@ export default function AnalyticsModule({ activeMatter }: AnalyticsModuleProps) 
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left border-collapse">
+          <table className="w-full text-xs text-left rtl:text-right rtl:text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-200 text-[10px] uppercase font-bold text-slate-400 bg-slate-50">
                 <th className="p-2.5">{isRtl ? 'الشهر' : 'Month'}</th>
@@ -416,7 +416,7 @@ export default function AnalyticsModule({ activeMatter }: AnalyticsModuleProps) 
                 <th className="p-2.5">{isRtl ? 'ساعات العمل' : 'Billable Hours'}</th>
                 <th className="p-2.5">{isRtl ? 'نسبة الاستهلاك' : 'Budget Used'}</th>
                 <th className="p-2.5">{isRtl ? 'المخاطرة' : 'Risk Index'}</th>
-                <th className="p-2.5 text-right">{isRtl ? 'الحالة' : 'Status'}</th>
+                <th className="p-2.5 text-right rtl:text-left">{isRtl ? 'الحالة' : 'Status'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
@@ -427,7 +427,7 @@ export default function AnalyticsModule({ activeMatter }: AnalyticsModuleProps) 
                   <td className="p-2.5 text-slate-600">{m.hours} hrs</td>
                   <td className="p-2.5 text-slate-600">{m.budgetUsed}</td>
                   <td className="p-2.5 text-slate-600">{m.riskIndex}</td>
-                  <td className="p-2.5 text-right">
+                  <td className="p-2.5 text-right rtl:text-left">
                     <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                       {m.status}
                     </span>

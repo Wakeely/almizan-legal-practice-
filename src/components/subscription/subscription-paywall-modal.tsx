@@ -437,7 +437,7 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
             </div>
 
             {/* Receipt Summary Card */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs font-mono text-slate-700 max-w-md mx-auto text-left rtl:text-right space-y-2">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs font-mono text-slate-700 max-w-md mx-auto text-left rtl:text-right rtl:text-left space-y-2">
               <div className="flex justify-between border-b border-slate-200 pb-2">
                 <span className="text-slate-400">{isRtl ? 'رقم الفاتورة الضريبية:' : 'Tax Invoice Ref:'}</span>
                 <span className="font-bold text-slate-900">{txInvoiceId}</span>

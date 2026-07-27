@@ -657,7 +657,7 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
           </p>
 
           <div className="overflow-x-auto border border-slate-200 rounded-2xl">
-            <table className="w-full text-left rtl:text-right text-xs">
+            <table className="w-full text-left rtl:text-right rtl:text-left text-xs">
               <thead className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold uppercase text-[10px]">
                 <tr>
                   <th className="p-3">{isRtl ? 'رمز الدليل' : 'Exhibit Code'}</th>

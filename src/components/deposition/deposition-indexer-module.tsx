@@ -227,7 +227,7 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
                       setActiveTranscript(t);
                       setAiResults(null);
                     }}
-                    className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-1.5 ${
+                    className={`w-full text-left rtl:text-right rtl:text-left p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-1.5 ${
                       isActive
                         ? 'bg-teal-900 text-white border-teal-950 shadow-md'
                         : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-800'

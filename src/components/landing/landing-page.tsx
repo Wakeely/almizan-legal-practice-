@@ -256,7 +256,7 @@ export default function LandingPage({ onEnterWorkspace, onEnterClientPortal }: L
             </div>
 
             {/* Mock Dashboard Grid */}
-            <div className="p-4 sm:p-6 bg-white/90 rounded-2xl grid grid-cols-1 md:grid-cols-3 gap-4 text-left font-sans">
+            <div className="p-4 sm:p-6 bg-white/90 rounded-2xl grid grid-cols-1 md:grid-cols-3 gap-4 text-left rtl:text-right rtl:text-left font-sans">
               
               {/* Card 1: Active Matter Card */}
               <div className="p-4 bg-white/90 rounded-xl border border-slate-200 space-y-2">
@@ -797,7 +797,7 @@ export default function LandingPage({ onEnterWorkspace, onEnterClientPortal }: L
               >
                 <button
                   onClick={() => setOpenFaq(isOpen ? null : idx)}
-                  className="w-full px-6 py-4 text-left flex items-center justify-between text-sm sm:text-base font-bold text-slate-900 hover:text-indigo-600 transition-colors cursor-pointer"
+                  className="w-full px-6 py-4 text-left rtl:text-right rtl:text-left flex items-center justify-between text-sm sm:text-base font-bold text-slate-900 hover:text-indigo-600 transition-colors cursor-pointer"
                 >
                   <span className="pr-4">{isRtl ? faq.qAr : faq.qEn}</span>
                   <ChevronDown className={`w-5 h-5 text-slate-500 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -868,7 +868,7 @@ export default function LandingPage({ onEnterWorkspace, onEnterClientPortal }: L
       </footer>
 
       {/* 10. Mobile Sticky Bottom Navigation CTA Bar */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-50/95 backdrop-blur-xl border-t border-slate-200/90 p-2.5 shadow-2xl flex items-center justify-between gap-2">
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-slate-300/90 p-2.5 shadow-2xl flex items-center justify-between gap-2">
         <button
           onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
           className="px-2.5 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl flex items-center gap-1 shrink-0 cursor-pointer"

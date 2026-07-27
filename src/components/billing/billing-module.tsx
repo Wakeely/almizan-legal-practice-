@@ -640,7 +640,7 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
                 <p className="text-xs text-slate-500 font-medium">Advocates & International Arbitrators • DIFC / Amman</p>
                 <p className="text-[11px] text-slate-400 font-mono mt-0.5">CR: 948201-JO • Tax Reg: 104928301</p>
               </div>
-              <div className="text-right">
+              <div className="text-right rtl:text-left">
                 <span className="text-xs font-bold font-mono text-indigo-700 uppercase bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-200">
                   STATEMENT OF ACCOUNT / INVOICE
                 </span>
@@ -665,14 +665,14 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
 
             {/* Itemized Table */}
             <div className="border border-slate-200 rounded-2xl overflow-hidden">
-              <table className="w-full text-xs text-left border-collapse">
+              <table className="w-full text-xs text-left rtl:text-right rtl:text-left border-collapse">
                 <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-[10px]">
                   <tr>
                     <th className="p-3">Date</th>
                     <th className="p-3">Description & UTBMS Code</th>
-                    <th className="p-3 text-right">Hours</th>
-                    <th className="p-3 text-right">Rate</th>
-                    <th className="p-3 text-right">Amount (JOD)</th>
+                    <th className="p-3 text-right rtl:text-left">Hours</th>
+                    <th className="p-3 text-right rtl:text-left">Rate</th>
+                    <th className="p-3 text-right rtl:text-left">Amount (JOD)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -685,9 +685,9 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
                           {item.taskCode || 'L120'} - {item.activityCode || 'A103'}
                         </span>
                       </td>
-                      <td className="p-3 text-right font-mono font-bold">{item.hours}</td>
-                      <td className="p-3 text-right font-mono">{item.rate}</td>
-                      <td className="p-3 text-right font-mono font-bold text-slate-900">
+                      <td className="p-3 text-right rtl:text-left font-mono font-bold">{item.hours}</td>
+                      <td className="p-3 text-right rtl:text-left font-mono">{item.rate}</td>
+                      <td className="p-3 text-right rtl:text-left font-mono font-bold text-slate-900">
                         {(item.hours * item.rate).toLocaleString()}
                       </td>
                     </tr>

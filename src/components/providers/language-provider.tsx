@@ -20,18 +20,18 @@ interface LanguageContextValue {
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  // Lazy initializer — reads localStorage on the client only. The server
-  // returns 'en' (default). Hydration mismatch on <html lang> is suppressed
-  // via suppressHydrationWarning in app/layout.tsx.
+  // Arabic-first — default to 'ar' on both server and client (unless user
+  // previously chose English). Hydration mismatch on <html lang/dir> is
+  // suppressed via suppressHydrationWarning in app/layout.tsx.
   const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window === "undefined") return "en";
+    if (typeof window === "undefined") return "ar";
     try {
       const saved = localStorage.getItem("almizan_lang") as Language | null;
       if (saved === "ar" || saved === "en") return saved;
     } catch {
       /* ignore */
     }
-    return "en";
+    return "ar";
   });
 
   const setLanguage = useCallback((lang: Language) => {
