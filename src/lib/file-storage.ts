@@ -4,32 +4,23 @@
 // Dual-strategy file storage:
 // 1. Vercel Blob (production) — if BLOB_READ_WRITE_TOKEN is set in env
 //    Files are stored with PRIVATE access (no public URLs).
-//    Downloads go through our authenticated API endpoint which generates
-//    a short-lived signed URL server-side.
+//    Downloads use @vercel/blob's download() which handles auth internally.
 // 2. DB fallback (dev / no Blob token) — stores raw bytes in the Document
 //    model's fileContent column
-//
-// SECURITY: Files are NEVER publicly accessible. Even with the Blob URL,
-// a user cannot download the file without going through our authenticated
-// /api/documents/[id]/file endpoint which checks org ownership + role.
 // =============================================================================
 
 const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB hard limit
 
 export interface StoredFile {
-  blobUrl: string | null;      // Vercel Blob URL (null if using DB fallback)
-  fileContent: Buffer | null;  // Raw bytes (null if using Vercel Blob)
+  blobUrl: string | null;
+  fileContent: Buffer | null;
   fileMimeType: string;
   fileSize: number;
 }
 
 /**
  * Stores a file using the best available strategy.
- * Returns metadata about where the file was stored.
- *
- * If Vercel Blob is configured but the upload fails, it falls back to DB
- * storage so the user's upload doesn't fail entirely.
  */
 export async function storeFile(
   filename: string,
@@ -40,12 +31,11 @@ export async function storeFile(
     throw new Error(`File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024} MB.`);
   }
 
-  // Strategy 1: Vercel Blob (production) — PRIVATE access
   if (BLOB_TOKEN) {
     try {
       const { put } = await import("@vercel/blob");
       const blob = await put(filename, fileBuffer, {
-        access: "private", // ← FIX: private, not public
+        access: "private",
         contentType: mimeType,
         addRandomSuffix: true,
       });
@@ -56,14 +46,10 @@ export async function storeFile(
         fileSize: fileBuffer.length,
       };
     } catch (err: any) {
-      // If Blob upload fails, fall back to DB storage so the upload
-      // doesn't fail entirely. Log the error for debugging.
       console.error("[file-storage] Vercel Blob upload failed, falling back to DB:", err?.message ?? err);
-      // Fall through to DB fallback
     }
   }
 
-  // Strategy 2: DB fallback (dev / no Blob token / Blob upload failed)
   return {
     blobUrl: null,
     fileContent: fileBuffer,
@@ -73,67 +59,49 @@ export async function storeFile(
 }
 
 /**
- * Retrieves file content for serving to the client.
+ * Retrieves file content for serving through our authenticated API.
  *
- * - If stored in Vercel Blob (private): generates a short-lived signed URL
- *   using @vercel/blob's head() function, then fetches the content.
- *   The signed URL expires quickly and is never exposed to the browser —
- *   the file content is streamed through our authenticated API endpoint.
- * - If stored in DB: returns the raw bytes directly
+ * For private Vercel Blob files, uses @vercel/blob's download() which
+ * handles the BLOB_READ_WRITE_TOKEN authentication internally and returns
+ * a readable stream. We convert it to a Buffer.
  */
 export async function retrieveFile(
   blobUrl: string | null,
   fileContent: Buffer | null,
   fileMimeType: string | null,
 ): Promise<{ buffer: Buffer; mimeType: string }> {
-  // Strategy 1: Vercel Blob (private — needs signed URL)
+  // Strategy 1: Vercel Blob (private)
   if (blobUrl) {
     try {
-      // Use @vercel/blob's head() to get a signed download URL for the
-      // private blob. This generates a short-lived URL that allows
-      // server-side fetch of the file content.
-      const { head } = await import("@vercel/blob");
-      const blobInfo = await head(blobUrl);
-
-      // head() returns metadata but for private blobs we need to use
-      // the download() helper or fetch with the signed URL.
-      // Actually, for private blobs, we can use the blob's URL directly
-      // with the BLOB_READ_WRITE_TOKEN as authorization.
-      // The cleanest approach: use fetch with the Authorization header.
-      const response = await fetch(blobUrl, {
-        headers: {
-          // Vercel Blob private files require the token as a Bearer header
-          Authorization: `Bearer ${BLOB_TOKEN}`,
-        },
-      });
-
-      if (!response.ok) {
-        // Fallback: try the head() approach to get a signed URL
-        try {
-          const { download } = await import("@vercel/blob/blob");
-          const signedUrl = await download(blobUrl);
-          const signedResponse = await fetch(signedUrl);
-          if (signedResponse.ok) {
-            const arrayBuffer = await signedResponse.arrayBuffer();
-            return {
-              buffer: Buffer.from(arrayBuffer),
-              mimeType: fileMimeType ?? blobInfo.contentType ?? "application/octet-stream",
-            };
-          }
-        } catch {
-          // Fall through to error
-        }
-        throw new Error(`Failed to fetch private Blob file: ${response.status} ${response.statusText}`);
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
+      const { download } = await import("@vercel/blob");
+      // download() returns a Blob for private files — it handles auth
+      // using the BLOB_READ_WRITE_TOKEN env var automatically.
+      const blob = await download(blobUrl);
+      const arrayBuffer = await blob.arrayBuffer();
       return {
         buffer: Buffer.from(arrayBuffer),
-        mimeType: fileMimeType ?? response.headers.get("content-type") ?? "application/octet-stream",
+        mimeType: fileMimeType ?? blob.type ?? "application/octet-stream",
       };
     } catch (err: any) {
-      console.error("[file-storage] Failed to retrieve private Blob file:", err?.message ?? err);
-      throw new Error(`Failed to retrieve file: ${err?.message ?? "Unknown error"}`);
+      console.error("[file-storage] download() failed:", err?.message ?? err);
+
+      // Fallback: try raw fetch with Authorization header
+      try {
+        const response = await fetch(blobUrl, {
+          headers: { Authorization: `Bearer ${BLOB_TOKEN}` },
+        });
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          return {
+            buffer: Buffer.from(arrayBuffer),
+            mimeType: fileMimeType ?? response.headers.get("content-type") ?? "application/octet-stream",
+          };
+        }
+      } catch (fetchErr) {
+        console.error("[file-storage] raw fetch fallback also failed:", fetchErr);
+      }
+
+      throw new Error("File could not be retrieved from storage.");
     }
   }
 
@@ -149,7 +117,7 @@ export async function retrieveFile(
 }
 
 /**
- * Deletes a file from storage (used when a document is deleted).
+ * Deletes a file from storage.
  */
 export async function deleteFile(blobUrl: string | null): Promise<void> {
   if (blobUrl && BLOB_TOKEN) {
@@ -160,20 +128,12 @@ export async function deleteFile(blobUrl: string | null): Promise<void> {
       console.error("[file-storage] Failed to delete Blob file:", err);
     }
   }
-  // DB fallback: no explicit delete needed — the Document row deletion
-  // cascades the fileContent column automatically.
 }
 
-/**
- * Checks whether Vercel Blob is configured.
- */
 export function isBlobConfigured(): boolean {
   return !!BLOB_TOKEN;
 }
 
-/**
- * Formats file size as a human-readable string.
- */
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;

@@ -205,7 +205,7 @@ export default function Page() {
   const activeMatter = matters.find((m) => m.id === activeMatterId);
 
   return (
-    <div className="app-theme-wrapper min-h-screen p-2 sm:p-4 md:p-8 pb-24 lg:pb-8 text-foreground flex flex-col">
+    <div className="app-theme-wrapper min-h-screen p-2 sm:p-4 md:p-8 pb-24 lg:pb-8 text-foreground flex flex-col overflow-x-hidden">
       {/* Header with profile widget, matter selector, mode toggle */}
       <Header
         currentMode={mode}

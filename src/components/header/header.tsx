@@ -244,7 +244,7 @@ export default function Header({
   const handleApproveDocument = async (docId: string) => {
     try {
       const res = await fetch(`/api/documents/${docId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ visibleToClient: true })
       });
@@ -262,7 +262,7 @@ export default function Header({
   const handleCompleteTask = async (taskId: string) => {
     try {
       const res = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Completed' })
       });
@@ -363,9 +363,9 @@ export default function Header({
       />
 
       {/* Desktop Header Bar (Hidden on Mobile) */}
-      <header className="hidden lg:flex items-center justify-between gap-4 mb-6" id="app-header">
+      <header className="hidden lg:flex items-center justify-between gap-4 mb-6 overflow-x-hidden" id="app-header">
       {/* === ZONE 1: Brand === */}
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="flex items-center gap-3 shrink-0 min-w-0">
         <ThemeAwareLogo className="h-14 w-auto shrink-0" alt="Al Mizan Legal Practice" />
         {activeMatter && (
           <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-700/50 rounded-lg">
@@ -413,7 +413,7 @@ export default function Header({
       </div>
 
       {/* === ZONE 3: Grouped Action Buttons === */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2 shrink-0 flex-wrap">
 
       {/* Group A: Primary Actions */}
       <div className="flex items-center gap-1.5">
