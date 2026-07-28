@@ -48,8 +48,6 @@ export async function GET(
   try {
     const { buffer, mimeType } = await retrieveFile(doc.blobUrl, doc.fileContent, doc.fileMimeType);
 
-    // Return as binary response with inline disposition (view in browser)
-    // + Content-Disposition with filename for download
     const fileName = doc.name || "document";
     const encodedName = encodeURIComponent(fileName);
 
@@ -62,9 +60,20 @@ export async function GET(
       },
     });
   } catch (err: any) {
-    console.error("[file-download] Error retrieving file:", err?.message ?? err);
+    console.error("[file-download] Error:", err?.message ?? err);
+    console.error("[file-download] doc.blobUrl:", doc.blobUrl);
+    console.error("[file-download] doc.fileContent is null:", !doc.fileContent);
+    console.error("[file-download] doc.fileMimeType:", doc.fileMimeType);
     return NextResponse.json(
-      { error: "Failed to retrieve file. It may have been deleted from storage." },
+      {
+        error: "Could not retrieve file content.",
+        detail: err?.message ?? "Unknown error",
+        debug: {
+          hasBlobUrl: !!doc.blobUrl,
+          hasFileContent: !!doc.fileContent,
+          hasMimeType: !!doc.fileMimeType,
+        },
+      },
       { status: 500 },
     );
   }

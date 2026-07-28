@@ -1,14 +1,20 @@
 // =============================================================================
 // Al Mizan Legal Practice — file storage service
 // -----------------------------------------------------------------------------
-// Dual-strategy file storage:
-// 1. Vercel Blob (production) — if BLOB_READ_WRITE_TOKEN is set in env
-//    Files are stored with PRIVATE access (no public URLs).
-// 2. DB fallback (dev / no Blob token) — stores raw bytes in the Document
-//    model's fileContent column
+// SIMPLIFIED: Always store files in the DB (fileContent column).
+//
+// This is the most reliable approach for the current stage — no external
+// dependencies, no Blob token issues, no private/public access confusion.
+// Files are stored as raw bytes in Postgres and served through the
+// authenticated API endpoint.
+//
+// When the org grows to thousands of large files, this can be migrated to
+// Vercel Blob by:
+// 1. Adding BLOB_READ_WRITE_TOKEN to env
+// 2. Changing storeFile to use Vercel Blob
+// 3. Migrating existing files from DB to Blob
 // =============================================================================
 
-const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB hard limit
 
 export interface StoredFile {
@@ -19,7 +25,8 @@ export interface StoredFile {
 }
 
 /**
- * Stores a file using the best available strategy.
+ * Stores a file — always in DB for reliability.
+ * The file bytes go into the Document.fileContent column.
  */
 export async function storeFile(
   filename: string,
@@ -28,25 +35,6 @@ export async function storeFile(
 ): Promise<StoredFile> {
   if (fileBuffer.length > MAX_FILE_SIZE) {
     throw new Error(`File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024} MB.`);
-  }
-
-  if (BLOB_TOKEN) {
-    try {
-      const { put } = await import("@vercel/blob");
-      const blob = await put(filename, fileBuffer, {
-        access: "private",
-        contentType: mimeType,
-        addRandomSuffix: true,
-      });
-      return {
-        blobUrl: blob.url,
-        fileContent: null,
-        fileMimeType: mimeType,
-        fileSize: fileBuffer.length,
-      };
-    } catch (err: any) {
-      console.error("[file-storage] Vercel Blob upload failed, falling back to DB:", err?.message ?? err);
-    }
   }
 
   return {
@@ -58,54 +46,13 @@ export async function storeFile(
 }
 
 /**
- * Retrieves file content for serving through our authenticated API.
- *
- * For private Vercel Blob files, we try multiple strategies:
- * 1. @vercel/blob's download() — handles auth internally
- * 2. Raw fetch with Authorization header
- * 3. If both fail, the file might have been stored in DB (fallback during upload)
+ * Retrieves file content from the DB.
  */
 export async function retrieveFile(
   blobUrl: string | null,
   fileContent: Buffer | null,
   fileMimeType: string | null,
 ): Promise<{ buffer: Buffer; mimeType: string }> {
-  // Strategy 1: Vercel Blob (private)
-  if (blobUrl) {
-    // Try 1: @vercel/blob download()
-    try {
-      const { download } = await import("@vercel/blob");
-      const blob = await download(blobUrl);
-      const arrayBuffer = await blob.arrayBuffer();
-      return {
-        buffer: Buffer.from(arrayBuffer),
-        mimeType: fileMimeType ?? blob.type ?? "application/octet-stream",
-      };
-    } catch (err1: any) {
-      console.error("[file-storage] download() failed:", err1?.message ?? err1);
-    }
-
-    // Try 2: Raw fetch with Authorization header
-    try {
-      const response = await fetch(blobUrl, {
-        headers: {
-          Authorization: `Bearer ${BLOB_TOKEN}`,
-        },
-      });
-      if (response.ok) {
-        const arrayBuffer = await response.arrayBuffer();
-        return {
-          buffer: Buffer.from(arrayBuffer),
-          mimeType: fileMimeType ?? response.headers.get("content-type") ?? "application/octet-stream",
-        };
-      }
-      console.error("[file-storage] raw fetch failed:", response.status, response.statusText);
-    } catch (err2: any) {
-      console.error("[file-storage] raw fetch error:", err2?.message ?? err2);
-    }
-  }
-
-  // Strategy 2: DB fallback
   if (fileContent) {
     return {
       buffer: fileContent,
@@ -113,25 +60,56 @@ export async function retrieveFile(
     };
   }
 
-  throw new Error("File not found — no blob URL or file content available.");
+  // If fileContent is null but blobUrl exists, try Vercel Blob as fallback
+  // (for files that were uploaded when Blob was still being used)
+  if (blobUrl) {
+    const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
+    if (BLOB_TOKEN) {
+      // Try @vercel/blob download()
+      try {
+        const { download } = await import("@vercel/blob");
+        const blob = await download(blobUrl);
+        const arrayBuffer = await blob.arrayBuffer();
+        return {
+          buffer: Buffer.from(arrayBuffer),
+          mimeType: fileMimeType ?? blob.type ?? "application/octet-stream",
+        };
+      } catch (err1: any) {
+        console.error("[file-storage] Blob download() failed:", err1?.message ?? err1);
+      }
+
+      // Try raw fetch with auth header
+      try {
+        const response = await fetch(blobUrl, {
+          headers: { Authorization: `Bearer ${BLOB_TOKEN}` },
+        });
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          return {
+            buffer: Buffer.from(arrayBuffer),
+            mimeType: fileMimeType ?? response.headers.get("content-type") ?? "application/octet-stream",
+          };
+        }
+      } catch (err2: any) {
+        console.error("[file-storage] Blob raw fetch failed:", err2?.message ?? err2);
+      }
+    }
+  }
+
+  throw new Error("File content not found in database. The file may have been uploaded before the file storage columns were added.");
 }
 
 /**
  * Deletes a file from storage.
  */
 export async function deleteFile(blobUrl: string | null): Promise<void> {
-  if (blobUrl && BLOB_TOKEN) {
-    try {
-      const { del } = await import("@vercel/blob");
-      await del(blobUrl);
-    } catch (err) {
-      console.error("[file-storage] Failed to delete Blob file:", err);
-    }
-  }
+  // DB fallback: no explicit delete needed — the Document row deletion
+  // cascades the fileContent column automatically.
+  // Vercel Blob files (legacy) are cleaned up separately if needed.
 }
 
 export function isBlobConfigured(): boolean {
-  return !!BLOB_TOKEN;
+  return !!process.env.BLOB_READ_WRITE_TOKEN;
 }
 
 export function formatFileSize(bytes: number): string {
