@@ -15,6 +15,12 @@ import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
 import { audit } from "@/lib/audit";
 
+/** Safely parse aiTags JSON string → array. Returns [] on failure. */
+function safeParseTags(raw: string | null): string[] {
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
 const documentCreateSchema = z.object({
   name: z.string().min(1).max(300),
   category: z.string().min(1).max(80).default("General"),
@@ -38,13 +44,34 @@ export async function GET(
   const docs = await db.document.findMany({
     where: { matterId: id, ...orgWhere(r.session) },
     orderBy: { uploadedAt: "desc" },
+    // SECURITY: Never select fileContent — it contains the raw file bytes.
+    // File content is only accessible via the dedicated download endpoint.
+    select: {
+      id: true,
+      organizationId: true,
+      matterId: true,
+      name: true,
+      category: true,
+      fileSize: true,
+      uploadedBy: true,
+      uploadedAt: true,
+      visibleToClient: true,
+      version: true,
+      aiSummary: true,
+      aiTags: true,
+      isRedacted: true,
+      redactedVersionId: true,
+      redactionCount: true,
+      blobUrl: true,
+      fileMimeType: true,
+    },
   });
 
-  // Parse JSON fields
+  // Parse JSON fields safely
   return NextResponse.json(
     docs.map((d) => ({
       ...d,
-      aiTags: d.aiTags ? JSON.parse(d.aiTags) : [],
+      aiTags: safeParseTags(d.aiTags),
     })),
   );
 }
@@ -75,5 +102,7 @@ export async function POST(
 
   await audit({ action: "document.create", entity: "document", entityId: doc.id, matterId: id, details: { name: doc.name } }, req);
 
-  return NextResponse.json({ ...doc, aiTags: [] }, { status: 201 });
+  // Never return fileContent in the response
+  const { fileContent, ...safeDoc } = doc as any;
+  return NextResponse.json({ ...safeDoc, aiTags: [] }, { status: 201 });
 }

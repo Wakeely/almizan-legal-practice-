@@ -13,6 +13,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser, orgWhere } from "@/lib/org";
 import { retrieveFile } from "@/lib/file-storage";
+import { ensureFileColumns } from "@/lib/migrate-files";
 
 export async function GET(
   req: Request,
@@ -21,6 +22,9 @@ export async function GET(
   const r = await requireUser();
   if (!r.ok) return r.response;
   const { id } = await params;
+
+  // Ensure the Document table has the file storage columns
+  await ensureFileColumns();
 
   // Fetch the document (org-scoped)
   const doc = await db.document.findFirst({
@@ -63,17 +67,8 @@ export async function GET(
     console.error("[file-download] Error:", err?.message ?? err);
     console.error("[file-download] doc.blobUrl:", doc.blobUrl);
     console.error("[file-download] doc.fileContent is null:", !doc.fileContent);
-    console.error("[file-download] doc.fileMimeType:", doc.fileMimeType);
     return NextResponse.json(
-      {
-        error: "Could not retrieve file content.",
-        detail: err?.message ?? "Unknown error",
-        debug: {
-          hasBlobUrl: !!doc.blobUrl,
-          hasFileContent: !!doc.fileContent,
-          hasMimeType: !!doc.fileMimeType,
-        },
-      },
+      { error: "Could not retrieve file content. Please try re-uploading the file." },
       { status: 500 },
     );
   }

@@ -281,7 +281,21 @@ export default function ClientPortal({ activeMatter, onRefreshMatter }: ClientPo
                       <p className="text-[10px] text-slate-500 font-medium mt-0.5">{doc.fileSize} • {isRtl ? 'إصدار' : 'Version'} {doc.version}.0</p>
                     </div>
                     <button
-                      onClick={() => alert(isRtl ? `محاكاة تحميل ملف: ${translateStaticText(doc.name, isRtl)}` : `Simulating file download of: ${doc.name}`)}
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`/api/documents/${doc.id}/file`, { credentials: 'same-origin' });
+                          if (!res.ok) { console.error('Download failed:', res.status); return; }
+                          const blob = await res.blob();
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = doc.name || 'document';
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                        } catch (err) { console.error('Download error:', err); }
+                      }}
                       className="p-2 bg-white hover:bg-teal-50 text-teal-700 hover:text-teal-900 border border-teal-200 rounded-lg shadow-2xs transition-colors cursor-pointer shrink-0"
                     >
                       <Download className="w-3.5 h-3.5" />

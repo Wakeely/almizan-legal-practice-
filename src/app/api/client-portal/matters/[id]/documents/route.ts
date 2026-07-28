@@ -27,6 +27,8 @@ export async function GET(
   if (!owns) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // SERVER-SIDE FILTER: only visibleToClient === true
+  // SECURITY: Never select fileContent — raw file bytes only accessible
+  // via the dedicated download endpoint which enforces role + org checks.
   const docs = await db.document.findMany({
     where: {
       matterId: id,
@@ -34,12 +36,27 @@ export async function GET(
       ...orgWhere(r.session),
     },
     orderBy: { uploadedAt: "desc" },
+    select: {
+      id: true,
+      matterId: true,
+      name: true,
+      category: true,
+      fileSize: true,
+      uploadedBy: true,
+      uploadedAt: true,
+      visibleToClient: true,
+      version: true,
+      aiSummary: true,
+      aiTags: true,
+      isRedacted: true,
+      redactionCount: true,
+    },
   });
 
   return NextResponse.json(
     docs.map((d) => ({
       ...d,
-      aiTags: d.aiTags ? JSON.parse(d.aiTags) : [],
+      aiTags: d.aiTags ? (() => { try { return JSON.parse(d.aiTags!); } catch { return []; } })() : [],
     })),
   );
 }

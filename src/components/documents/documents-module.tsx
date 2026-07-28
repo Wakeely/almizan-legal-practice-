@@ -202,7 +202,7 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
     const updatedVisible = !doc.visibleToClient;
     try {
       const res = await fetch(`/api/documents/${doc.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ visibleToClient: updatedVisible })
       });
@@ -211,8 +211,11 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
         if (selectedDoc && selectedDoc.id === doc.id) {
           setSelectedDoc(prev => prev ? { ...prev, visibleToClient: updatedVisible } : null);
         }
+      } else {
+        setUploadError('Failed to toggle visibility. Please try again.');
       }
     } catch (err) {
+      setUploadError('Network error. Please try again.');
       console.error(err);
     }
   };
@@ -223,16 +226,29 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
       const res = await fetch('/api/ai/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ docId, docName, category })
+        body: JSON.stringify({ documentId: docId })
       });
       if (res.ok) {
-        const updatedDoc = await res.json();
-        setDocs(prev => prev.map(d => d.id === docId ? updatedDoc : d));
+        const data = await res.json();
+        // Merge the AI response into the existing doc — don't replace the whole doc
+        setDocs(prev => prev.map(d => d.id === docId ? {
+          ...d,
+          aiSummary: data.summary,
+          aiTags: data.tags || []
+        } : d));
         if (selectedDoc && selectedDoc.id === docId) {
-          setSelectedDoc(updatedDoc);
+          setSelectedDoc(prev => prev ? {
+            ...prev,
+            aiSummary: data.summary,
+            aiTags: data.tags || []
+          } : null);
         }
+      } else {
+        const err = await res.json().catch(() => ({ error: 'AI summary failed' }));
+        setUploadError(err.error || 'Failed to generate AI summary.');
       }
     } catch (err) {
+      setUploadError('Network error during AI summary.');
       console.error(err);
     } finally {
       setAiAnalyzingId(null);

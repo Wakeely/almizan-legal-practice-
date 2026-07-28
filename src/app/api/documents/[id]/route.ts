@@ -53,13 +53,22 @@ export async function PATCH(
     data: cleanUpdates,
   });
   if (result.count === 0) return NextResponse.json({ error: 'Not found or not owned by your organization' }, { status: 404 });
-  const updated = await db.document.findFirst({ where: { id, ...orgWhere(r.session) } });
+  // Use select to exclude fileContent from the response
+  const updated = await db.document.findFirst({
+    where: { id, ...orgWhere(r.session) },
+    select: {
+      id: true, organizationId: true, matterId: true, name: true, category: true,
+      fileSize: true, uploadedBy: true, uploadedAt: true, visibleToClient: true,
+      version: true, aiSummary: true, aiTags: true, isRedacted: true,
+      redactedVersionId: true, redactionCount: true, blobUrl: true, fileMimeType: true,
+    },
+  });
 
   await audit({ action: "document.update", entity: "document", entityId: id, matterId: existing.matterId, details: cleanUpdates }, req);
 
   return NextResponse.json({
     ...updated,
-    aiTags: updated.aiTags ? JSON.parse(updated.aiTags) : [],
+    aiTags: updated?.aiTags ? (() => { try { return JSON.parse(updated.aiTags); } catch { return []; } })() : [],
   });
 }
 

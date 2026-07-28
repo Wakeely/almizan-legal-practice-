@@ -17,6 +17,7 @@ import { requireUser, verifyMatterBelongsToOrg } from "@/lib/org";
 import { storeFile, formatFileSize } from "@/lib/file-storage";
 import { audit } from "@/lib/audit";
 import { getFullUserProfile } from "@/lib/session";
+import { ensureFileColumns } from "@/lib/migrate-files";
 
 const ALLOWED_MIME_TYPES = [
   "application/pdf",
@@ -96,47 +97,25 @@ export async function POST(
   const userProfile = await getFullUserProfile();
   const uploadedBy = userProfile?.name ?? r.session.name ?? "Unknown";
 
-  // Save document metadata in DB
-  let doc;
-  try {
-    doc = await db.document.create({
-      data: {
-        name: name || file.name,
-        category,
-        fileSize: formatFileSize(stored.fileSize),
-        uploadedBy,
-        visibleToClient,
-        version: 1,
-        matterId: id,
-        organizationId: r.session.organizationId,
-        blobUrl: stored.blobUrl,
-        fileContent: stored.fileContent,
-        fileMimeType: stored.fileMimeType,
-      },
-    });
-  } catch (dbErr: any) {
-    // If the DB doesn't have the new columns yet (blobUrl, fileContent,
-    // fileMimeType), the Prisma create will fail with "Unknown argument".
-    // In that case, retry WITHOUT the new fields so the upload still works
-    // (metadata-only, no file content stored — user needs to run migration).
-    if (dbErr?.message?.includes("Unknown argument") || dbErr?.message?.includes("does not exist")) {
-      console.error("[upload] DB missing file columns — falling back to metadata-only create:", dbErr.message);
-      doc = await db.document.create({
-        data: {
-          name: name || file.name,
-          category,
-          fileSize: formatFileSize(stored.fileSize),
-          uploadedBy,
-          visibleToClient,
-          version: 1,
-          matterId: id,
-          organizationId: r.session.organizationId,
-        },
-      });
-    } else {
-      throw dbErr; // Re-throw unexpected errors
-    }
-  }
+  // Ensure the Document table has the file storage columns
+  await ensureFileColumns();
+
+  // Save document metadata + file content in DB
+  const doc = await db.document.create({
+    data: {
+      name: name || file.name,
+      category,
+      fileSize: formatFileSize(stored.fileSize),
+      uploadedBy,
+      visibleToClient,
+      version: 1,
+      matterId: id,
+      organizationId: r.session.organizationId,
+      blobUrl: stored.blobUrl,
+      fileContent: stored.fileContent,
+      fileMimeType: stored.fileMimeType,
+    },
+  });
 
   await audit({
     action: "document.upload",
