@@ -38,7 +38,7 @@ function publicUser(user: any, org: any) {
 
 export async function POST(req: Request) {
   const ip = getClientIp(req);
-  const limit = authRateLimit(ip);
+  const limit = await authRateLimit(ip);
   if (!limit.ok) {
     return NextResponse.json(
       { error: "Too many attempts. Please retry shortly." },

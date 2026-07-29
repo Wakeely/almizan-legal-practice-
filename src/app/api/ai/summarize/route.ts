@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   if (!r.ok) return r.response;
 
   const ip = getClientIp(req);
-  const limit = aiRateLimit(ip, r.session.organizationId);
+  const limit = await aiRateLimit(ip, r.session.organizationId);
   if (!limit.ok) {
     return NextResponse.json(
       { error: "AI rate limit exceeded. Please retry shortly." },

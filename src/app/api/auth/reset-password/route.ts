@@ -12,7 +12,7 @@ import { audit } from "@/lib/audit";
 
 export async function POST(req: Request) {
   const ip = getClientIp(req);
-  const limit = authRateLimit(ip);
+  const limit = await authRateLimit(ip);
   if (!limit.ok) {
     return NextResponse.json(
       { error: "Too many attempts. Please retry shortly." },
