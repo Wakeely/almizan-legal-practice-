@@ -569,7 +569,7 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
                 </div>
 
                 <div className="bg-white border border-slate-200/80 p-4 rounded-xl text-xs text-slate-600 leading-relaxed shadow-sm">
-                  {translateStaticText(selectedDoc.aiSummary, isRtl) || (isRtl ? "لا يوجد ملخص متاح بعد. اضغط على زر النجمة لتشغيل مراجعة جيمي للبنود واستخراج المخاطر." : "No summary available yet. Click the Sparkles button next to the file to run a deep litigation clause analysis via Gemini.")}
+                  {translateStaticText(selectedDoc.aiSummary || '', isRtl) || (isRtl ? "لا يوجد ملخص متاح بعد. اضغط على زر النجمة لتشغيل مراجعة جيمي للبنود واستخراج المخاطر." : "No summary available yet. Click the Sparkles button next to the file to run a deep litigation clause analysis via Gemini.")}
                 </div>
 
                 {selectedDoc.aiTags && selectedDoc.aiTags.length > 0 && (
