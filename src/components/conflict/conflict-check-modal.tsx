@@ -49,10 +49,10 @@ export default function ConflictCheckModal({ isOpen, onClose, matters }: Conflic
         if (m.clientName.toLowerCase().includes(termLower)) {
           matches.push({ matter: m, matchedField: m.clientName, relationship: isRtl ? 'عميل حالي / سابق' : 'Current / Former Client' });
         }
-        if (m.opposingParty.toLowerCase().includes(termLower)) {
+        if (m.opposingParty?.toLowerCase().includes(termLower)) {
           matches.push({ matter: m, matchedField: m.opposingParty, relationship: isRtl ? 'خصم في قضية قائمة' : 'Adverse Party in Active Matter' });
         }
-        if (m.opposingCounsel.toLowerCase().includes(termLower)) {
+        if (m.opposingCounsel?.toLowerCase().includes(termLower)) {
           matches.push({ matter: m, matchedField: m.opposingCounsel, relationship: isRtl ? 'مستشار الخصم' : 'Opposing Legal Counsel' });
         }
         if (m.title.toLowerCase().includes(termLower)) {
