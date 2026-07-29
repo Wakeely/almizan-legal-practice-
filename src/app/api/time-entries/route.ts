@@ -34,7 +34,7 @@ const timeEntryUpdateSchema = z.object({
 
 export async function GET(req: Request) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
 
   const url = new URL(req.url);
   const matterId = url.searchParams.get("matterId");
@@ -51,7 +51,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
 
   const body = await req.json().catch(() => null);
   const parsed = parseBody(timeEntryCreateSchema, body);
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
 
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
@@ -114,7 +114,7 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
 
   const url = new URL(req.url);
   const id = url.searchParams.get("id");

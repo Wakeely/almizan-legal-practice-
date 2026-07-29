@@ -15,7 +15,7 @@ import { audit } from "@/lib/audit";
 
 export async function GET(req: Request) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
 
   // Restrict to Managing Partner role (per master system prompt)
   if (r.session.role !== "Managing Partner") {

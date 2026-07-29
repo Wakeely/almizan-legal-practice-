@@ -45,7 +45,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
   const { id } = await params;
 
   // Verify the matter belongs to the user's org

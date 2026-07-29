@@ -11,7 +11,7 @@ import { requireUser, orgWhere } from "@/lib/org";
 
 export async function GET(req: Request) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
 
   const url = new URL(req.url);
   const q = (url.searchParams.get("q") ?? "").trim();

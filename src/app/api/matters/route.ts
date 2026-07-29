@@ -6,7 +6,7 @@ import { audit } from "@/lib/audit";
 
 export async function GET(req: Request) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
 
   const { searchParams } = new URL(req.url);
   const limit = Math.min(Number(searchParams.get("limit") || "20"), 100);
@@ -58,7 +58,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
 
   const body = await req.json().catch(() => null);
   const parsed = parseBody(matterCreateSchema, body);

@@ -14,7 +14,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
   const { id } = await params;
 
   // Verify matter belongs to user's org (consistent with all other matter-scoped routes)
@@ -34,7 +34,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
   const { id } = await params;
 
   // Verify matter belongs to user's org before allowing update

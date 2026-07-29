@@ -28,7 +28,7 @@ function generateCertificateNumber(): string {
 
 export async function GET(req: Request) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
 
   const checks = await db.conflictCheck.findMany({
     where: orgWhere(r.session),
@@ -45,7 +45,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
 
   const body = await req.json().catch(() => null);
   const parsed = parseBody(conflictCheckCreateSchema, body);

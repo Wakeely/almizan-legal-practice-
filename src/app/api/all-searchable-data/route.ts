@@ -19,7 +19,7 @@ const MAX_PER_TYPE = 500;
 
 export async function GET() {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
 
   const [matters, documents, tasks] = await Promise.all([
     db.matter.findMany({

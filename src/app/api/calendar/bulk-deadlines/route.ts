@@ -27,7 +27,7 @@ const bulkDeadlineSchema = z.object({
 
 export async function POST(req: Request) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
 
   const body = await req.json().catch(() => null);
   const parsed = parseBody(bulkDeadlineSchema, body);

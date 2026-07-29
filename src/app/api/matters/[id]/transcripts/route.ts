@@ -38,7 +38,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
   const { id } = await params;
 
   const owns = await verifyMatterBelongsToOrg(id, r.session);
@@ -66,7 +66,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
   const { id } = await params;
 
   const owns = await verifyMatterBelongsToOrg(id, r.session);

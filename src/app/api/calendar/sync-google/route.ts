@@ -15,7 +15,7 @@ import { audit } from "@/lib/audit";
 
 export async function POST(req: Request) {
   const r = await requireUser();
-  if (!r.ok) return r.response;
+  if (r.ok === false) return r.response;
 
   await audit({ action: "calendar.google-sync.attempted" }, req);
 
