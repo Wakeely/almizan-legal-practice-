@@ -55,12 +55,7 @@ export async function GET(
     const fileName = doc.name || "document";
     const encodedName = encodeURIComponent(fileName);
 
-    const arrayBuffer = buffer.buffer.slice(
-      buffer.byteOffset,
-      buffer.byteOffset + buffer.byteLength,
-    );
-
-    return new NextResponse(arrayBuffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": mimeType,
         "Content-Disposition": `inline; filename="${encodedName}"; filename*=UTF-8''${encodedName}`,
