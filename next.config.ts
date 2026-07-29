@@ -5,11 +5,6 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  api: {
-    bodyParser: {
-      sizeLimit: "10mb",
-    },
-  },
   async headers() {
     return [
       {
