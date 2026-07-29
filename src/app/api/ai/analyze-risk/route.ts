@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const body = await req.json().catch(() => null);
+  const body = await req.json().catch((): null => null);
   const { matterId } = body ?? {};
   if (!matterId) return NextResponse.json({ error: "matterId required" }, { status: 400 });
 

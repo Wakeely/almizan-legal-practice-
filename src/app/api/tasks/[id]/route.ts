@@ -36,7 +36,7 @@ export async function PATCH(
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const body = await req.json().catch(() => null);
+  const body = await req.json().catch((): null => null);
   const parsed = parseBody(taskUpdateSchema, body);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const updates = parsed.data;

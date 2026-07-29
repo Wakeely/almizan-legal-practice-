@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const body = await req.json().catch(() => null);
+  const body = await req.json().catch((): null => null);
   const { description } = body ?? {};
   if (!description || typeof description !== "string") {
     return NextResponse.json({ error: "description required" }, { status: 400 });

@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   const r = await requireUser();
   if (r.ok === false) return r.response;
 
-  const body = await req.json().catch(() => null);
+  const body = await req.json().catch((): null => null);
   const parsed = parseBody(subscriptionSchema, body);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const { tier, billingCycle } = parsed.data;

@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const body = await req.json().catch(() => null);
+  const body = await req.json().catch((): null => null);
   const parsed = parseBody(privilegeAnalysisSchema, body);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const data = parsed.data;

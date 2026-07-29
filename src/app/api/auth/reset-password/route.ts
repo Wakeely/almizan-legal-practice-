@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const body = await req.json().catch(() => null);
+  const body = await req.json().catch((): null => null);
   const parsed = parseBody(resetPasswordSchema, body);
   if (!parsed.ok) return NextResponse.json({ ok: true }); // don't leak
 
