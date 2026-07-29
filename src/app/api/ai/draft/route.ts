@@ -4,6 +4,7 @@
 // =============================================================================
 
 import { NextResponse } from "next/server";
+import DOMPurify from "isomorphic-dompurify";
 import { db } from "@/lib/db";
 import { requireUser, orgWhere } from "@/lib/org";
 import { aiRateLimit, getClientIp } from "@/lib/rate-limit";
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
   if (!r.ok) return r.response;
 
   const ip = getClientIp(req);
-  const limit = aiRateLimit(ip, r.session.organizationId);
+  const limit = await aiRateLimit(ip, r.session.organizationId);
   if (!limit.ok) {
     return NextResponse.json(
       { error: "AI rate limit exceeded" },
@@ -56,7 +57,7 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => null);
   const parsed = parseBody(draftSchema, body);
-  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error, fieldErrors: (parsed as any).fieldErrors }, { status: 400 });
   const data = parsed.data;
 
   // Resolve template + directive from either UI field name
@@ -122,10 +123,16 @@ Output ONLY the drafted document text. No commentary, no preamble, no closing no
     details: { template, type: rawTemplate, directiveLength: directive.length, _stub: result._stub },
   }, req);
 
+  const sanitized = DOMPurify.sanitize(result.text, {
+    ALLOWED_TAGS: [],
+    ALLOWED_ATTR: [],
+    KEEP_CONTENT: true,
+  });
+
   // Return shape expected by reference AiModule: { draft, _stub, _disclaimer }
   return NextResponse.json({
-    draft: result.text,
-    text: result.text, // also expose as `text` for consistency with other AI routes
+    draft: sanitized,
+    text: sanitized,
     _stub: result._stub,
     _disclaimer: "AI-assisted draft. Non-authoritative — review and modify with a qualified attorney before filing.",
   });

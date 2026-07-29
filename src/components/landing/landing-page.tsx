@@ -86,8 +86,8 @@ export default function LandingPage({ onEnterWorkspace, onEnterClientPortal }: L
     {
       qEn: "Is client and case data kept strictly secure and private?",
       qAr: "هل بيانات الموكلين والقضايا محفوفة بضمانات الخصوصية والأمان؟",
-      aEn: "Yes. All AI API communications route through dedicated server-side proxy routes using environment key protection. Raw API keys are never exposed to client browsers. Furthermore, Firestore data security rules ensure data isolation between authorized users.",
-      aAr: "نعم بصرامة. تمر كافة الاتصالات بالذكاء الاصطناعي عبر خوادم آمنة مع حماية المفاتيح المشفّرة. ولا يتم كشف أي مفاتيح API للمتصفح، بالإضافة إلى قواعد حماية Firestore المعتمدة."
+      aEn: "Yes. All AI API communications route through dedicated server-side proxy routes using environment key protection. Raw API keys are never exposed to client browsers. Furthermore, row-level tenant isolation in PostgreSQL ensures data is strictly separated between authorized organizations.",
+      aAr: "نعم بصرامة. تمر كافة الاتصالات بالذكاء الاصطناعي عبر خوادم آمنة مع حماية المفاتيح المشفّرة. ولا يتم كشف أي مفاتيح API للمتصفح، بالإضافة إلى عزل البيانات على مستوى الصفوف في قاعدة بيانات PostgreSQL لضمان فصل تام بين المؤسسات."
     },
     {
       qEn: "Can my clients view case progress without installing any software?",

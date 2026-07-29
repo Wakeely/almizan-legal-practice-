@@ -1,30 +1,12 @@
-// =============================================================================
-// Al Mizan Legal Practice — server-side Gemini client
-// -----------------------------------------------------------------------------
-// SECURITY (per master system prompt rule #5):
-// - All Gemini calls happen server-side only. The API key NEVER reaches the
-//   browser.
-// - The key is read from process.env.GEMINI_API_KEY. If empty, calls return
-//   a friendly stub response (with an `_stub: true` flag) so the UI still
-//   works during local dev without a key.
-// - Every call must be wrapped with aiRateLimit() + audit logging by the
-//   calling route.
-// =============================================================================
+import { GoogleGenAI } from "@google/genai";
 
-import ZAI from "z-ai-web-dev-sdk";
+let _client: GoogleGenAI | null = null;
 
-let _client: any = null;
-
-function getClient(): any | null {
+function getClient(): GoogleGenAI | null {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return null;
   if (!_client) {
-    try {
-      _client = ZAI();
-    } catch (err) {
-      console.error("[gemini] failed to init z-ai-web-dev-sdk:", err);
-      return null;
-    }
+    _client = new GoogleGenAI({ apiKey: key });
   }
   return _client;
 }
@@ -39,10 +21,6 @@ export interface GeminiResult {
   _stub: boolean;
 }
 
-/**
- * Calls Gemini with a single prompt + optional system instruction.
- * Returns { text, _stub: true } if no API key is configured.
- */
 export async function callGemini(
   prompt: string,
   systemInstruction?: string,
@@ -58,19 +36,17 @@ export async function callGemini(
   }
 
   try {
-    const messages: GeminiMessage[] = [];
-    if (systemInstruction) {
-      messages.push({ role: "system", content: systemInstruction });
-    }
-    messages.push({ role: "user", content: prompt });
-
-    const res = await client.chat.completions.create({
-      messages,
-      temperature: 0.4,
-      max_tokens: 2048,
+    const result = await client.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: systemInstruction ?? undefined,
+        temperature: 0.4,
+        maxOutputTokens: 2048,
+      },
     });
 
-    const text = res.choices?.[0]?.message?.content ?? "";
+    const text = result.text ?? "";
     return { text, _stub: false };
   } catch (err: any) {
     console.error("[gemini] call failed:", err?.message ?? err);

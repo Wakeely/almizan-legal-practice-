@@ -18,8 +18,9 @@ import { loginSchema } from "@/lib/validation/auth";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 if (!SECRET) {
-  // Fail fast at module load — auth cannot operate without a secret.
-  console.error("[auth] FATAL: NEXTAUTH_SECRET is not set. Auth will be insecure.");
+  throw new Error(
+    "[auth] FATAL: NEXTAUTH_SECRET is not set. Authentication cannot operate securely. Set a strong random secret (openssl rand -base64 32)."
+  );
 }
 
 export const authOptions: NextAuthOptions = {
@@ -29,7 +30,7 @@ export const authOptions: NextAuthOptions = {
     maxAge: 60 * 30,
   },
   jwt: {
-    secret: SECRET ?? "dev-insecure-secret-change-me",
+    secret: SECRET,
   },
   cookies: {
     sessionToken: {
@@ -128,7 +129,7 @@ export const authOptions: NextAuthOptions = {
     },
     // Fires before NextAuth destroys the session. The session is still
     // readable here, so we can audit the logout.
-    async signOut(message) {
+    async signOut() {
       try {
         const { getSessionUser } = await import("@/lib/session");
         const session = await getSessionUser();

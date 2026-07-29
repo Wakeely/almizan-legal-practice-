@@ -35,7 +35,7 @@ export const BILLING_CYCLE_VALUES = ["Monthly", "Annual"] as const;
 export const registerSchema = z.object({
   name: z.string().min(2, "Name is too short").max(120),
   email: z.string().email("Invalid email"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string().min(12, "Password must be at least 12 characters"),
   firmName: z.string().min(2, "Firm name is required").max(200),
   barAssociationId: z.string().max(80).optional().or(z.literal("")),
   jurisdiction: z.string().min(2).max(120),
@@ -89,11 +89,22 @@ export const matterUpdateSchema = matterCreateSchema.partial().extend({
 // Helper to safely parse + flatten errors
 // -----------------------------------------------------------------------------
 
+export const paginationSchema = z.object({
+  cursor: z.string().optional(),
+  limit: z.coerce.number().min(1).max(100).default(20),
+});
+
 export function parseBody<T>(schema: z.ZodSchema<T>, body: unknown):
   | { ok: true; data: T }
-  | { ok: false; error: string } {
+  | { ok: false; error: string; fieldErrors?: Record<string, string[]> } {
   const result = schema.safeParse(body);
   if (result.success) return { ok: true, data: result.data };
+
+  const flattened = result.error.flatten();
   const first = result.error.issues[0];
-  return { ok: false, error: first ? `${first.path.join(".")}: ${first.message}` : "Invalid input" };
+  return {
+    ok: false,
+    error: first ? `${first.path.join(".")}: ${first.message}` : "Invalid input",
+    fieldErrors: flattened.fieldErrors,
+  };
 }

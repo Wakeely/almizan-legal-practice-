@@ -47,7 +47,7 @@ function publicUser(user: any, org: any) {
 
 export async function POST(req: Request) {
   const ip = getClientIp(req);
-  const limit = authRateLimit(ip);
+  const limit = await authRateLimit(ip);
   if (!limit.ok) {
     return NextResponse.json(
       { error: "Too many attempts. Please retry shortly." },
@@ -57,11 +57,16 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => null);
   const parsed = parseBody(registerSchema, body);
-  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error, fieldErrors: (parsed as any).fieldErrors }, { status: 400 });
   const data = parsed.data;
 
   const strength = validatePasswordStrength(data.password);
-  if (!strength.ok) return NextResponse.json({ error: strength.reason }, { status: 400 });
+  if (!strength.ok) {
+    return NextResponse.json(
+      { error: strength.reason, fieldErrors: { password: [strength.reason!] } },
+      { status: 400 },
+    );
+  }
 
   const existing = await db.user.findUnique({ where: { email: data.email.toLowerCase() } });
   if (existing) return NextResponse.json({ error: "Email is already registered" }, { status: 409 });

@@ -1,20 +1,21 @@
-// =============================================================================
-// GET /api/matters — list all matters for the authenticated user's organization
-// POST /api/matters — create a new matter scoped to the authenticated user's org
-// =============================================================================
-
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser, orgWhere } from "@/lib/org";
 import { parseBody, matterCreateSchema } from "@/lib/validation/auth";
 import { audit } from "@/lib/audit";
 
-export async function GET() {
+export async function GET(req: Request) {
   const r = await requireUser();
   if (!r.ok) return r.response;
 
+  const { searchParams } = new URL(req.url);
+  const limit = Math.min(Number(searchParams.get("limit") || "20"), 100);
+  const cursor = searchParams.get("cursor") || undefined;
+
   const matters = await db.matter.findMany({
     where: orgWhere(r.session),
+    take: limit + 1,
+    cursor: cursor ? { id: cursor } : undefined,
     orderBy: { updatedAt: "desc" },
     select: {
       id: true,
@@ -36,10 +37,23 @@ export async function GET() {
       statuteDeadline: true,
       status: true,
       aiStrategy: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
 
-  return NextResponse.json(matters);
+  const hasMore = matters.length > limit;
+  const trimmed = hasMore ? matters.slice(0, limit) : matters;
+  const nextCursor = hasMore ? trimmed[trimmed.length - 1]?.id : undefined;
+
+  return NextResponse.json({
+    data: trimmed,
+    pagination: {
+      nextCursor,
+      hasMore,
+      limit,
+    },
+  });
 }
 
 export async function POST(req: Request) {

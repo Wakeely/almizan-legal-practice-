@@ -94,12 +94,15 @@ model User {
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  deletedAt     DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   accounts        Account[]
   sessions        Session[]
   auditLogs       AuditLog[]
+
+  @@index([deletedAt])
 }
 
 // NextAuth standard models — kept org-scoped for isolation
@@ -168,6 +171,7 @@ model Matter {
   status                String   @default("Active")
   aiStrategy            String?
 
+  deletedAt            DateTime?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -187,6 +191,7 @@ model Matter {
   // cascade-delete of audit history when a matter is deleted.
 
   @@index([organizationId])
+  @@index([deletedAt])
 }
 
 // -----------------------------------------------------------------------------
@@ -204,6 +209,7 @@ model Document {
   category          String
   fileSize          String
   uploadedBy        String
+  deletedAt         DateTime?
   uploadedAt        DateTime @default(now())
   visibleToClient   Boolean  @default(false)
   version           Int      @default(1)
@@ -222,6 +228,7 @@ model Document {
   fileMimeType      String?
 
   @@index([organizationId, matterId])
+  @@index([deletedAt])
 }
 
 // -----------------------------------------------------------------------------
@@ -244,10 +251,12 @@ model Task {
   status           String   @default("To Do") // 'To Do' | 'In Progress' | 'Under Review' | 'Completed'
   dependsOnTaskIds String?  // JSON-encoded array of task IDs
 
+  deletedAt        DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   @@index([organizationId, matterId])
+  @@index([deletedAt])
 }
 
 // -----------------------------------------------------------------------------
@@ -270,9 +279,11 @@ model TimeEntry {
   activityCode   String?  // UTBMS Activity Code (A101–A106)
   isBillable     Boolean  @default(true)
 
+  deletedAt      DateTime?
   createdAt      DateTime @default(now())
 
   @@index([organizationId, matterId])
+  @@index([deletedAt])
 }
 
 model Invoice {
@@ -289,9 +300,11 @@ model Invoice {
   issueDate     String?
   paymentTxId   String?
 
+  deletedAt     DateTime?
   createdAt     DateTime @default(now())
 
   @@index([organizationId, matterId])
+  @@index([deletedAt])
 }
 
 // -----------------------------------------------------------------------------
@@ -315,9 +328,11 @@ model CalendarEvent {
   syncedToGoogleCalendar Boolean @default(false)
   googleEventId      String?
 
+  deletedAt          DateTime?
   createdAt          DateTime @default(now())
 
   @@index([organizationId, matterId])
+  @@index([deletedAt])
 }
 
 // -----------------------------------------------------------------------------
@@ -337,9 +352,11 @@ model TimelineEvent {
   visibleToClient Boolean  @default(false)
   type            String?
 
+  deletedAt       DateTime?
   createdAt       DateTime @default(now())
 
   @@index([organizationId, matterId])
+  @@index([deletedAt])
 }
 
 model ClientMessage {
@@ -351,9 +368,11 @@ model ClientMessage {
 
   sender          String   @default("Lawyer") // 'Lawyer' | 'Client'
   text            String
+  deletedAt       DateTime?
   timestamp       DateTime @default(now())
 
   @@index([organizationId, matterId])
+  @@index([deletedAt])
 }
 
 // -----------------------------------------------------------------------------
@@ -378,9 +397,11 @@ model PrivilegeLogEntry {
   isRedacted       Boolean  @default(false)
   reviewStatus     String   @default("Flagged") // 'Flagged' | 'Verified' | 'Withheld'
 
+  deletedAt        DateTime?
   createdAt        DateTime @default(now())
 
   @@index([organizationId, matterId])
+  @@index([deletedAt])
 }
 
 // -----------------------------------------------------------------------------
@@ -401,9 +422,11 @@ model DepositionTranscript {
   pagesCount           Int      @default(0)
   pages                TranscriptPage[]
   keyAdmissionsSummary String?
+  deletedAt            DateTime?
   uploadedAt           DateTime @default(now())
 
   @@index([organizationId, matterId])
+  @@index([deletedAt])
 }
 
 model TranscriptPage {
@@ -420,7 +443,9 @@ model TranscriptPage {
   isKeyAdmission       Boolean  @default(false)
   tags                 String?  // JSON-encoded array
 
+  deletedAt            DateTime?
   @@index([organizationId, transcriptId])
+  @@index([deletedAt])
 }
 
 // -----------------------------------------------------------------------------
@@ -439,9 +464,11 @@ model WarRoomWitness {
   examinationNotes String?
   order           Int      @default(0)
 
+  deletedAt       DateTime?
   createdAt       DateTime @default(now())
 
   @@index([organizationId, matterId])
+  @@index([deletedAt])
 }
 
 model WarRoomExhibit {
@@ -456,9 +483,11 @@ model WarRoomExhibit {
   admissionStatus String   @default("Pending") // 'Pending' | 'Admitted' | 'Excluded'
   party           String   @default("Plaintiff")
 
+  deletedAt       DateTime?
   createdAt       DateTime @default(now())
 
   @@index([organizationId, matterId])
+  @@index([deletedAt])
 }
 
 // -----------------------------------------------------------------------------
@@ -477,9 +506,11 @@ model ConflictCheck {
   ethicalWallSet  Boolean  @default(false)
   notes           String?
 
+  deletedAt       DateTime?
   createdAt       DateTime @default(now())
 
   @@index([organizationId])
+  @@index([deletedAt])
 }
 
 // -----------------------------------------------------------------------------
