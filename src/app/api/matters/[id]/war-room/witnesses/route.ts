@@ -49,7 +49,7 @@ export async function POST(
 
   const body = await req.json().catch((): null => null);
   const parsed = parseBody(witnessCreateSchema, body);
-  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  if (parsed.ok === false) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const data = parsed.data;
 
   const witness = await db.warRoomWitness.create({

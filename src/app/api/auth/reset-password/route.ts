@@ -22,7 +22,7 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch((): null => null);
   const parsed = parseBody(resetPasswordSchema, body);
-  if (!parsed.ok) return NextResponse.json({ ok: true }); // don't leak
+  if (parsed.ok === false) return NextResponse.json({ ok: true }); // don't leak
 
   const user = await db.user.findUnique({ where: { email: parsed.data.email.toLowerCase() } });
   if (user) {

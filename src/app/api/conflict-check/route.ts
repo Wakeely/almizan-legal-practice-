@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch((): null => null);
   const parsed = parseBody(conflictCheckCreateSchema, body);
-  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  if (parsed.ok === false) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const data = parsed.data;
 
   const certificateNumber = generateCertificateNumber();

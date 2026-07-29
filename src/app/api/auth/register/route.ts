@@ -57,7 +57,7 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch((): null => null);
   const parsed = parseBody(registerSchema, body);
-  if (!parsed.ok) return NextResponse.json({ error: parsed.error, fieldErrors: (parsed as any).fieldErrors }, { status: 400 });
+  if (parsed.ok === false) return NextResponse.json({ error: parsed.error, fieldErrors: (parsed as any).fieldErrors }, { status: 400 });
   const data = parsed.data;
 
   const strength = validatePasswordStrength(data.password);

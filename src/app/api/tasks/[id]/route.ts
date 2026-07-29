@@ -38,7 +38,7 @@ export async function PATCH(
 
   const body = await req.json().catch((): null => null);
   const parsed = parseBody(taskUpdateSchema, body);
-  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  if (parsed.ok === false) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const updates = parsed.data;
 
   // Serialize array field for SQLite
