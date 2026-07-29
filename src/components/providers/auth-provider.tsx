@@ -13,6 +13,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import type { UserProfile } from "@/lib/types";
 
+export type SubscriptionTier = "Free Trial" | "Solo Practice" | "Pro Practice" | "Enterprise & Arbitration";
+
 interface AuthContextValue {
   user: UserProfile | null;
   isAuthenticated: boolean;

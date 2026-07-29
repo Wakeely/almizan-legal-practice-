@@ -67,6 +67,7 @@ export interface TranslationDict {
   addTask: string;
   taskTitleLabel: string;
   assignedLawyer: string;
+  assignedStaff: string;
   taskDescLabel: string;
   dueDate: string;
   priority: string;
@@ -273,6 +274,7 @@ export const translations: Record<Language, TranslationDict> = {
     addTask: "إضافة مهمة",
     taskTitleLabel: "عنوان المهمة",
     assignedLawyer: "المحامي المسؤول",
+    assignedStaff: "الموظف المسؤول",
     taskDescLabel: "تفاصيل المهمة",
     dueDate: "تاريخ الاستحقاق",
     priority: "الأولوية",
@@ -477,6 +479,7 @@ export const translations: Record<Language, TranslationDict> = {
     addTask: "Add Task",
     taskTitleLabel: "Task Title",
     assignedLawyer: "Assigned Lawyer",
+    assignedStaff: "Assigned Staff",
     taskDescLabel: "Task Description",
     dueDate: "Due Date",
     priority: "Priority",

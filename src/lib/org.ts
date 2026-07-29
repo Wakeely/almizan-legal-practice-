@@ -43,7 +43,7 @@ export function orgWhere<T extends Record<string, unknown>>(
 ) {
   return {
     organizationId: session.organizationId,
-    deletedAt: null,
+    deletedAt: null as Date | null,
     ...(extra ?? {}),
   };
 }

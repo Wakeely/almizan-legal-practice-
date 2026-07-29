@@ -52,18 +52,6 @@ export async function retrieveFile(
     const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
     if (BLOB_TOKEN) {
       try {
-        const { download } = await import("@vercel/blob");
-        const blob = await download(blobUrl);
-        const arrayBuffer = await blob.arrayBuffer();
-        return {
-          buffer: new Uint8Array(arrayBuffer),
-          mimeType: fileMimeType ?? blob.type ?? "application/octet-stream",
-        };
-      } catch (err1: any) {
-        console.error("[file-storage] Blob download() failed:", err1?.message ?? err1);
-      }
-
-      try {
         const response = await fetch(blobUrl, {
           headers: { Authorization: `Bearer ${BLOB_TOKEN}` },
         });
@@ -74,8 +62,21 @@ export async function retrieveFile(
             mimeType: fileMimeType ?? response.headers.get("content-type") ?? "application/octet-stream",
           };
         }
+      } catch (err1: any) {
+        console.error("[file-storage] Blob fetch with token failed:", err1?.message ?? err1);
+      }
+
+      try {
+        const response = await fetch(blobUrl);
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          return {
+            buffer: new Uint8Array(arrayBuffer),
+            mimeType: fileMimeType ?? response.headers.get("content-type") ?? "application/octet-stream",
+          };
+        }
       } catch (err2: any) {
-        console.error("[file-storage] Blob raw fetch failed:", err2?.message ?? err2);
+        console.error("[file-storage] Blob direct fetch failed:", err2?.message ?? err2);
       }
     }
   }

@@ -1,5 +1,13 @@
 import type { Prisma } from "@prisma/client";
 
+type MiddlewareParams = {
+  model?: string;
+  action: string;
+  args: Record<string, any>;
+};
+
+type MiddlewareNext = (params: MiddlewareParams) => Promise<any>;
+
 export async function softDelete<T extends { update: (args: any) => Promise<any> }>(
   model: T,
   where: Record<string, unknown>,
@@ -20,7 +28,7 @@ export async function restoreRecord<T extends { update: (args: any) => Promise<a
   });
 }
 
-export const softDeleteMiddleware: Prisma.Middleware = async (params, next) => {
+export const softDeleteMiddleware: (params: MiddlewareParams, next: MiddlewareNext) => Promise<any> = async (params, next) => {
   const softDeleteModels = [
     "matter", "document", "task", "timeEntry", "invoice",
     "calendarEvent", "timelineEvent", "clientMessage",
