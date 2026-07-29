@@ -85,6 +85,7 @@ export async function PATCH(
   const updated = await db.task.findFirst({
     where: { id, ...orgWhere(r.session) },
   });
+  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await audit({
     action: "task.update",

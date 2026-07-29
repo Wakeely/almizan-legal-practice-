@@ -63,12 +63,13 @@ export async function PATCH(
       redactedVersionId: true, redactionCount: true, blobUrl: true, fileMimeType: true,
     },
   });
+  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await audit({ action: "document.update", entity: "document", entityId: id, matterId: existing.matterId, details: cleanUpdates }, req);
 
   return NextResponse.json({
     ...updated,
-    aiTags: updated?.aiTags ? (() => { try { return JSON.parse(updated.aiTags); } catch { return []; } })() : [],
+    aiTags: updated.aiTags ? (() => { try { return JSON.parse(updated.aiTags); } catch { return []; } })() : [],
   });
 }
 

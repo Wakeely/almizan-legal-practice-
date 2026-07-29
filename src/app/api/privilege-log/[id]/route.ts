@@ -59,6 +59,7 @@ export async function PATCH(
   });
   if (result.count === 0) return NextResponse.json({ error: 'Not found or not owned by your organization' }, { status: 404 });
   const updated = await db.privilegeLogEntry.findFirst({ where: { id, ...orgWhere(r.session) } });
+  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await audit({ action: "privilege-log.update", entity: "privilegeLogEntry", entityId: id, matterId: existing.matterId, details: cleanUpdates }, req);
 
