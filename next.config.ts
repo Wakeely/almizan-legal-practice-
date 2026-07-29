@@ -2,8 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  typescript: {
-    ignoreBuildErrors: true,
+  api: {
+    bodyParser: {
+      sizeLimit: "10mb",
+    },
   },
   async headers() {
     return [
