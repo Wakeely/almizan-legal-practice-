@@ -50,12 +50,12 @@ export async function storeFile(
  */
 export async function retrieveFile(
   blobUrl: string | null,
-  fileContent: Buffer | null,
+  fileContent: Buffer | Uint8Array | null,
   fileMimeType: string | null,
 ): Promise<{ buffer: Buffer; mimeType: string }> {
   if (fileContent) {
     return {
-      buffer: fileContent,
+      buffer: Buffer.isBuffer(fileContent) ? fileContent : Buffer.from(fileContent),
       mimeType: fileMimeType ?? "application/octet-stream",
     };
   }
