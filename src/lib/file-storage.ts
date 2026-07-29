@@ -3,11 +3,6 @@
 // -----------------------------------------------------------------------------
 // SIMPLIFIED: Always store files in the DB (fileContent column).
 //
-// This is the most reliable approach for the current stage — no external
-// dependencies, no Blob token issues, no private/public access confusion.
-// Files are stored as raw bytes in Postgres and served through the
-// authenticated API endpoint.
-//
 // When the org grows to thousands of large files, this can be migrated to
 // Vercel Blob by:
 // 1. Adding BLOB_READ_WRITE_TOKEN to env
@@ -19,18 +14,14 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB hard limit
 
 export interface StoredFile {
   blobUrl: string | null;
-  fileContent: Buffer | null;
+  fileContent: Uint8Array | null;
   fileMimeType: string;
   fileSize: number;
 }
 
-/**
- * Stores a file — always in DB for reliability.
- * The file bytes go into the Document.fileContent column.
- */
 export async function storeFile(
   filename: string,
-  fileBuffer: Buffer,
+  fileBuffer: Uint8Array,
   mimeType: string,
 ): Promise<StoredFile> {
   if (fileBuffer.length > MAX_FILE_SIZE) {
@@ -45,40 +36,33 @@ export async function storeFile(
   };
 }
 
-/**
- * Retrieves file content from the DB.
- */
 export async function retrieveFile(
   blobUrl: string | null,
-  fileContent: Buffer | Uint8Array | null,
+  fileContent: Uint8Array | null,
   fileMimeType: string | null,
-): Promise<{ buffer: Buffer; mimeType: string }> {
+): Promise<{ buffer: Uint8Array; mimeType: string }> {
   if (fileContent) {
     return {
-      buffer: Buffer.isBuffer(fileContent) ? fileContent : Buffer.from(fileContent),
+      buffer: fileContent,
       mimeType: fileMimeType ?? "application/octet-stream",
     };
   }
 
-  // If fileContent is null but blobUrl exists, try Vercel Blob as fallback
-  // (for files that were uploaded when Blob was still being used)
   if (blobUrl) {
     const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
     if (BLOB_TOKEN) {
-      // Try @vercel/blob download()
       try {
         const { download } = await import("@vercel/blob");
         const blob = await download(blobUrl);
         const arrayBuffer = await blob.arrayBuffer();
         return {
-          buffer: Buffer.from(arrayBuffer),
+          buffer: new Uint8Array(arrayBuffer),
           mimeType: fileMimeType ?? blob.type ?? "application/octet-stream",
         };
       } catch (err1: any) {
         console.error("[file-storage] Blob download() failed:", err1?.message ?? err1);
       }
 
-      // Try raw fetch with auth header
       try {
         const response = await fetch(blobUrl, {
           headers: { Authorization: `Bearer ${BLOB_TOKEN}` },
@@ -86,7 +70,7 @@ export async function retrieveFile(
         if (response.ok) {
           const arrayBuffer = await response.arrayBuffer();
           return {
-            buffer: Buffer.from(arrayBuffer),
+            buffer: new Uint8Array(arrayBuffer),
             mimeType: fileMimeType ?? response.headers.get("content-type") ?? "application/octet-stream",
           };
         }
@@ -96,16 +80,10 @@ export async function retrieveFile(
     }
   }
 
-  throw new Error("File content not found in database. The file may have been uploaded before the file storage columns were added.");
+  throw new Error("File content not found in database.");
 }
 
-/**
- * Deletes a file from storage.
- */
 export async function deleteFile(blobUrl: string | null): Promise<void> {
-  // DB fallback: no explicit delete needed — the Document row deletion
-  // cascades the fileContent column automatically.
-  // Vercel Blob files (legacy) are cleaned up separately if needed.
 }
 
 export function isBlobConfigured(): boolean {

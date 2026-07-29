@@ -82,7 +82,7 @@ export async function POST(
 
   // Read file into buffer
   const arrayBuffer = await file.arrayBuffer();
-  const fileBuffer = Buffer.from(arrayBuffer);
+  const fileBuffer = new Uint8Array(arrayBuffer);
 
   // Store the file (Vercel Blob or DB fallback)
   let stored;
