@@ -258,7 +258,7 @@ export default function Page() {
               </div>
 
               {/* Row 4: Calendar (includes Court Rules Calculator + Print Preview) */}
-              <div id="calendar-module" className={activeMobileTab !== "all" && activeMobileTab !== "calendar" ? "hidden lg:block" : "block"}>
+              <div id="calendar-module" className={activeMobileTab !== "all" ? "hidden lg:block" : "block"}>
                 <CalendarModule matterId={activeMatter.id} matters={matters} />
               </div>
 
