@@ -49,11 +49,13 @@ export default function ConflictCheckModal({ isOpen, onClose, matters }: Conflic
         if (m.clientName.toLowerCase().includes(termLower)) {
           matches.push({ matter: m, matchedField: m.clientName, relationship: isRtl ? 'عميل حالي / سابق' : 'Current / Former Client' });
         }
-        if (m.opposingParty?.toLowerCase().includes(termLower)) {
-          matches.push({ matter: m, matchedField: m.opposingParty, relationship: isRtl ? 'خصم في قضية قائمة' : 'Adverse Party in Active Matter' });
+        const opposingParty = m.opposingParty || '';
+        const opposingCounsel = m.opposingCounsel || '';
+        if (opposingParty.toLowerCase().includes(termLower)) {
+          matches.push({ matter: m, matchedField: opposingParty, relationship: isRtl ? 'خصم في قضية قائمة' : 'Adverse Party in Active Matter' });
         }
-        if (m.opposingCounsel?.toLowerCase().includes(termLower)) {
-          matches.push({ matter: m, matchedField: m.opposingCounsel, relationship: isRtl ? 'مستشار الخصم' : 'Opposing Legal Counsel' });
+        if (opposingCounsel.toLowerCase().includes(termLower)) {
+          matches.push({ matter: m, matchedField: opposingCounsel, relationship: isRtl ? 'مستشار الخصم' : 'Opposing Legal Counsel' });
         }
         if (m.title.toLowerCase().includes(termLower)) {
           matches.push({ matter: m, matchedField: m.title, relationship: isRtl ? 'عنوان النزاع' : 'Related Dispute Title' });
