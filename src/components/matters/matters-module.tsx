@@ -274,7 +274,7 @@ export default function MattersModule({ activeMatter, onMatterUpdated }: Matters
                 <td className="p-2.5 font-bold bg-slate-100 border-r border-slate-800">{isRtl ? 'المحكمة المختصة' : 'Jurisdiction Court'}</td>
                 <td className="p-2.5">{translateStaticText(activeMatter.jurisdiction, isRtl)} ({activeMatter.court || 'دبي / عمان'})</td>
                 <td className="p-2.5 font-bold bg-slate-100 border-r border-slate-800 border-l">{isRtl ? 'القاضي الناظر' : 'Presiding Judge'}</td>
-                <td className="p-2.5">{translateStaticText(activeMatter.judge, isRtl)}</td>
+                <td className="p-2.5">{translateStaticText(activeMatter.judge || '', isRtl)}</td>
               </tr>
               <tr className="border-b border-slate-800">
                 <td className="p-2.5 font-bold bg-slate-100 border-r border-slate-800">{isRtl ? 'محامي الخصم' : 'Opposing Counsel'}</td>
