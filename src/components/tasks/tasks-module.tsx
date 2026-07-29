@@ -668,7 +668,7 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
                           <h4 className="text-xs font-bold text-slate-700 leading-snug">{translateStaticText(task.title, isRtl)}</h4>
                           {task.description && (
                             <p className="text-[10px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                              {translateStaticText(task.description, isRtl)}
+                              {translateStaticText(task.description || '', isRtl)}
                             </p>
                           )}
                         </div>

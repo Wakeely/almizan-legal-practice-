@@ -123,7 +123,7 @@ export default function TaskDependencyModal({
 
                       {task.description && (
                         <p className="text-xs text-slate-500 leading-relaxed">
-                          {translateStaticText(task.description, isRtl)}
+                          {translateStaticText(task.description || '', isRtl)}
                         </p>
                       )}
                     </div>

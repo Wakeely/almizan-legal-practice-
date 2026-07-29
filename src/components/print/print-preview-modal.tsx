@@ -46,13 +46,13 @@ ${isRtl ? 'ملخص ملف الدعوى المعتمد للمحكمة - وكيل
 ${isRtl ? 'عنوان القضية:' : 'Matter Title:'} ${translateStaticText(activeMatter.title, isRtl)}
 ${isRtl ? 'اسم الموكل:' : 'Client Name:'} ${activeMatter.clientName}
 ${isRtl ? 'المحكمة المختصة:' : 'Jurisdiction Court:'} ${translateStaticText(activeMatter.jurisdiction, isRtl)} (${activeMatter.court || 'دبي / عمان'})
-${isRtl ? 'القاضي الناظر:' : 'Presiding Judge:'} ${translateStaticText(activeMatter.judge, isRtl)}
+${isRtl ? 'القاضي الناظر:' : 'Presiding Judge:'} ${translateStaticText(activeMatter.judge || '', isRtl)}
 ${isRtl ? 'الميزانية / القيمة:' : 'Budget / Claim Value:'} ${activeMatter.budget.toLocaleString()} JOD
 ${isRtl ? 'مستوى المخاطرة:' : 'Risk Level:'} ${getRiskLabel(activeMatter.riskLevel)} (${activeMatter.winProbability}% ${isRtl ? 'نسبة النجاح' : 'Win Rate'})
 ${isRtl ? 'القيد الزمني:' : 'Statute Deadline:'} ${activeMatter.statuteDeadline || (isRtl ? 'مستمر' : 'Active')}
 
 ${isRtl ? 'الوقائع ومستندات الدعوى:' : 'Case Description & Statement:'}
-${translateStaticText(activeMatter.description, isRtl)}
+${translateStaticText(activeMatter.description || '', isRtl)}
 
 ${analysis ? `
 ${isRtl ? 'التوجيهات والتوصيات الاستراتيجية:' : 'Strategic AI Directives:'}
@@ -201,7 +201,7 @@ ${isRtl ? 'تم التصدير عبر نظام وكيلي برو القانون�
                     <td className="p-2.5 font-bold bg-slate-100 border-r border-slate-800">{isRtl ? 'المحكمة المختصة' : 'Jurisdiction Court'}</td>
                     <td className="p-2.5">{translateStaticText(activeMatter.jurisdiction, isRtl)} ({activeMatter.court || 'دبي / عمان'})</td>
                     <td className="p-2.5 font-bold bg-slate-100 border-r border-slate-800 border-l">{isRtl ? 'القاضي الناظر' : 'Presiding Judge'}</td>
-                    <td className="p-2.5">{translateStaticText(activeMatter.judge, isRtl)}</td>
+                    <td className="p-2.5">{translateStaticText(activeMatter.judge || '', isRtl)}</td>
                   </tr>
                   <tr className="border-b border-slate-800">
                     <td className="p-2.5 font-bold bg-slate-100 border-r border-slate-800">{isRtl ? 'محامي الخصم' : 'Opposing Counsel'}</td>
@@ -225,7 +225,7 @@ ${isRtl ? 'تم التصدير عبر نظام وكيلي برو القانون�
                 {isRtl ? 'ثانياً: ملخص الوقائع ومستندات الدعوى' : 'II. Case Description & Legal Claims Summary'}
               </h4>
               <div className="p-4 border border-slate-800 text-xs leading-relaxed font-serif bg-slate-50/50">
-                {translateStaticText(activeMatter.description, isRtl)}
+                {translateStaticText(activeMatter.description || '', isRtl)}
               </div>
             </div>
 

@@ -113,7 +113,7 @@ export default function MattersModule({ activeMatter, onMatterUpdated }: Matters
 
       {/* Description */}
       <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-sans bg-slate-50/50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100/60">
-        {translateStaticText(activeMatter.description, isRtl)}
+        {translateStaticText(activeMatter.description || '', isRtl)}
       </p>
 
       {/* Grid of Custom Fields (Bento-style inside component) */}
@@ -125,7 +125,7 @@ export default function MattersModule({ activeMatter, onMatterUpdated }: Matters
         
         <div className="bg-slate-50/30 p-3.5 rounded-2xl border border-slate-100 flex flex-col justify-between">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.judge}</span>
-          <span className="text-xs font-semibold text-slate-700 mt-1 leading-normal">{translateStaticText(activeMatter.judge, isRtl)}</span>
+          <span className="text-xs font-semibold text-slate-700 mt-1 leading-normal">{translateStaticText(activeMatter.judge || '', isRtl)}</span>
         </div>
 
         <div className="bg-slate-50/30 p-3.5 rounded-2xl border border-slate-100 flex flex-col justify-between">
@@ -298,7 +298,7 @@ export default function MattersModule({ activeMatter, onMatterUpdated }: Matters
             {isRtl ? 'ثانياً: ملخص الوقائع ومستندات الدعوى' : 'II. Case Description & Legal Claims Summary'}
           </h4>
           <div className="p-4 border border-slate-800 text-xs leading-relaxed font-serif bg-slate-50/50">
-            {translateStaticText(activeMatter.description, isRtl)}
+            {translateStaticText(activeMatter.description || '', isRtl)}
           </div>
         </div>
 
