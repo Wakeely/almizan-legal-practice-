@@ -14,14 +14,14 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB hard limit
 
 export interface StoredFile {
   blobUrl: string | null;
-  fileContent: Uint8Array<ArrayBuffer> | null;
+  fileContent: Uint8Array | null;
   fileMimeType: string;
   fileSize: number;
 }
 
 export async function storeFile(
   filename: string,
-  fileBuffer: Uint8Array<ArrayBuffer>,
+  fileBuffer: Uint8Array,
   mimeType: string,
 ): Promise<StoredFile> {
   if (fileBuffer.length > MAX_FILE_SIZE) {
@@ -38,9 +38,9 @@ export async function storeFile(
 
 export async function retrieveFile(
   blobUrl: string | null,
-  fileContent: Uint8Array<ArrayBuffer> | null,
+  fileContent: Uint8Array | null,
   fileMimeType: string | null,
-): Promise<{ buffer: Uint8Array<ArrayBuffer>; mimeType: string }> {
+): Promise<{ buffer: Uint8Array; mimeType: string }> {
   if (fileContent) {
     return {
       buffer: fileContent,

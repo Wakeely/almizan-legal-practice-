@@ -112,7 +112,7 @@ export async function POST(
       matterId: id,
       organizationId: r.session.organizationId,
       blobUrl: stored.blobUrl,
-      fileContent: stored.fileContent,
+      fileContent: stored.fileContent as Uint8Array<ArrayBuffer>,
       fileMimeType: stored.fileMimeType,
     },
   });
