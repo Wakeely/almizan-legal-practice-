@@ -50,6 +50,25 @@
 }
 
 /* ----------------------------------------------------------------------- */
+/* PORTED MARKETING SECTIONS palette (from design-of-interests reference)  */
+/* Executive brass/teal/ivory tokens used by the ported landing sections   */
+/* ----------------------------------------------------------------------- */
+@theme {
+  --color-ink: #0E211E;
+  --color-teal-deep: #0B2B29;
+  --color-teal-mid: #163F3A;
+  --color-sage: #6B9C90;
+  --color-sage-soft: #E4ECE9;
+  --color-brass: #B08D57;
+  --color-brass-light: #D9B98A;
+  --color-brass-dark: #8A6C3F;
+  --color-ivory: #F7F4EE;
+  --color-paper: #FCFAF6;
+  --color-line: rgba(14, 33, 30, 0.12);
+  --color-line-dark: rgba(247, 244, 238, 0.14);
+}
+
+/* ----------------------------------------------------------------------- */
 /* LIGHT THEME — Al Mizan "Executive Legal" palette                     */
 /* Cream/teal background, slate-900 text, teal-700 accents                 */
 /* ----------------------------------------------------------------------- */
@@ -247,4 +266,16 @@ code, pre, .font-mono {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+}
+
+/* ----------------------------------------------------------------------- */
+/* PORTED MARKETING SECTIONS — serif display font override                 */
+/* The ported sections use font-serif headings (Markazi Text / Fraunces).  */
+/* Must beat the global Tajawal heading rule above.                        */
+/* ----------------------------------------------------------------------- */
+.font-serif {
+  font-family: var(--font-markazi), var(--font-fraunces), 'Markazi Text', 'Fraunces', serif !important;
+}
+html[lang="en"] .font-serif {
+  font-family: var(--font-fraunces), var(--font-markazi), 'Fraunces', 'Markazi Text', serif !important;
 }

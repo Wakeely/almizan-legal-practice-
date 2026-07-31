@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Shield, ShieldCheck, User, Landmark, Plus, RefreshCw, Folder, Languages, Bell, Inbox, Check, FileCheck, Calendar, MessageSquare, Search, Sparkles, Fingerprint, Scan, Sun, Moon, Printer, LogOut, Award, Zap, Key } from 'lucide-react';
 import { Matter } from '@/lib/types';
 import { useLanguage } from '@/components/providers/language-provider';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/components/providers/theme-provider';
 import { useAuth } from '@/components/providers/auth-provider';
 import { translateStaticText } from '@/lib/i18n';
 import MobileBottomNav from '@/components/mobile/mobile-bottom-nav';

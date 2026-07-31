@@ -9,7 +9,7 @@
 // =============================================================================
 
 import React from "react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/providers/theme-provider";
 
 interface ThemeAwareLogoProps {
   className?: string;

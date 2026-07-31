@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Tajawal, JetBrains_Mono } from "next/font/google";
+import { Tajawal, JetBrains_Mono, Markazi_Text, Fraunces } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/providers/theme-provider";
@@ -17,6 +17,21 @@ const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-jetbrains-mono",
+  display: "swap",
+});
+
+const markazi = Markazi_Text({
+  subsets: ["arabic", "latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-markazi",
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: "variable",
+  axes: ["opsz"],
+  variable: "--font-fraunces",
   display: "swap",
 });
 
@@ -101,7 +116,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           }}
         />
       </head>
-      <body className={`${tajawal.variable} ${jetbrains.variable} antialiased bg-background text-foreground`} suppressHydrationWarning>
+      <body className={`${tajawal.variable} ${jetbrains.variable} ${markazi.variable} ${fraunces.variable} antialiased bg-background text-foreground`} suppressHydrationWarning>
         <ThemeProvider>
           <LanguageProvider>
             <AuthProvider>
