@@ -30,9 +30,16 @@ import CalendarModule from "@/components/calendar/calendar-module";
 import AiModule from "@/components/ai/ai-module";
 import WarRoomModule from "@/components/war-room/war-room-module";
 import ClientPortal from "@/components/client-portal/client-portal";
+import OfflineBanner from "@/components/offline/offline-banner";
+import SyncStatusIndicator from "@/components/offline/sync-status-indicator";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useLanguage } from "@/components/providers/language-provider";
 import type { Matter } from "@/lib/types";
+import {
+  saveItemsToOfflineStore,
+  getAllFromOfflineStore,
+  STORES,
+} from "@/lib/offline-storage";
 import { RefreshCw, Lock, FolderOpen } from "lucide-react";
 
 type View = "landing" | "workspace";
@@ -55,14 +62,40 @@ export default function Page() {
   const fetchMatters = useCallback(async () => {
     setMattersLoading(true);
     try {
-      const res = await fetch("/api/matters", { cache: "no-store" });
-      if (res.ok) {
-        const data = await res.json();
-        setMatters(data);
-        if (data.length > 0) {
-          // Only set active matter if none is currently selected
-          setActiveMatterId((prev) => prev || data[0].id);
+      // Offline fast-path: if we already know we're offline, skip the network
+      // round-trip and go straight to IndexedDB.
+      const isOffline =
+        typeof navigator !== "undefined" && navigator.onLine === false;
+
+      if (!isOffline) {
+        try {
+          const res = await fetch("/api/matters", { cache: "no-store" });
+          if (res.ok) {
+            const data: Matter[] = await res.json();
+            setMatters(data);
+            // Phase 1.1: write-back to IndexedDB so the cache is populated
+            // for offline refresh.
+            if (data.length > 0) {
+              await saveItemsToOfflineStore(STORES.MATTERS, data);
+              // Only set active matter if none is currently selected
+              setActiveMatterId((prev) => prev || data[0].id);
+            }
+            return;
+          }
+        } catch (err) {
+          // Network failed mid-request — fall through to offline cache.
+          console.warn("Matters fetch failed; falling back to offline cache:", err);
         }
+      }
+
+      // Offline fallback: read all cached matters from IndexedDB.
+      const cached = await getAllFromOfflineStore<Matter>(STORES.MATTERS);
+      if (cached && cached.length > 0) {
+        setMatters(cached);
+        setActiveMatterId((prev) => prev || cached[0].id);
+      } else {
+        // No cache + offline → empty state.
+        setMatters([]);
       }
     } catch (err) {
       console.error("Failed to fetch matters:", err);
@@ -93,6 +126,20 @@ export default function Page() {
     if (view === "workspace" && isAuthenticated) {
       fetchMatters();
     }
+  }, [view, isAuthenticated, fetchMatters]);
+
+  // After the offline queue flushes on reconnect, refresh matters so the UI
+  // reflects server-side state (e.g. a matter created offline is now persisted).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = () => {
+      if (view === "workspace" && isAuthenticated) {
+        fetchMatters();
+      }
+    };
+    window.addEventListener("almizan:sync-complete", handler);
+    return () =>
+      window.removeEventListener("almizan:sync-complete", handler);
   }, [view, isAuthenticated, fetchMatters]);
 
   // ----- LANDING VIEW -----
@@ -205,6 +252,8 @@ export default function Page() {
   const activeMatter = matters.find((m) => m.id === activeMatterId);
 
   return (
+    <>
+    <OfflineBanner />
     <div className="app-theme-wrapper min-h-screen p-2 sm:p-4 md:p-8 pb-24 lg:pb-8 text-foreground flex flex-col overflow-x-hidden">
       {/* Header with profile widget, matter selector, mode toggle */}
       <Header
@@ -297,8 +346,12 @@ export default function Page() {
       <footer className="mt-8 pt-6 border-t border-border flex flex-col md:flex-row justify-between items-center text-[10px] text-muted-foreground uppercase tracking-widest gap-3">
         <span>AL MIZAN LEGAL PRACTICE © 2026</span>
         <span className="text-center">BILINGUAL • MULTI-TENANT • RTL-READY</span>
-        <span>v0.4.0 — PHASE 4</span>
+        <div className="flex items-center gap-3">
+          <SyncStatusIndicator />
+          <span>v0.5.0 — OFFLINE COURTROOM</span>
+        </div>
       </footer>
     </div>
+    </>
   );
 }

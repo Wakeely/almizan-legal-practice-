@@ -204,6 +204,17 @@ export interface TranslationDict {
   offlineCachedNotice: string;
   onlineReconnected: string;
   syncingOfflineData: string;
+  // Offline Mode & Storage — additional keys for write-queue / PWA UX
+  offlinePendingChanges: string;          // "N pending changes"
+  offlineLastSynced: string;              // "Last synced HH:MM"
+  offlineNeverSynced: string;             // "Never synced"
+  offlineSyncNow: string;                 // "Sync now"
+  offlineSyncFailed: string;              // "Sync failed: <reason>"
+  offlineMakeAvailable: string;           // "Make this matter available offline"
+  offlineMakeAvailableProgress: string;   // "Caching matter for offline use…"
+  offlineMakeAvailableDone: string;       // "Cached for offline use"
+  offlineMakeAvailableFailed: string;     // "Could not cache matter offline"
+  offlineAiRequiresNetwork: string;       // "AI features require an internet connection"
 }
 
 export const translations: Record<Language, TranslationDict> = {
@@ -410,7 +421,17 @@ export const translations: Record<Language, TranslationDict> = {
     offlineModeActive: "وضع العمل أوفلاين (البيانات محفوظة محلياً)",
     offlineCachedNotice: "تم تحميل القضايا والمستندات من الذاكرة المحفوظة محلياً (IndexedDB)",
     onlineReconnected: "تمت إعادة الاتصال بشبكة الإنترنت بنجاح",
-    syncingOfflineData: "جاري مزامنة السجلات والمستندات..."
+    syncingOfflineData: "جاري مزامنة السجلات والمستندات...",
+    offlinePendingChanges: "تغييرات معلقة",
+    offlineLastSynced: "آخر مزامنة",
+    offlineNeverSynced: "لم تتم المزامنة بعد",
+    offlineSyncNow: "مزامنة الآن",
+    offlineSyncFailed: "فشلت المزامنة",
+    offlineMakeAvailable: "إتاحة هذه القضية للعمل دون اتصال",
+    offlineMakeAvailableProgress: "جاري حفظ القضية للاستخدام أوفلاين…",
+    offlineMakeAvailableDone: "تم الحفظ للاستخدام أوفلاين",
+    offlineMakeAvailableFailed: "تعذر حفظ القضية أوفلاين",
+    offlineAiRequiresNetwork: "تتطلب ميزات الذكاء الاصطناعي اتصالاً بالإنترنت",
   },
   en: {
     appName: "Al Mizan",
@@ -615,7 +636,17 @@ export const translations: Record<Language, TranslationDict> = {
     offlineModeActive: "Offline Mode Active (Cached Data)",
     offlineCachedNotice: "Loaded matters & documents from IndexedDB local storage",
     onlineReconnected: "Reconnected to Internet",
-    syncingOfflineData: "Synchronizing legal records..."
+    syncingOfflineData: "Synchronizing legal records...",
+    offlinePendingChanges: "pending changes",
+    offlineLastSynced: "Last synced",
+    offlineNeverSynced: "Never synced",
+    offlineSyncNow: "Sync now",
+    offlineSyncFailed: "Sync failed",
+    offlineMakeAvailable: "Make this matter available offline",
+    offlineMakeAvailableProgress: "Caching matter for offline use…",
+    offlineMakeAvailableDone: "Cached for offline use",
+    offlineMakeAvailableFailed: "Could not cache matter offline",
+    offlineAiRequiresNetwork: "AI features require an internet connection",
   }
 };
 

@@ -6,6 +6,7 @@ import { Task, Matter } from '@/lib/types';
 import { useLanguage } from '@/components/providers/language-provider';
 import { translateStaticText } from '@/lib/i18n';
 import { saveItemsToOfflineStore, getByMatterIdFromOfflineStore, STORES } from '@/lib/offline-storage';
+import { offlineFetch, isQueuedOfflineResponse } from '@/lib/offline-fetch';
 import TaskDependencyModal from '@/components/tasks/task-dependency-modal';
 
 interface TasksModuleProps {
@@ -109,25 +110,39 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/tasks', {
+      const payload = {
+        matterId,
+        title,
+        description,
+        assignedTo,
+        dueDate: dueDate || new Date().toISOString().split('T')[0],
+        priority,
+        visibleToClient,
+        status: 'To Do',
+        dependsOnTaskIds: selectedDependsOnTaskIds
+      };
+      const res = await offlineFetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          matterId,
-          title,
-          description,
-          assignedTo,
-          dueDate: dueDate || new Date().toISOString().split('T')[0],
-          priority,
-          visibleToClient,
-          status: 'To Do',
-          dependsOnTaskIds: selectedDependsOnTaskIds
-        })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
         const data = await res.json();
-        setTasks(prev => [...prev, data]);
+        // If the mutation was queued offline, synthesize a local Task object
+        // so the UI reflects the new card immediately. The server will assign
+        // the real id on flush; we use a temporary id in the meantime.
+        const newTask: Task = isQueuedOfflineResponse(res)
+          ? {
+              id: `offline-${Date.now()}`,
+              organizationId: '',
+              ...payload,
+              dependsOnTaskIds: selectedDependsOnTaskIds
+            } as Task
+          : data;
+        setTasks(prev => [...prev, newTask]);
+        // Persist to offline cache so the optimistic card survives refresh.
+        await saveItemsToOfflineStore(STORES.TASKS, newTask);
         setShowForm(false);
         // Reset
         setTitle('');
@@ -162,13 +177,17 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
     }
 
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
+      const res = await offlineFetch(`/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {
+        // Optimistic UI update (applies both for online success and queued offline).
         setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+        // Also update the offline cache so the optimistic state survives refresh.
+        const updated = { ...targetTask, status: newStatus };
+        await saveItemsToOfflineStore(STORES.TASKS, updated);
         if (blockedTaskAttempt) setBlockedTaskAttempt(null);
       }
     } catch (err) {
@@ -177,14 +196,18 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
   };
 
   const updateTaskPriority = async (taskId: string, newPriority: 'Low' | 'Medium' | 'High') => {
+    const targetTask = tasks.find(t => t.id === taskId);
+    if (!targetTask) return;
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
+      const res = await offlineFetch(`/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ priority: newPriority })
       });
       if (res.ok) {
         setTasks(prev => prev.map(t => t.id === taskId ? { ...t, priority: newPriority } : t));
+        const updated = { ...targetTask, priority: newPriority };
+        await saveItemsToOfflineStore(STORES.TASKS, updated);
       }
     } catch (err) {
       console.error(err);
@@ -194,13 +217,15 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
   const toggleTaskClientVisibility = async (task: Task) => {
     const updatedVisible = !task.visibleToClient;
     try {
-      const res = await fetch(`/api/tasks/${task.id}`, {
+      const res = await offlineFetch(`/api/tasks/${task.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ visibleToClient: updatedVisible })
       });
       if (res.ok) {
         setTasks(prev => prev.map(t => t.id === task.id ? { ...t, visibleToClient: updatedVisible } : t));
+        const updated = { ...task, visibleToClient: updatedVisible };
+        await saveItemsToOfflineStore(STORES.TASKS, updated);
       }
     } catch (err) {
       console.error(err);

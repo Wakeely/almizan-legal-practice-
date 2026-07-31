@@ -68,7 +68,7 @@ Next.js 16 stack with server-side AI (Gemini) and strict organization isolation.
 | AI | `z-ai-web-dev-sdk` (server-side only) — Gemini |
 | Charts | Recharts |
 | Drag-and-drop | `@dnd-kit/core` (Kanban board) |
-| Offline | IndexedDB via `src/lib/offline-storage.ts` (real implementation) |
+| Offline | IndexedDB cache + pending-mutations queue + Service Worker PWA shell |
 | Fonts | Tajawal (Arabic-first) + JetBrains Mono |
 
 ---
@@ -89,10 +89,25 @@ src/lib/
   rate-limit.ts                  In-memory token bucket
   audit.ts                       Append-only audit log writer
   validation/auth.ts             Zod schemas
-  i18n.ts                        Full AR/EN dictionary (730 lines)
+  i18n.ts                        Full AR/EN dictionary (offline keys included)
   types.ts                       Shared TypeScript types
   gemini.ts                      Server-side Gemini client
-  offline-storage.ts             Real IndexedDB offline cache
+  offline-storage.ts             IndexedDB cache (matters/tasks/documents/time_entries/
+                                 invoices/calendar_events) + PENDING_MUTATIONS queue +
+                                 enqueue/getPending/remove/markFailed/clear/count helpers
+  offline-fetch.ts               offlineFetch() wrapper — queues mutations when offline,
+                                 replays them on reconnect. replayMutation() + isQueuedOfflineResponse()
+  make-matter-available-offline.ts  Explicit "cache this matter for offline use" helper +
+                                 document binary cache via Cache API
+
+src/hooks/
+  use-offline-sync.ts            Online/offline + pending-mutations + last-synced state.
+                                 Flushes queue on reconnect / visibilitychange.
+
+src/components/offline/
+  offline-banner.tsx             Top banner: offline / syncing / reconnected / failed
+  sync-status-indicator.tsx      Footer badge: pending count + last synced + Sync now
+  service-worker-register.tsx    Registers /sw.js
 
 src/app/
   layout.tsx                     Tajawal + JetBrains Mono fonts; Theme → Language → Auth providers
@@ -151,7 +166,7 @@ Per the master system prompt rule #7 (Honesty About Features):
 | Document redaction | Visual-only overlay. **Permanent file redaction** (rewriting PDFs) not implemented. |
 | Bates stamping | Sequential numbering display only. No permanent PDF Bates stamping. |
 | LEDES 1998B | Basic pipe-delimited export. Full LEDES validation is a separate undertaking. |
-| Offline (IndexedDB) | **Real IndexedDB cache implemented** for matters/documents/tasks/time entries/invoices. Read-only offline — mutations queue but require reconnect to sync. |
+| Offline (IndexedDB + PWA) | **Full offline courtroom workspace.** IndexedDB read cache for matters/tasks/documents/time_entries/invoices/calendar_events + a `pending_mutations` queue that replays writes on reconnect. Service Worker caches the app shell so the app itself loads offline. Conflict resolution is last-write-wins (no OT/CRDT). Document binaries are cached on first download (Cache API) — opening a never-downloaded document offline is not possible. AI features require network and are not queued. |
 | Google Calendar sync | Calendar UI complete. **Actual Google Calendar API sync not wired** (requires OAuth + sync worker). |
 | Conflict of Interest | Entity search runs locally (no cross-firm database lookup). Ethical clearance certificate is generated locally, not from a central registry. |
 | Audit log viewer | Implemented (`/api/audit-log`) but no UI panel yet — accessible via API only. |
@@ -204,6 +219,93 @@ PRISMA_DATABASE_URL=                # only needed for production Postgres
 | 3 | DocumentsModule, DocumentRedactionModal, BillingModule, CalendarModule, CourtRulesCalendaringModule, PrintPreviewModal + Gemini AI routes | ✅ Complete |
 | 4 | AiModule (drafting copilot), WarRoomModule, ClientPortal (server-filtered), PrivilegeLogModule, DepositionIndexerModule + 16 API routes | ✅ Complete |
 | 5 | ConflictCheckModal, GlobalSearchModal, SubscriptionPaywallModal (real), real IndexedDB offline cache, audit log viewer API, hardening pass | ✅ Complete |
+| 6 | **Offline courtroom workspace** — pending-mutations queue + offline-aware fetch wrapper + reconnect sync (last-write-wins), Service Worker PWA shell, "Make available offline" button, sync status indicator, document binary caching via Cache API | ✅ Complete |
+
+---
+
+## Offline courtroom workspace
+
+The app is a true PWA: the shell itself loads offline (Service Worker), and the
+data layer is write-capable while disconnected (not just read-only).
+
+### Architecture
+
+| Layer | Responsibility | Where |
+|---|---|---|
+| **Read cache** | Each module writes its fetch results to IndexedDB on success and reads from cache when offline / network fails. | `STORES.MATTERS / TASKS / DOCUMENTS / TIME_ENTRIES / INVOICES / CALENDAR_EVENTS` in `src/lib/offline-storage.ts` |
+| **Write queue** | Mutating requests (POST/PUT/PATCH/DELETE) performed while offline are appended to a queue instead of failing. | `STORES.PENDING_MUTATIONS` + `enqueueMutation` / `getPendingMutations` / `removeMutation` / `markMutationFailed` in `src/lib/offline-storage.ts` |
+| **Offline-aware fetch** | `offlineFetch()` is a drop-in replacement for `fetch()` that detects offline / network errors and enqueues mutations. Returns a synthetic 202 response so optimistic UI stays responsive. | `src/lib/offline-fetch.ts` |
+| **Sync hook** | Listens to `online` / `visibilitychange`, replays the queue in order on reconnect, dispatches `almizan:sync-complete` so modules can refresh. | `src/hooks/use-offline-sync.ts` |
+| **PWA shell** | Service Worker precaches the app shell (HTML / JS / CSS / fonts / logo / manifest) so a full refresh while offline still loads. Network-first for `/api/*`, stale-while-revalidate for everything else. | `public/sw.js` + `src/components/offline/service-worker-register.tsx` |
+| **Explicit cache** | "Make this matter available offline" button pre-fetches and caches all of a matter's tasks, documents, time entries, invoices, and calendar events. | `src/lib/make-matter-available-offline.ts` + button in `MattersModule` |
+
+### Conflict resolution
+
+Simple **last-write-wins** using the mutation `timestamp` field. No OT/CRDT.
+When two queued mutations target the same resource, both are replayed in
+enqueue order; the server applies them sequentially so the later one wins.
+Permanent 4xx failures are marked `failed` and surfaced via the
+`SyncStatusIndicator`; transient 5xx failures stop the flush and retry on the
+next `online` event.
+
+### Multi-tenant safety
+
+The IndexedDB cache is per-browser, per-origin, and only ever holds data the
+authenticated user fetched through the org-scoped API. The Service Worker only
+caches same-origin responses; cross-origin requests pass through. No
+organisation can read another organisation's data through the cache.
+
+### How to test offline (checklist)
+
+Run the dev server (`bun run dev`) and sign in. Then in Chrome DevTools:
+
+1. **Read while offline** — Open DevTools → Application → Service Workers →
+   tick "Offline". Refresh the page. The workspace should still load from the
+   IndexedDB cache (banner shows "Offline Mode Active").
+2. **Write while offline** — Drag a Kanban card to a new stage. The card
+   should move optimistically; the footer badge should show
+   "1 pending changes". Open DevTools → Application → IndexedDB →
+   `almizan-offline-cache` → `pending_mutations` to see the queued write.
+3. **Reconnect sync** — Untick "Offline". The banner should briefly show
+   "Synchronizing legal records…" then "Reconnected to Internet". The footer
+   badge should reset to "0 pending changes • Last synced HH:MM". Refresh the
+   page — the moved task should still be in its new stage (now persisted
+   server-side).
+4. **Full refresh offline** — With "Offline" ticked, hard-refresh the page
+   (Ctrl+Shift+R). The Service Worker should serve the cached shell, then
+   React hydrates and reads data from IndexedDB. The workspace should be
+   fully usable.
+5. **Make available offline** — Untick "Offline". On a matter, click the
+   "Make this matter available offline" button. Wait for the green "Cached
+   for offline use" state. Tick "Offline" again, refresh — all the matter's
+   tasks / documents / time entries / invoices / calendar events should be
+   visible.
+6. **Document binary cache** — While online, click the download button on a
+   document. Then go offline and click download again — the file should still
+   download from the Cache API cache.
+7. **AI gating** — While offline, try the AI Copilot or "Run Risk Analysis".
+   The request should fail gracefully (no silent success).
+
+### Files added / modified
+
+| File | Reason |
+|---|---|
+| `src/lib/offline-storage.ts` | Added `CALENDAR_EVENTS` + `PENDING_MUTATIONS` stores, queue helpers (`enqueueMutation`, `getPendingMutations`, `removeMutation`, `markMutationFailed`, `clearPendingMutations`, `countPendingMutations`, `deleteFromOfflineStore`). Bumped `DB_VERSION` to 2. |
+| `src/lib/offline-fetch.ts` | NEW. `offlineFetch()` wrapper, `replayMutation()`, `isQueuedOfflineResponse()`. |
+| `src/lib/make-matter-available-offline.ts` | NEW. Explicit-cache helper + document binary cache (`cacheDocumentBlob` / `getCachedDocumentBlob` / `isDocumentBinaryCached`). |
+| `src/hooks/use-offline-sync.ts` | NEW. `useOfflineSync()` hook with online/offline listeners + queue flush on reconnect + visibilitychange. |
+| `src/components/offline/offline-banner.tsx` | NEW. Persistent top banner. |
+| `src/components/offline/sync-status-indicator.tsx` | NEW. Footer badge with pending count + last-synced + Sync now. |
+| `src/components/offline/service-worker-register.tsx` | NEW. Registers `/sw.js`. |
+| `public/sw.js` | NEW. Service Worker — precache app shell, network-first for API, SWR for assets. |
+| `public/offline.html` | NEW. Offline fallback page (auto-reloads on reconnect). |
+| `src/lib/i18n.ts` | Added 10 new AR+EN keys for the offline UX (pending / last-synced / sync-now / make-available / etc.). |
+| `src/app/page.tsx` | `fetchMatters()` now writes back to `STORES.MATTERS` on success and falls back to `getAllFromOfflineStore(STORES.MATTERS)` offline. Mounted `OfflineBanner` + `ServiceWorkerRegister` + `SyncStatusIndicator`. Added `almizan:sync-complete` listener. |
+| `src/components/calendar/calendar-module.tsx` | `fetchEvents()` now writes back to `STORES.CALENDAR_EVENTS` on success and falls back to cache offline. |
+| `src/components/tasks/tasks-module.tsx` | All mutations (`handleCreateTask`, `updateTaskStatus`, `updateTaskPriority`, `toggleTaskClientVisibility`) now use `offlineFetch`. Optimistic UI updates persist to `STORES.TASKS` so they survive refresh. |
+| `src/components/documents/documents-module.tsx` | `toggleClientVisibility` uses `offlineFetch`. `handleDownload` now caches the binary via `cacheDocumentBlob` and serves the cached blob when offline. |
+| `src/components/billing/billing-module.tsx` | `handleStopTimer`, `handleCreateTimeEntry`, `handleGenerateInvoice`, `handleMarkInvoicePaid` all use `offlineFetch` with optimistic UI + cache persistence. |
+| `src/components/matters/matters-module.tsx` | Added "Make this matter available offline" button with progress / done / failed states. |
 
 ---
 

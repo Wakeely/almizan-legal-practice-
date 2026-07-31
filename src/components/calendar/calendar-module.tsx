@@ -25,6 +25,7 @@ import {
 import { Matter, CalendarEvent, Task, TimelineEvent } from '@/lib/types';
 import { useLanguage } from '@/components/providers/language-provider';
 import { translateStaticText } from '@/lib/i18n';
+import { saveItemsToOfflineStore, getByMatterIdFromOfflineStore, STORES } from '@/lib/offline-storage';
 import CourtRulesCalendaringModule from '@/components/court-rules/court-rules-calendaring-module';
 
 interface CalendarModuleProps {
@@ -62,13 +63,26 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
   const fetchEvents = async () => {
     setLoading(true);
     try {
+      if (!navigator.onLine) {
+        throw new Error('Offline');
+      }
       const res = await fetch(`/api/matters/${matterId}/calendar`);
       if (res.ok) {
         const data = await res.json();
         setEvents(data);
+        // Phase 1.4: write-back to IndexedDB so calendar survives offline refresh.
+        if (Array.isArray(data) && data.length > 0) {
+          await saveItemsToOfflineStore(STORES.CALENDAR_EVENTS, data);
+        }
+      } else {
+        throw new Error('API Error');
       }
     } catch (err) {
-      console.error('Error fetching calendar events:', err);
+      console.warn('Loading calendar events from IndexedDB cache:', err);
+      const cached = await getByMatterIdFromOfflineStore<CalendarEvent>(STORES.CALENDAR_EVENTS, matterId);
+      if (cached && cached.length > 0) {
+        setEvents(cached);
+      }
     } finally {
       setLoading(false);
     }

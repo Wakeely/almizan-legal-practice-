@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Landmark, Briefcase, TrendingUp, AlertTriangle, Scale, RefreshCw, Sparkles, CheckCircle2, Printer, FileText, Eye } from 'lucide-react';
+import { Landmark, Briefcase, TrendingUp, AlertTriangle, Scale, RefreshCw, Sparkles, CheckCircle2, Printer, FileText, Eye, DownloadCloud, Check, AlertCircle } from 'lucide-react';
 import { Matter } from '@/lib/types';
 import { useLanguage } from '@/components/providers/language-provider';
 import { translateStaticText } from '@/lib/i18n';
+import {
+  makeMatterAvailableOffline,
+  type MakeAvailableOfflineProgress,
+} from '@/lib/make-matter-available-offline';
 import PrintPreviewModal from '@/components/print/print-preview-modal';
 
 interface MattersModuleProps {
@@ -27,6 +31,33 @@ export default function MattersModule({ activeMatter, onMatterUpdated }: Matters
   const [error, setError] = useState<string | null>(null);
   const [showPrintPreview, setShowPrintPreview] = useState<boolean>(false);
 
+  // --- Phase 4.12: "Make this matter available offline" ---
+  const [cacheStatus, setCacheStatus] = useState<
+    | { state: "idle" }
+    | { state: "caching"; progress: MakeAvailableOfflineProgress | null }
+    | { state: "done"; total: number }
+    | { state: "failed"; error: string }
+  >({ state: "idle" });
+
+  const handleMakeAvailableOffline = async () => {
+    setCacheStatus({ state: "caching", progress: null });
+    const result = await makeMatterAvailableOffline(activeMatter.id, {
+      includeBinaries: false, // metadata-only by default; binaries cached on download
+      onProgress: (p) => setCacheStatus({ state: "caching", progress: p }),
+    });
+    if (result.ok) {
+      const total =
+        result.counts.tasks +
+        result.counts.documents +
+        result.counts.timeEntries +
+        result.counts.invoices +
+        result.counts.calendarEvents;
+      setCacheStatus({ state: "done", total });
+    } else {
+      setCacheStatus({ state: "failed", error: result.error || "unknown" });
+    }
+  };
+
   useEffect(() => {
     const handleGlobalPrintPreview = () => {
       setShowPrintPreview(true);
@@ -34,6 +65,11 @@ export default function MattersModule({ activeMatter, onMatterUpdated }: Matters
     window.addEventListener('open-print-preview', handleGlobalPrintPreview);
     return () => window.removeEventListener('open-print-preview', handleGlobalPrintPreview);
   }, []);
+
+  // Reset offline-cache status when the active matter changes.
+  useEffect(() => {
+    setCacheStatus({ state: "idle" });
+  }, [activeMatter.id]);
 
   const handlePrintCaseSummary = () => {
     setShowPrintPreview(true);
@@ -99,6 +135,44 @@ export default function MattersModule({ activeMatter, onMatterUpdated }: Matters
           >
             <Printer className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <span className="hidden sm:inline">{isRtl ? 'طباعة المحكمة' : 'Print Docket'}</span>
+          </button>
+
+          {/* Phase 4.12: "Make this matter available offline" */}
+          <button
+            type="button"
+            onClick={handleMakeAvailableOffline}
+            disabled={cacheStatus.state === "caching"}
+            className={`px-2.5 py-1.5 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer no-print shrink-0 border ${
+              cacheStatus.state === "done"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : cacheStatus.state === "failed"
+                  ? "bg-red-50 text-red-700 border-red-200"
+                  : cacheStatus.state === "caching"
+                    ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                    : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+            } disabled:opacity-70 disabled:cursor-wait`}
+            title={t.offlineMakeAvailable}
+          >
+            {cacheStatus.state === "caching" ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+            ) : cacheStatus.state === "done" ? (
+              <Check className="w-3.5 h-3.5 shrink-0" />
+            ) : cacheStatus.state === "failed" ? (
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+            ) : (
+              <DownloadCloud className="w-3.5 h-3.5 shrink-0" />
+            )}
+            <span className="hidden sm:inline">
+              {cacheStatus.state === "caching"
+                ? cacheStatus.progress?.step
+                  ? `${t.offlineMakeAvailableProgress} (${cacheStatus.progress.done}/${cacheStatus.progress.total})`
+                  : t.offlineMakeAvailableProgress
+                : cacheStatus.state === "done"
+                  ? t.offlineMakeAvailableDone
+                  : cacheStatus.state === "failed"
+                    ? t.offlineMakeAvailableFailed
+                    : t.offlineMakeAvailable}
+            </span>
           </button>
 
           <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-bold uppercase rounded-xl tracking-wider ${

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { LanguageProvider } from "@/components/providers/language-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import ServiceWorkerRegister from "@/components/offline/service-worker-register";
 
 const tajawal = Tajawal({
   subsets: ["arabic", "latin"],
@@ -121,6 +122,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <LanguageProvider>
             <AuthProvider>
               {children}
+              <ServiceWorkerRegister />
               <Toaster />
             </AuthProvider>
           </LanguageProvider>

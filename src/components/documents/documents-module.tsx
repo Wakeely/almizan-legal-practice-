@@ -6,6 +6,8 @@ import { Document } from '@/lib/types';
 import { useLanguage } from '@/components/providers/language-provider';
 import { translateStaticText } from '@/lib/i18n';
 import { saveItemsToOfflineStore, getByMatterIdFromOfflineStore, STORES } from '@/lib/offline-storage';
+import { offlineFetch } from '@/lib/offline-fetch';
+import { cacheDocumentBlob, getCachedDocumentBlob } from '@/lib/make-matter-available-offline';
 import DocumentRedactionModal from '@/components/documents/document-redaction-modal';
 import DepositionIndexerModule from '@/components/deposition/deposition-indexer-module';
 import PrivilegeLogModule from '@/components/privilege/privilege-log-module';
@@ -173,6 +175,24 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
   const handleDownload = async (docId: string, docName: string) => {
     setDownloadingDocId(docId);
     try {
+      // If we're offline, try the cached blob first (Phase 4.14).
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        const cachedBlob = await getCachedDocumentBlob(docId);
+        if (cachedBlob) {
+          const url = URL.createObjectURL(cachedBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = docName || 'document';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          return;
+        }
+        setUploadError('Document not available offline. Connect to the internet to download it the first time.');
+        return;
+      }
+
       const res = await fetch(`/api/documents/${docId}/file`, {
         credentials: 'same-origin', // ensures session cookie is sent
       });
@@ -182,6 +202,8 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
         return;
       }
       const blob = await res.blob();
+      // Phase 4.14: cache the binary so a subsequent offline open works.
+      await cacheDocumentBlob(docId, blob);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -191,6 +213,19 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
+      // Last-resort: try cached blob.
+      const cachedBlob = await getCachedDocumentBlob(docId);
+      if (cachedBlob) {
+        const url = URL.createObjectURL(cachedBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = docName || 'document';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return;
+      }
       setUploadError('Network error during download.');
       console.error(err);
     } finally {
@@ -201,16 +236,20 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
   const toggleClientVisibility = async (doc: Document) => {
     const updatedVisible = !doc.visibleToClient;
     try {
-      const res = await fetch(`/api/documents/${doc.id}`, {
+      const res = await offlineFetch(`/api/documents/${doc.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ visibleToClient: updatedVisible })
       });
       if (res.ok) {
+        // Optimistic UI update (works for both online success and queued offline).
         setDocs(prev => prev.map(d => d.id === doc.id ? { ...d, visibleToClient: updatedVisible } : d));
         if (selectedDoc && selectedDoc.id === doc.id) {
           setSelectedDoc(prev => prev ? { ...prev, visibleToClient: updatedVisible } : null);
         }
+        // Persist optimistic state to offline cache so it survives refresh.
+        const updated = { ...doc, visibleToClient: updatedVisible };
+        await saveItemsToOfflineStore(STORES.DOCUMENTS, updated);
       } else {
         setUploadError('Failed to toggle visibility. Please try again.');
       }

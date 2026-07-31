@@ -10,6 +10,7 @@ import { TimeEntry, Invoice, Matter } from '@/lib/types';
 import { useLanguage } from '@/components/providers/language-provider';
 import { translateStaticText } from '@/lib/i18n';
 import { saveItemsToOfflineStore, getByMatterIdFromOfflineStore, STORES } from '@/lib/offline-storage';
+import { offlineFetch, isQueuedOfflineResponse } from '@/lib/offline-fetch';
 
 interface BillingModuleProps {
   activeMatter: Matter;
@@ -145,23 +146,35 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
     }
 
     try {
-      const res = await fetch('/api/time-entries', {
+      const payload = {
+        matterId: activeMatter.id,
+        description: desc || (isRtl ? "عمل مقيد بساعة التتبع" : "Logged via Stopwatch"),
+        hours: elapsedHours,
+        rate: manualRate,
+        taskCode: 'L120',
+        activityCode: 'A103'
+      };
+      const res = await offlineFetch('/api/time-entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          matterId: activeMatter.id,
-          description: desc || (isRtl ? "عمل مقيد بساعة التتبع" : "Logged via Stopwatch"),
-          hours: elapsedHours,
-          rate: manualRate,
-          taskCode: 'L120',
-          activityCode: 'A103'
-        })
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         const data = await res.json();
-        setEntries(prev => [data, ...prev]);
+        // If queued offline, synthesize a local TimeEntry with a temp id.
+        const newEntry: TimeEntry = isQueuedOfflineResponse(res)
+          ? {
+              id: `offline-${Date.now()}`,
+              organizationId: '',
+              date: new Date().toISOString().split('T')[0],
+              billed: false,
+              ...payload
+            } as TimeEntry
+          : data;
+        setEntries(prev => [newEntry, ...prev]);
+        await saveItemsToOfflineStore(STORES.TIME_ENTRIES, newEntry);
         setTimerSeconds(0);
-        onRefreshMatter();
+        if (!isQueuedOfflineResponse(res)) onRefreshMatter();
       }
     } catch (err) {
       console.error(err);
@@ -203,25 +216,36 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
 
     setSavingTime(true);
     try {
-      const res = await fetch('/api/time-entries', {
+      const payload = {
+        matterId: activeMatter.id,
+        description: manualDesc,
+        hours: Number(manualHours),
+        rate: Number(manualRate),
+        taskCode,
+        activityCode
+      };
+      const res = await offlineFetch('/api/time-entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          matterId: activeMatter.id,
-          description: manualDesc,
-          hours: Number(manualHours),
-          rate: Number(manualRate),
-          taskCode,
-          activityCode
-        })
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         const data = await res.json();
-        setEntries(prev => [data, ...prev]);
+        const newEntry: TimeEntry = isQueuedOfflineResponse(res)
+          ? {
+              id: `offline-${Date.now()}`,
+              organizationId: '',
+              date: new Date().toISOString().split('T')[0],
+              billed: false,
+              ...payload
+            } as TimeEntry
+          : data;
+        setEntries(prev => [newEntry, ...prev]);
+        await saveItemsToOfflineStore(STORES.TIME_ENTRIES, newEntry);
         setShowTimeForm(false);
         setManualHours('');
         setManualDesc('');
-        onRefreshMatter();
+        if (!isQueuedOfflineResponse(res)) onRefreshMatter();
       }
     } catch (err) {
       console.error(err);
@@ -232,18 +256,33 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
 
   const handleGenerateInvoice = async () => {
     try {
-      const res = await fetch('/api/invoices', {
+      const res = await offlineFetch('/api/invoices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ matterId: activeMatter.id })
       });
       if (res.ok) {
         const data = await res.json();
-        setInvoices(prev => [data, ...prev]);
-        fetchBilling();
-        onRefreshMatter();
+        const newInvoice: Invoice = isQueuedOfflineResponse(res)
+          ? {
+              id: `offline-${Date.now()}`,
+              organizationId: '',
+              invoiceNumber: `DRAFT-${Date.now()}`,
+              totalAmount: 0,
+              status: 'Draft',
+              dueDate: new Date().toISOString().split('T')[0],
+              ...data,
+              matterId: activeMatter.id
+            } as Invoice
+          : data;
+        setInvoices(prev => [newInvoice, ...prev]);
+        await saveItemsToOfflineStore(STORES.INVOICES, newInvoice);
+        if (!isQueuedOfflineResponse(res)) {
+          fetchBilling();
+          onRefreshMatter();
+        }
       } else {
-        const errData = await res.json();
+        const errData = await res.json().catch(() => ({ error: 'Generate failed' }));
         alert(errData.error || (isRtl ? "لا يمكن إصدار فاتورة جديدة حالياً." : "Cannot generate invoice."));
       }
     } catch (err) {
@@ -252,19 +291,36 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
   };
 
   const handleMarkInvoicePaid = async (invId: string) => {
+    const target = invoices.find(i => i.id === invId);
+    if (!target) return;
     try {
-      const res = await fetch(`/api/invoices/${invId}`, {
+      const res = await offlineFetch(`/api/invoices/${invId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Paid', paymentTxId: `TXN-CLIQU-${Math.floor(1000 + Math.random() * 9000)}` })
       });
       if (res.ok) {
-        const updated = await res.json();
-        setInvoices(prev => prev.map(inv => inv.id === invId ? updated : inv));
-        if (selectedInvoice && selectedInvoice.id === invId) {
-          setSelectedInvoice(updated);
+        if (isQueuedOfflineResponse(res)) {
+          // Optimistic offline update — synthesize the updated invoice.
+          const updated: Invoice = {
+            ...target,
+            status: 'Paid',
+            paymentTxId: `TXN-PENDING-${Date.now()}`
+          };
+          setInvoices(prev => prev.map(inv => inv.id === invId ? updated : inv));
+          if (selectedInvoice && selectedInvoice.id === invId) {
+            setSelectedInvoice(updated);
+          }
+          await saveItemsToOfflineStore(STORES.INVOICES, updated);
+        } else {
+          const updated = await res.json();
+          setInvoices(prev => prev.map(inv => inv.id === invId ? updated : inv));
+          if (selectedInvoice && selectedInvoice.id === invId) {
+            setSelectedInvoice(updated);
+          }
+          await saveItemsToOfflineStore(STORES.INVOICES, updated);
+          onRefreshMatter();
         }
-        onRefreshMatter();
       }
     } catch (err) {
       console.error(err);
