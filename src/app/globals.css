@@ -55,10 +55,10 @@
 /* ----------------------------------------------------------------------- */
 @theme {
   --color-ink: #0E211E;
-  --color-teal-deep: #0B2B29;
-  --color-teal-mid: #163F3A;
-  --color-sage: #6B9C90;
-  --color-sage-soft: #E4ECE9;
+  --color-teal-deep: #005A75;
+  --color-teal-mid: #006c8e;
+  --color-sage: #6B9CB0;
+  --color-sage-soft: #E4EFF4;
   --color-brass: #B08D57;
   --color-brass-light: #D9B98A;
   --color-brass-dark: #8A6C3F;
@@ -74,37 +74,37 @@
 /* ----------------------------------------------------------------------- */
 :root {
   --radius: 0.625rem;
-  --background: #f0fdfa;            /* teal-50 cream */
+  --background: #e6f2f6;            /* teal-50 cream */
   --foreground: #0f172a;            /* slate-900 */
   --card: #ffffff;
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #0f766e;               /* teal-700 (brand) */
+  --primary: #006c8e;               /* brand teal-blue */
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;            /* slate-100 */
   --secondary-foreground: #0f172a;
   --muted: #f1f5f9;
   --muted-foreground: #475569;     /* slate-600 */
-  --accent: #ccfbf1;               /* teal-100 */
-  --accent-foreground: #115e59;     /* teal-800 */
+  --accent: #cce8f2;               /* teal-100 */
+  --accent-foreground: #005a75;     /* teal-800 */
   --destructive: #e11d48;           /* rose-600 */
   --border: #e2e8f0;               /* slate-200 */
   --input: #e2e8f0;
-  --ring: #0f766e;                 /* teal-700 */
-  --chart-1: #0f766e;
+  --ring: #006c8e;                 /* primary teal */
+  --chart-1: #006c8e;
   --chart-2: #f59e0b;
   --chart-3: #6366f1;
   --chart-4: #ec4899;
-  --chart-5: #10b981;
+  --chart-5: #008fc0;
   --sidebar: #ffffff;
   --sidebar-foreground: #0f172a;
-  --sidebar-primary: #0f766e;
+  --sidebar-primary: #006c8e;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #ccfbf1;
-  --sidebar-accent-foreground: #115e59;
+  --sidebar-accent: #cce8f2;
+  --sidebar-accent-foreground: #005a75;
   --sidebar-border: #e2e8f0;
-  --sidebar-ring: #0f766e;
+  --sidebar-ring: #006c8e;
 }
 
 /* ----------------------------------------------------------------------- */
@@ -112,37 +112,37 @@
 /* Deep teal-950 background, slate-50 text                                  */
 /* ----------------------------------------------------------------------- */
 .dark {
-  --background: #042f2e;            /* teal-950 */
+  --background: #062a36;            /* dark blue-teal */
   --foreground: #f8fafc;            /* slate-50 */
-  --card: #073a39;
+  --card: #0a3545;
   --card-foreground: #f8fafc;
-  --popover: #073a39;
+  --popover: #0a3545;
   --popover-foreground: #f8fafc;
-  --primary: #14b8a6;               /* teal-500 */
-  --primary-foreground: #042f2e;
-  --secondary: #0d3a39;
+  --primary: #008fc0;               /* lighter teal-blue */
+  --primary-foreground: #062a36;
+  --secondary: #0a3545;
   --secondary-foreground: #f8fafc;
-  --muted: #0d3a39;
+  --muted: #0a3545;
   --muted-foreground: #94a3b8;
-  --accent: #134e4a;
-  --accent-foreground: #5eead4;
+  --accent: #0f4054;
+  --accent-foreground: #9cd8f0;
   --destructive: #fb7185;
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.12);
-  --ring: #14b8a6;
-  --chart-1: #14b8a6;
+  --ring: #008fc0;
+  --chart-1: #008fc0;
   --chart-2: #fbbf24;
   --chart-3: #818cf8;
   --chart-4: #f472b6;
-  --chart-5: #34d399;
-  --sidebar: #073a39;
+  --chart-5: #38bdf8;
+  --sidebar: #0a3545;
   --sidebar-foreground: #f8fafc;
-  --sidebar-primary: #14b8a6;
-  --sidebar-primary-foreground: #042f2e;
-  --sidebar-accent: #134e4a;
-  --sidebar-accent-foreground: #5eead4;
+  --sidebar-primary: #008fc0;
+  --sidebar-primary-foreground: #062a36;
+  --sidebar-accent: #0f4054;
+  --sidebar-accent-foreground: #9cd8f0;
   --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: #14b8a6;
+  --sidebar-ring: #008fc0;
 }
 
 /* ----------------------------------------------------------------------- */
@@ -207,20 +207,20 @@ code, pre, .font-mono {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #0f766e;
+  background: #006c8e;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #115e59;
+  background: #005a75;
 }
 
-/* App background wrapper — executive teal gradient */
+/* App background wrapper — brand teal gradient */
 .app-theme-wrapper {
-  background: linear-gradient(135deg, #f0fdfa 0%, #f8fafc 50%, #e6fffa 100%);
+  background: linear-gradient(135deg, #e6f2f6 0%, #f8fafc 50%, #dbeaf1 100%);
   min-height: 100vh;
 }
 .dark .app-theme-wrapper {
-  background: linear-gradient(135deg, #042f2e 0%, #052423 50%, #073a39 100%);
+  background: linear-gradient(135deg, #062a36 0%, #05222b 50%, #0a3545 100%);
 }
 
 @layer base {
