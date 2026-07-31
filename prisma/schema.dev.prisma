@@ -467,6 +467,50 @@ model ConflictCheck {
 }
 
 // -----------------------------------------------------------------------------
+// RAG — Legal Retrieval-Augmented Generation (DEV / SQLite)
+// -----------------------------------------------------------------------------
+// On SQLite dev, the embedding column is OMITTED (SQLite has no vector type).
+// retrieve.ts detects this and degrades to text search (Prisma contains).
+// All vector operations are no-ops in dev — see src/lib/rag/retrieve.ts.
+// -----------------------------------------------------------------------------
+
+model DocumentChunk {
+  id             String   @id @default(cuid())
+  organizationId String
+  matterId       String
+  documentId     String?
+  transcriptId   String?
+  sourceType     String   // 'document' | 'transcript'
+  pageNumber     Int?
+  chunkIndex     Int
+  content        String
+  tokenEstimate  Int?
+
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, matterId])
+  @@index([organizationId, documentId])
+  @@index([organizationId, transcriptId])
+}
+
+model LegalCorpus {
+  id            String   @id @default(cuid())
+  lawName       String
+  lawType       String
+  articleNumber String
+  title         String?
+  content       String
+  year          Int?
+  sourceUrl     String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([lawName, articleNumber])
+  @@index([lawType])
+}
+
+// -----------------------------------------------------------------------------
 // Audit Log — APPEND ONLY. Never expose update/delete endpoints.
 // -----------------------------------------------------------------------------
 

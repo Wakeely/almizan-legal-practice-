@@ -9,6 +9,7 @@ import { requireUser, orgWhere } from "@/lib/org";
 import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
 import { audit } from "@/lib/audit";
+import { deleteDocumentChunks } from "@/lib/rag/ingest";
 
 const documentUpdateSchema = z.object({
   name: z.string().min(1).max(300).optional(),
@@ -91,6 +92,25 @@ export async function DELETE(
     where: { id, ...orgWhere(r.session) },
   });
   if (result.count === 0) return NextResponse.json({ error: 'Not found or not owned by your organization' }, { status: 404 });
+
+  // --- RAG chunk cleanup --------------------------------------------------
+  // Remove all chunks for this document so they don't surface in future
+  // matter Q&A. Org-scoped delete for defense in depth (the doc delete above
+  // already enforced org scope, but we double-check here).
+  try {
+    const removed = await deleteDocumentChunks(r.session.organizationId, id);
+    if (removed > 0) {
+      await audit({
+        action: "ai.rag.ingest.delete",
+        entity: "document",
+        entityId: id,
+        matterId: existing.matterId,
+        details: { chunksRemoved: removed },
+      }, req);
+    }
+  } catch (err: any) {
+    console.error("[documents/delete] RAG chunk cleanup failed (non-blocking):", err?.message ?? err);
+  }
 
   await audit({ action: "document.delete", entity: "document", entityId: id, matterId: existing.matterId, details: { name: existing.name } }, req);
 

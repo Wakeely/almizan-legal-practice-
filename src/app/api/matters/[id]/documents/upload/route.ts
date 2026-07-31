@@ -18,6 +18,7 @@ import { storeFile, formatFileSize } from "@/lib/file-storage";
 import { audit } from "@/lib/audit";
 import { getFullUserProfile } from "@/lib/session";
 import { ensureFileColumns } from "@/lib/migrate-files";
+import { ingestDocument, extractTextFromFile, buildDocumentMetadataText } from "@/lib/rag/ingest";
 
 const ALLOWED_MIME_TYPES = [
   "application/pdf",
@@ -124,6 +125,46 @@ export async function POST(
     matterId: id,
     details: { name: doc.name, fileSize: doc.fileSize, mimeType, visibleToClient, storage: stored.blobUrl ? "blob" : "db" },
   }, req);
+
+  // --- RAG ingest (fire-and-forget) ---------------------------------------
+  // We ingest synchronously here because the upload already paid the latency
+  // for the file read; chunking + embedding is comparatively cheap and the
+  // lawyer benefits from the document being immediately searchable. Errors
+  // are logged but never break the upload — the document row is already saved.
+  try {
+    const fileText = extractTextFromFile(fileBuffer, mimeType);
+    const ingestText =
+      fileText ||
+      buildDocumentMetadataText({
+        name: doc.name,
+        category,
+        aiSummary: null,
+        aiTags: [],
+      });
+    if (ingestText.trim()) {
+      const result = await ingestDocument({
+        organizationId: r.session.organizationId,
+        matterId: id,
+        documentId: doc.id,
+        text: ingestText,
+        documentName: doc.name,
+      });
+      await audit({
+        action: "ai.rag.ingest",
+        entity: "document",
+        entityId: doc.id,
+        matterId: id,
+        details: {
+          chunksCreated: result.chunksCreated,
+          embeddingsWritten: result.embeddingsWritten,
+          embeddingSkipped: result.embeddingSkipped,
+          source: fileText ? "file-text" : "metadata-only",
+        },
+      }, req);
+    }
+  } catch (err: any) {
+    console.error("[documents/upload] RAG ingest failed (non-blocking):", err?.message ?? err);
+  }
 
   return NextResponse.json({
     ...doc,

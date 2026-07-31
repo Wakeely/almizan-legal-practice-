@@ -8,6 +8,7 @@ import { requireUser, verifyMatterBelongsToOrg } from "@/lib/org";
 import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
 import { audit } from "@/lib/audit";
+import { ingestTranscript } from "@/lib/rag/ingest";
 
 const transcriptCreateSchema = z.object({
   matterId: z.string().min(1),
@@ -72,6 +73,38 @@ export async function POST(req: Request) {
   });
 
   await audit({ action: "transcript.create", entity: "depositionTranscript", entityId: transcript.id, matterId: data.matterId, details: { witnessName: transcript.witnessName } }, req);
+
+  // --- RAG ingest (fire-and-forget) ---------------------------------------
+  // Chunk + embed every transcript page so deposition testimony becomes
+  // searchable by the /api/ai/rag Q&A endpoint. Page numbers are preserved
+  // as citations ("Witness X, transcript page 12").
+  try {
+    if (data.pages.length > 0) {
+      const result = await ingestTranscript({
+        organizationId: r.session.organizationId,
+        matterId: data.matterId,
+        transcriptId: transcript.id,
+        pages: data.pages.map((p) => ({
+          pageNumber: p.pageNumber,
+          speaker: p.speaker,
+          text: p.text,
+        })),
+      });
+      await audit({
+        action: "ai.rag.ingest",
+        entity: "depositionTranscript",
+        entityId: transcript.id,
+        matterId: data.matterId,
+        details: {
+          chunksCreated: result.chunksCreated,
+          embeddingsWritten: result.embeddingsWritten,
+          embeddingSkipped: result.embeddingSkipped,
+        },
+      }, req);
+    }
+  } catch (err: any) {
+    console.error("[transcripts] RAG ingest failed (non-blocking):", err?.message ?? err);
+  }
 
   return NextResponse.json({
     ...transcript,

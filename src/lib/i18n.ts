@@ -215,6 +215,30 @@ export interface TranslationDict {
   offlineMakeAvailableDone: string;       // "Cached for offline use"
   offlineMakeAvailableFailed: string;     // "Could not cache matter offline"
   offlineAiRequiresNetwork: string;       // "AI features require an internet connection"
+
+  // RAG — Legal Retrieval-Augmented Generation (grounded Q&A)
+  ragTabAsk: string;                      // "Ask with Sources"
+  ragTabDraft: string;                    // "Draft" (existing copilot tab)
+  ragSubtitle: string;                    // "Curated Jordanian legal corpus + your matter files"
+  ragPlaceholder: string;                 // "Ask a legal question grounded in this matter's files and Jordanian law…"
+  ragAskBtn: string;                      // "Ask"
+  ragToggleMatter: string;                // "Search matter files"
+  ragToggleCorpus: string;                // "Search Jordanian law"
+  ragGrounded: string;                    // "Grounded — N sources"
+  ragUngrounded: string;                  // "No sources cited"
+  ragNoSources: string;                   // "No supporting material found"
+  ragDisclaimer: string;                  // "AI-assisted. Non-authoritative — lawyer remains responsible."
+  ragSourceStatute: string;               // "Statute"
+  ragSourceDocument: string;              // "Document"
+  ragSourceTranscript: string;            // "Transcript"
+  ragMatterHits: string;                  // "Matter files: N"
+  ragCorpusHits: string;                  // "Corpus articles: N"
+  ragTextFallback: string;                // "Vector search unavailable — using text search"
+  ragThinking: string;                    // "Searching files and Jordanian law…"
+  ragErrorGeneric: string;                // "Could not complete the request."
+  ragSourcesTitle: string;                // "Sources"
+  ragShowExcerpt: string;                 // "Show excerpt"
+  ragHideExcerpt: string;                 // "Hide excerpt"
 }
 
 export const translations: Record<Language, TranslationDict> = {
@@ -432,6 +456,30 @@ export const translations: Record<Language, TranslationDict> = {
     offlineMakeAvailableDone: "تم الحفظ للاستخدام أوفلاين",
     offlineMakeAvailableFailed: "تعذر حفظ القضية أوفلاين",
     offlineAiRequiresNetwork: "تتطلب ميزات الذكاء الاصطناعي اتصالاً بالإنترنت",
+
+    // RAG — Legal Retrieval-Augmented Generation
+    ragTabAsk: "اسأل بالمصادر",
+    ragTabDraft: "صياغة",
+    ragSubtitle: "مدوّنة قانونية أردنية منتقاة + ملفات القضية",
+    ragPlaceholder: "اطرح سؤالاً قانونياً مستنداً إلى ملفات هذه القضية والقانون الأردني…",
+    ragAskBtn: "اسأل",
+    ragToggleMatter: "ابحث في ملفات القضية",
+    ragToggleCorpus: "ابحث في القانون الأردني",
+    ragGrounded: "موثّق — {n} مصدر",
+    ragUngrounded: "لا توجد مصادر موثّقة",
+    ragNoSources: "لم يتم العثور على مواد داعمة",
+    ragDisclaimer: "مساعَد بالذكاء الاصطناعي. غير ملزم — يبقى المحامي مسؤولاً.",
+    ragSourceStatute: "نص قانوني",
+    ragSourceDocument: "مستند",
+    ragSourceTranscript: "تفريغ",
+    ragMatterHits: "ملفات القضية: {n}",
+    ragCorpusHits: "مواد قانونية: {n}",
+    ragTextFallback: "البحث المتجهي غير متاح — استخدام البحث النصي",
+    ragThinking: "جارٍ البحث في الملفات والقانون الأردني…",
+    ragErrorGeneric: "تعذّر إتمام الطلب.",
+    ragSourcesTitle: "المصادر",
+    ragShowExcerpt: "عرض المقتطف",
+    ragHideExcerpt: "إخفاء المقتطف",
   },
   en: {
     appName: "Al Mizan",
@@ -647,6 +695,30 @@ export const translations: Record<Language, TranslationDict> = {
     offlineMakeAvailableDone: "Cached for offline use",
     offlineMakeAvailableFailed: "Could not cache matter offline",
     offlineAiRequiresNetwork: "AI features require an internet connection",
+
+    // RAG — Legal Retrieval-Augmented Generation
+    ragTabAsk: "Ask with Sources",
+    ragTabDraft: "Draft",
+    ragSubtitle: "Curated Jordanian legal corpus (selected articles) + your matter files",
+    ragPlaceholder: "Ask a legal question grounded in this matter's files and Jordanian law…",
+    ragAskBtn: "Ask",
+    ragToggleMatter: "Search matter files",
+    ragToggleCorpus: "Search Jordanian law",
+    ragGrounded: "Grounded — {n} sources",
+    ragUngrounded: "No sources cited",
+    ragNoSources: "No supporting material found",
+    ragDisclaimer: "AI-assisted. Non-authoritative — lawyer remains responsible.",
+    ragSourceStatute: "Statute",
+    ragSourceDocument: "Document",
+    ragSourceTranscript: "Transcript",
+    ragMatterHits: "Matter files: {n}",
+    ragCorpusHits: "Corpus articles: {n}",
+    ragTextFallback: "Vector search unavailable — using text search",
+    ragThinking: "Searching files and Jordanian law…",
+    ragErrorGeneric: "Could not complete the request.",
+    ragSourcesTitle: "Sources",
+    ragShowExcerpt: "Show excerpt",
+    ragHideExcerpt: "Hide excerpt",
   }
 };
 

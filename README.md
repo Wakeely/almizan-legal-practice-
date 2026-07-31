@@ -170,6 +170,7 @@ Per the master system prompt rule #7 (Honesty About Features):
 | Google Calendar sync | Calendar UI complete. **Actual Google Calendar API sync not wired** (requires OAuth + sync worker). |
 | Conflict of Interest | Entity search runs locally (no cross-firm database lookup). Ethical clearance certificate is generated locally, not from a central registry. |
 | Audit log viewer | Implemented (`/api/audit-log`) but no UI panel yet — accessible via API only. |
+| Legal RAG (Jordan) | **Grounded Q&A with mandatory citations** over a curated Jordanian legal corpus (31 articles across 7 statutes) + org-scoped matter files. pgvector semantic search in production; SQLite dev degrades to text search. See [Legal RAG (Jordan)](#legal-rag-jordan) below. Corpus is **not** a complete codification — see honesty notes. |
 
 ---
 
@@ -306,6 +307,140 @@ Run the dev server (`bun run dev`) and sign in. Then in Chrome DevTools:
 | `src/components/documents/documents-module.tsx` | `toggleClientVisibility` uses `offlineFetch`. `handleDownload` now caches the binary via `cacheDocumentBlob` and serves the cached blob when offline. |
 | `src/components/billing/billing-module.tsx` | `handleStopTimer`, `handleCreateTimeEntry`, `handleGenerateInvoice`, `handleMarkInvoicePaid` all use `offlineFetch` with optimistic UI + cache persistence. |
 | `src/components/matters/matters-module.tsx` | Added "Make this matter available offline" button with progress / done / failed states. |
+
+---
+
+## Legal RAG (Jordan)
+
+Al Mizan ships a **grounded legal Q&A system** — not just document management +
+a chatbot. Lawyers can ask questions about an active matter and get answers
+backed by **real citations** (law name + article number + excerpt, and/or
+document name + page / transcript page). If retrieval finds nothing, the system
+says so explicitly instead of inventing articles.
+
+### Architecture
+
+```
+src/lib/rag/
+  types.ts     — shared RAG types (Citation, RagAnswer, etc.)
+  embed.ts     — Gemini text-embedding-004 (768-dim), server-side only
+  chunk.ts     — text chunking (~500 tokens, 15% overlap, page-aware for transcripts)
+  ingest.ts    — chunk + embed + upsert DocumentChunk rows
+  retrieve.ts  — pgvector similarity search (matter + corpus) with text fallback
+  answer.ts    — retrieve → strict prompt → Gemini → post-process citations
+
+src/app/api/ai/rag/route.ts        — POST grounded Q&A
+src/app/api/ai/rag/ingest/route.ts — POST re-ingest document/transcript/matter
+
+src/components/ai/rag-panel.tsx    — "Ask with Sources" UI tab
+data/jordanian-corpus.ts           — curated Jordanian legal corpus (31 articles)
+scripts/rag/seed-jordan-corpus.ts  — embed + upsert corpus into LegalCorpus
+scripts/rag/test-rag-jordan.ts     — Arabic query smoke test
+prisma/sql/rag_pgvector_setup.sql  — pgvector extension + HNSW indexes + match functions
+```
+
+### Multi-tenant isolation (mandatory)
+
+- **DocumentChunk** rows carry `organizationId` + `matterId`.
+- `match_document_chunks()` SQL function **requires** `filter_org` and
+  `filter_matter` parameters — there is no overload that returns cross-org
+  chunks. This is enforced at the database level, not just in application code.
+- **LegalCorpus** is global read-only (the law is the law) — shared across
+  orgs but never written from the application.
+- The `/api/ai/rag` route calls `verifyMatterBelongsToOrg()` **before** any
+  retrieval runs.
+
+### Setup (production — Postgres + pgvector)
+
+```bash
+# 1. After `prisma db push` has created DocumentChunk + LegalCorpus tables:
+psql "$DATABASE_URL" -f prisma/sql/rag_pgvector_setup.sql
+#    (enables pgvector, adds embedding columns, creates HNSW indexes + match fns)
+
+# 2. Seed the Jordanian corpus (embeds each article via Gemini):
+GEMINI_API_KEY=... bun run rag:seed
+
+# 3. Smoke-test retrieval with Arabic queries:
+GEMINI_API_KEY=... bun run rag:test
+```
+
+### Setup (local dev — SQLite, no pgvector)
+
+```bash
+# SQLite dev schema OMITS the embedding column. The seed script still inserts
+# article rows (text-only) and retrieve.ts falls back to Prisma `contains`
+# text search. Semantic search is unavailable but keyword search works.
+bun run db:push:dev
+DATABASE_URL="file:$(pwd)/prisma/dev.db" bun run rag:seed
+DATABASE_URL="file:$(pwd)/prisma/dev.db" bun run rag:test
+```
+
+### What the corpus covers (and what it does NOT)
+
+The curated corpus includes **31 articles** across 7 Jordanian statutes most
+commonly cited in litigation:
+
+| Statute | Law type | Articles |
+|---|---|---|
+| القانون المدني الأردني (Civil Code, 1976) | `civil` | 146, 166, 183, 256, 257, 265, 336, 347 |
+| قانون العمل (Labour Law, 1996) | `labour` | 23, 67, 74, 61, 82 |
+| قانون أصول المحاكمات المدنية (Civil Procedure, 1988) | `procedure` | 5, 43, 60, 76, 152 |
+| قانون البينات (Evidence Law, 1952) | `evidence` | 2, 13, 39, 44 |
+| قانون المالكين والمستأجرين (Rent Law, 1994) | `rent` | 5, 13, 17 |
+| قانون السير (Traffic Law, 2008) | `traffic` | 31, 46, 70 |
+| قانون الأحوال الشخصية (Personal Status, 2010) | `maintenance` | 66, 68, 175 |
+
+**This is NOT a complete codification of Jordanian law.** It is a curated
+starting set focused on the highest-frequency litigation areas. The articles
+are paraphrased faithfully from the official Arabic text; the lawyer remains
+responsible for verifying against the official gazette before relying on a
+citation. To extend the corpus, add entries to `data/jordanian-corpus.ts`
+and re-run `bun run rag:seed` (upserts by `lawName + articleNumber`).
+
+### How lawyers should use this
+
+The **"Ask with Sources"** tab in the AI module is the grounded Q&A entry
+point. It is the default tab — lawyers land on grounded retrieval first, not
+on free-form generation.
+
+1. **Ask a question** about the active matter, e.g.
+   "ما هي مدة تقادم الالتزامات المدنية؟" or
+   "What did the witness say about the contract signing date?"
+2. **Toggle scope** — search matter files only, Jordanian law only, or both
+   (default).
+3. **Read the answer** with inline citations `[source N]` and a badge showing
+   `Grounded — N sources` or `No sources found`.
+4. **Expand source chips** to read the exact excerpt. Statute citations show
+   law name + article number + Arabic text. Document/transcript citations
+   show file name + page number + excerpt.
+5. **Trust the refusal path** — if the badge says "No sources found", the
+   system genuinely found nothing relevant. It will NOT invent article numbers.
+
+**This is not a substitute for a legal opinion.** The disclaimer
+("AI-assisted. Non-authoritative — lawyer remains responsible.") is attached
+to every response. Use RAG to find relevant material faster; verify every
+citation against the primary source before filing.
+
+### Re-ingesting
+
+Documents and transcripts are ingested automatically on upload/create. To
+re-ingest manually (e.g. after setting up pgvector for the first time, or
+after changing chunking strategy):
+
+```bash
+# Re-ingest a single document:
+curl -X POST http://localhost:3000/api/ai/rag/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"type":"document","documentId":"<id>"}'
+
+# Re-ingest a whole matter (all documents + transcripts):
+curl -X POST http://localhost:3000/api/ai/rag/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"type":"matter","matterId":"<id>"}'
+```
+
+When a document is deleted, its chunks are removed automatically (org-scoped
+delete) so they don't surface in future Q&A.
 
 ---
 

@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, FileText, Download, Copy, RefreshCw, Send, CheckCircle2, Mic, MicOff, Volume2, Wand2, Trash2 } from 'lucide-react';
+import { Sparkles, FileText, Download, Copy, RefreshCw, Send, CheckCircle2, Mic, MicOff, Volume2, Wand2, Trash2, Search } from 'lucide-react';
 import { Matter } from '@/lib/types';
 import { useLanguage } from '@/components/providers/language-provider';
+import RagPanel from './rag-panel';
 
 interface AiModuleProps {
   activeMatter: Matter;
@@ -11,6 +12,9 @@ interface AiModuleProps {
 
 export default function AiModule({ activeMatter }: AiModuleProps) {
   const { t, isRtl } = useLanguage();
+  // Tab state — "draft" is the existing pleading copilot, "ask" is the new
+  // grounded RAG Q&A panel.
+  const [tab, setTab] = useState<'ask' | 'draft'>('ask');
   const [draftType, setDraftType] = useState('Demand Letter');
   const [customInstructions, setCustomInstructions] = useState('');
   const [draftText, setDraftText] = useState('');
@@ -185,7 +189,44 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
         </span>
       </div>
 
-      {/* Main Grid: Options Form Left | Draft Preview Right */}
+      {/* Tab switcher — Ask (RAG) is the new default; Draft is the legacy
+          pleading copilot. Lawyers land on the grounded Q&A first. */}
+      <div className="flex gap-1 p-1 bg-slate-100 rounded-2xl">
+        <button
+          type="button"
+          onClick={() => setTab('ask')}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            tab === 'ask'
+              ? 'bg-white text-indigo-700 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Search className="w-3.5 h-3.5" />
+          <span>{t.ragTabAsk}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('draft')}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            tab === 'draft'
+              ? 'bg-white text-indigo-700 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <FileText className="w-3.5 h-3.5" />
+          <span>{t.ragTabDraft}</span>
+        </button>
+      </div>
+
+      {/* --- Ask with Sources (RAG) tab --- */}
+      {tab === 'ask' && (
+        <div className="flex-grow overflow-hidden flex flex-col min-h-[400px]">
+          <RagPanel activeMatter={activeMatter} />
+        </div>
+      )}
+
+      {/* --- Draft tab (existing pleading copilot) --- */}
+      {tab === 'draft' && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 md:gap-6 flex-grow overflow-hidden">
         {/* Left Side: Drafting Configs */}
         <div className="lg:col-span-5 flex flex-col gap-4">
@@ -380,6 +421,7 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }

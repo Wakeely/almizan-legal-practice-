@@ -514,6 +514,61 @@ model ConflictCheck {
 }
 
 // -----------------------------------------------------------------------------
+// RAG — Legal Retrieval-Augmented Generation
+// -----------------------------------------------------------------------------
+// Two stores:
+//   1. DocumentChunk — org-scoped matter file / transcript chunks. NEVER shared
+//      across organizations. Embeddings are pgvector vector(768) (Gemini
+//      text-embedding-004). On SQLite dev, the embedding column is omitted and
+//      retrieve.ts degrades to text search.
+//   2. LegalCorpus — curated Jordanian statutes/articles. Global read-only
+//      library shared across orgs (the law is the law). Seeded by script.
+// -----------------------------------------------------------------------------
+
+model DocumentChunk {
+  id             String   @id @default(cuid())
+  organizationId String
+  matterId       String
+  documentId     String?
+  transcriptId   String?
+  sourceType     String   // 'document' | 'transcript'
+  pageNumber     Int?
+  chunkIndex     Int
+  content        String
+  tokenEstimate  Int?
+
+  // pgvector column. Managed via raw SQL (prisma/sql/rag_pgvector_setup.sql).
+  // Prisma cannot read/write Unsupported types via the client — all embedding
+  // reads/writes go through db.$queryRaw. On SQLite dev, this column is absent.
+  embedding      Unsupported("vector(768)")?
+
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, matterId])
+  @@index([organizationId, documentId])
+  @@index([organizationId, transcriptId])
+}
+
+model LegalCorpus {
+  id            String   @id @default(cuid())
+  lawName       String   // e.g. "القانون المدني الأردني"
+  lawType       String   // 'civil' | 'labour' | 'procedure' | 'evidence' | 'traffic' | 'rent' | 'maintenance' | 'commercial'
+  articleNumber String   // e.g. "256"
+  title         String?
+  content       String   // Arabic article text
+  year          Int?
+  sourceUrl     String?
+
+  embedding     Unsupported("vector(768)")?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([lawName, articleNumber])
+  @@index([lawType])
+}
+
+// -----------------------------------------------------------------------------
 // Audit Log — APPEND ONLY. Never expose update/delete endpoints.
 // -----------------------------------------------------------------------------
 
