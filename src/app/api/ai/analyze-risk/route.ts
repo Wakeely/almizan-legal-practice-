@@ -10,7 +10,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser, orgWhere } from "@/lib/org";
 import { aiRateLimit, getClientIp } from "@/lib/rate-limit";
-import { callGemini } from "@/lib/gemini";
+import { callGemini, callGeminiWithTools } from "@/lib/gemini";
 import { audit } from "@/lib/audit";
 
 export async function POST(req: Request) {
@@ -61,7 +61,21 @@ Return a JSON object:
 
 Only return the JSON object.`;
 
-  const result = await callGemini(prompt, "You are an enterprise litigation risk analyst specializing in GCC/MENA jurisdictions.");
+  // Use tool-enabled Gemini for Jordanian matters — lets the model call the
+  // Jordanian Law MCP to verify legal basis + check citation currency.
+  const isJordanMatter =
+    matter.jurisdiction?.toLowerCase().includes("jordan") ||
+    matter.jurisdiction?.toLowerCase().includes("الأردن") ||
+    matter.jurisdiction?.toLowerCase() === "jo";
+
+  const riskSystemPrompt =
+    "You are an enterprise litigation risk analyst specializing in GCC/MENA jurisdictions. " +
+    "When analyzing Jordanian matters, use the jordanian_law tools to verify the legal basis " +
+    "of claims and check whether cited provisions are still in force. Never invent citations.";
+
+  const result = isJordanMatter
+    ? await callGeminiWithTools(prompt, riskSystemPrompt)
+    : await callGemini(prompt, riskSystemPrompt);
 
   let analysis: any = {
     riskSummary: result.text,

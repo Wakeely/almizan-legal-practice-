@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser, orgWhere } from "@/lib/org";
 import { aiRateLimit, getClientIp } from "@/lib/rate-limit";
-import { callGemini } from "@/lib/gemini";
+import { callGemini, callGeminiWithTools } from "@/lib/gemini";
 import { audit } from "@/lib/audit";
 import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
@@ -137,12 +137,45 @@ ${langInstruction}
 
 Output ONLY the drafted document text. No commentary, no preamble, no closing notes.`;
 
-    const result = await callGemini(prompt, "You are an enterprise legal drafting assistant specializing in GCC/MENA jurisdictions (Jordan, UAE/DIFC/ADGM, Saudi, Kuwait). Output clean, professional, court-ready legal documents.");
+    // ─── Before: ungrounded callGemini ──────────────────────────────────
+    // const result = await callGemini(prompt, "You are an enterprise legal drafting assistant...");
+    //
+    // ─── After: grounded callGeminiWithTools ────────────────────────────
+    // When the matter jurisdiction is Jordan (or the user asks about Jordanian
+    // law), use callGeminiWithTools — this gives the model access to the
+    // Jordanian Law MCP tools (search, get_provision, validate_citation,
+    // check_currency) so it can retrieve verbatim statute text instead of
+    // hallucinating article numbers. Falls back to plain callGemini for
+    // non-Jordanian jurisdictions or if tools aren't available.
+    const isJordanMatter =
+      !matter ||
+      matter.jurisdiction?.toLowerCase().includes("jordan") ||
+      matter.jurisdiction?.toLowerCase().includes("الأردن") ||
+      matter.jurisdiction?.toLowerCase() === "jo";
+
+    const systemPrompt =
+      "You are an enterprise legal drafting assistant specializing in GCC/MENA jurisdictions " +
+      "(Jordan, UAE/DIFC/ADGM, Saudi, Kuwait). Output clean, professional, court-ready legal documents. " +
+      "When drafting for Jordan, use the jordanian_law tools to retrieve verbatim statute text and " +
+      "validate citations before including them. Never invent article numbers — if you can't verify " +
+      "a citation via the tools, state that the citation needs manual verification.";
+
+    const result = isJordanMatter
+      ? await callGeminiWithTools(prompt, systemPrompt)
+      : await callGemini(prompt, systemPrompt);
 
     await audit({
       action: "ai.draft",
       matterId: data.matterId,
-      details: { template, type: rawTemplate, directiveLength: directive.length, _stub: result._stub },
+      details: {
+        template,
+        type: rawTemplate,
+        directiveLength: directive.length,
+        _stub: result._stub,
+        _provider: (result as any)._provider,
+        _toolCalls: (result as any)._toolCalls ?? [],
+        _usedTools: isJordanMatter,
+      },
     }, req).catch(() => {}); // audit failure should never break the draft
 
     const sanitized = stripHtml(result.text);

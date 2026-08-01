@@ -1,6 +1,11 @@
 import { GoogleGenAI } from "@google/genai";
 import { callOpenAI } from "@/lib/openai";
 import { callGroq } from "@/lib/groq";
+import {
+  getAvailableLawTools,
+  executeJordanianLawTool,
+  extractFunctionCall,
+} from "@/lib/mcp/gemini-tools";
 
 let _client: GoogleGenAI | null = null;
 
@@ -212,4 +217,110 @@ function summarizeError(err: any): string {
     // Not JSON — use the raw message.
   }
   return raw.substring(0, 300);
+}
+
+// =============================================================================
+// callGeminiWithTools — function-calling loop with MCP integration
+// -----------------------------------------------------------------------------
+// This is the enhanced Gemini caller that supports function calling. When
+// the model requests a tool (e.g. search_jordanian_legislation), the function
+// is executed against the MCP adapter, and the result is fed back to the model
+// in the next turn. Up to 5 rounds of tool-calling are supported.
+//
+// Falls back to plain callGemini() if:
+//   - GEMINI_API_KEY is missing (stub mode)
+//   - All Gemini models fail (tries OpenAI/Groq fallback without tools)
+//
+// Use this instead of callGemini() in AI routes that need grounded legal
+// research (drafting, risk analysis, RAG answers).
+// =============================================================================
+
+export interface GeminiWithToolsResult extends GeminiResult {
+  /** The tools that were called during this request (for audit/logging). */
+  _toolCalls?: Array<{ name: string; args: Record<string, unknown>; success: boolean }>;
+}
+
+const MAX_TOOL_ROUNDS = 5;
+
+export async function callGeminiWithTools(
+  prompt: string,
+  systemInstruction?: string,
+): Promise<GeminiWithToolsResult> {
+  const client = getClient();
+  if (!client) {
+    // No key — fall back to stub mode via callGemini.
+    return callGemini(prompt, systemInstruction);
+  }
+
+  const tools = getAvailableLawTools();
+  const toolCallLog: GeminiWithToolsResult["_toolCalls"] = [];
+
+  // The conversation starts with the user's prompt. Each tool round appends
+  // the model's function call + our function response, then re-generates.
+  let contents: any[] = [{ role: "user", parts: [{ text: prompt }] }];
+
+  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    try {
+      const result = await client.models.generateContent({
+        model: PRIMARY_MODEL,
+        contents,
+        config: {
+          systemInstruction: systemInstruction ?? undefined,
+          temperature: 0.4,
+          maxOutputTokens: 2048,
+          tools: [{ functionDeclarations: tools }],
+        },
+      });
+
+      // Check if the model wants to call a function.
+      const functionCall = extractFunctionCall(result);
+
+      if (!functionCall) {
+        // No function call — the model produced a final text answer.
+        return {
+          text: result.text ?? "",
+          _stub: false,
+          _provider: "gemini",
+          _toolCalls: toolCallLog,
+        };
+      }
+
+      // Execute the requested tool.
+      const toolResult = await executeJordanianLawTool(
+        functionCall.name,
+        functionCall.args,
+      );
+
+      toolCallLog!.push({
+        name: functionCall.name,
+        args: functionCall.args,
+        success: !toolResult.includes('"error"'),
+      });
+
+      // Append the model's function call + our response to the conversation,
+      // then loop to let the model generate the final answer with the tool data.
+      contents.push({
+        role: "model",
+        parts: [{ functionCall: { name: functionCall.name, args: functionCall.args } }],
+      });
+      contents.push({
+        role: "user",
+        parts: [{ functionResponse: { name: functionCall.name, response: { result: toolResult } } }],
+      });
+    } catch (err: any) {
+      // If Gemini fails mid-tool-loop, fall back to plain callGemini (which
+      // handles the OpenAI/Groq fallback chain).
+      console.warn("[gemini/tools] tool loop failed, falling back:", err?.message?.substring(0, 200));
+      const fallback = await callGemini(prompt, systemInstruction);
+      return { ...fallback, _toolCalls: toolCallLog };
+    }
+  }
+
+  // Exhausted tool rounds — return whatever the model last said, or a notice.
+  return {
+    text: "Legal research completed but the tool-call limit was reached. The answer above reflects the information retrieved.",
+    _stub: true,
+    _provider: "gemini",
+    _toolCalls: toolCallLog,
+  };
 }

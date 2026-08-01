@@ -18,7 +18,7 @@
 //   6. Return the canonical RagAnswer shape.
 // =============================================================================
 
-import { callGemini } from "@/lib/gemini";
+import { callGemini, callGeminiWithTools } from "@/lib/gemini";
 import { generateEmbedding } from "./embed";
 import { isVectorSearchAvailable, retrieveMatterChunks, matchLegalCorpus } from "./retrieve";
 import type { AnswerOptions, Citation, RetrievedChunk, RagAnswer } from "./types";
@@ -136,8 +136,11 @@ If you cannot answer from the context, return:
   "confidence": 0.0
 }`;
 
-  // 5. Call Gemini.
-  const result = await callGemini(
+  // 5. Call Gemini — use tool-enabled version so the model can call the
+  // Jordanian Law MCP to verify/retrieve additional provisions beyond what
+  // our local corpus holds. This is especially useful when the question
+  // references articles not yet in our curated 31-article seed set.
+  const result = await callGeminiWithTools(
     `Question: ${opts.question}`,
     systemPrompt,
   );
