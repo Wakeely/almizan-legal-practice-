@@ -150,8 +150,26 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
         const data = await res.json();
         setDraftText(data.draft);
       } else {
-        const errData = await res.json();
-        setError(errData.error || (isRtl ? "فشل الذكاء الاصطناعي في توليد المسودة." : "Failed to generate legal draft."));
+        // Handle non-JSON error responses gracefully — the API may return an
+        // HTML error page if it crashed server-side, which would throw
+        // "Unexpected token '<'" on res.json(). We parse safely and show a
+        // clear message instead.
+        let errMsg = isRtl ? "فشل الذكاء الاصطناعي في توليد المسودة." : "Failed to generate legal draft.";
+        try {
+          const text = await res.text();
+          // Try to parse as JSON first; if that fails, it's an HTML error page.
+          if (text.startsWith('{')) {
+            const errData = JSON.parse(text);
+            errMsg = errData.error || errMsg;
+          } else if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+            errMsg = isRtl
+              ? "حدث خطأ في الخادم أثناء توليد المسودة. يرجى المحاولة مرة أخرى، أو التواصل مع الدعم إذا استمر الخطأ."
+              : "Server error while generating the draft. Please try again, or contact support if the error persists.";
+          }
+        } catch {
+          // res.text() or JSON.parse failed — keep the default message.
+        }
+        setError(errMsg);
       }
     } catch (err: any) {
       setError(err.message || "Network error occurred.");

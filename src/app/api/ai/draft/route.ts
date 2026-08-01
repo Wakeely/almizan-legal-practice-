@@ -43,58 +43,59 @@ const TEMPLATE_PROMPTS: Record<string, string> = {
 };
 
 export async function POST(req: Request) {
-  const r = await requireUser();
-  if (r.ok === false) return r.response;
+  try {
+    const r = await requireUser();
+    if (r.ok === false) return r.response;
 
-  const ip = getClientIp(req);
-  const limit = await aiRateLimit(ip, r.session.organizationId);
-  if (!limit.ok) {
-    return NextResponse.json(
-      { error: "AI rate limit exceeded" },
-      { status: 429, headers: { "Retry-After": String(Math.ceil(limit.retryAfterMs / 1000)) } },
-    );
-  }
+    const ip = getClientIp(req);
+    const limit = await aiRateLimit(ip, r.session.organizationId);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { error: "AI rate limit exceeded" },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(limit.retryAfterMs / 1000)) } },
+      );
+    }
 
-  const body = await req.json().catch((): null => null);
-  const parsed = parseBody(draftSchema, body);
-  if (parsed.ok === false) return NextResponse.json({ error: parsed.error, fieldErrors: (parsed as any).fieldErrors }, { status: 400 });
-  const data = parsed.data;
+    const body = await req.json().catch((): null => null);
+    const parsed = parseBody(draftSchema, body);
+    if (parsed.ok === false) return NextResponse.json({ error: parsed.error, fieldErrors: (parsed as any).fieldErrors }, { status: 400 });
+    const data = parsed.data;
 
-  // Resolve template + directive from either UI field name
-  const rawTemplate = data.template ?? data.type ?? "free-text";
-  // Map common UI template names to our schema enum
-  const templateMap: Record<string, string> = {
-    "demand-notice": "demand-notice",
-    "Demand Notice": "demand-notice",
-    "Formal Demand Notice": "demand-notice",
-    "settlement-accord": "settlement-accord",
-    "Settlement Accord": "settlement-accord",
-    "arbitration-petition": "arbitration-petition",
-    "SCCA Arbitration Petition": "arbitration-petition",
-    "Arbitration Petition": "arbitration-petition",
-    "statement-of-defense": "statement-of-defense",
-    "Statement of Defense": "statement-of-defense",
-    "Statement of Defense Pleading": "statement-of-defense",
-    "free-text": "free-text",
-    "Free Text": "free-text",
-  };
-  const template = templateMap[rawTemplate] ?? "free-text";
-  const directive = data.directive ?? data.details ?? "";
+    // Resolve template + directive from either UI field name
+    const rawTemplate = data.template ?? data.type ?? "free-text";
+    // Map common UI template names to our schema enum
+    const templateMap: Record<string, string> = {
+      "demand-notice": "demand-notice",
+      "Demand Notice": "demand-notice",
+      "Formal Demand Notice": "demand-notice",
+      "settlement-accord": "settlement-accord",
+      "Settlement Accord": "settlement-accord",
+      "arbitration-petition": "arbitration-petition",
+      "SCCA Arbitration Petition": "arbitration-petition",
+      "Arbitration Petition": "arbitration-petition",
+      "statement-of-defense": "statement-of-defense",
+      "Statement of Defense": "statement-of-defense",
+      "Statement of Defense Pleading": "statement-of-defense",
+      "free-text": "free-text",
+      "Free Text": "free-text",
+    };
+    const template = templateMap[rawTemplate] ?? "free-text";
+    const directive = data.directive ?? data.details ?? "";
 
-  // Fetch matter context (org-scoped)
-  let matter = null;
-  if (data.matterId) {
-    matter = await db.matter.findFirst({
-      where: { id: data.matterId, ...orgWhere(r.session) },
-    });
-  }
+    // Fetch matter context (org-scoped)
+    let matter = null;
+    if (data.matterId) {
+      matter = await db.matter.findFirst({
+        where: { id: data.matterId, ...orgWhere(r.session) },
+      });
+    }
 
-  const templateInstruction = TEMPLATE_PROMPTS[template] ?? TEMPLATE_PROMPTS["free-text"];
-  const langInstruction = data.lang === "ar"
-    ? "Write the entire document in formal Arabic legal terminology (فصحى)."
-    : "Write the entire document in formal English legal terminology.";
+    const templateInstruction = TEMPLATE_PROMPTS[template] ?? TEMPLATE_PROMPTS["free-text"];
+    const langInstruction = data.lang === "ar"
+      ? "Write the entire document in formal Arabic legal terminology (فصحى)."
+      : "Write the entire document in formal English legal terminology.";
 
-  const prompt = `You are an enterprise legal drafting assistant for GCC/MENA jurisdictions.
+    const prompt = `You are an enterprise legal drafting assistant for GCC/MENA jurisdictions.
 
 TEMPLATE: ${template}
 ${templateInstruction}
@@ -115,25 +116,38 @@ ${langInstruction}
 
 Output ONLY the drafted document text. No commentary, no preamble, no closing notes.`;
 
-  const result = await callGemini(prompt, "You are an enterprise legal drafting assistant specializing in GCC/MENA jurisdictions (Jordan, UAE/DIFC/ADGM, Saudi, Kuwait). Output clean, professional, court-ready legal documents.");
+    const result = await callGemini(prompt, "You are an enterprise legal drafting assistant specializing in GCC/MENA jurisdictions (Jordan, UAE/DIFC/ADGM, Saudi, Kuwait). Output clean, professional, court-ready legal documents.");
 
-  await audit({
-    action: "ai.draft",
-    matterId: data.matterId,
-    details: { template, type: rawTemplate, directiveLength: directive.length, _stub: result._stub },
-  }, req);
+    await audit({
+      action: "ai.draft",
+      matterId: data.matterId,
+      details: { template, type: rawTemplate, directiveLength: directive.length, _stub: result._stub },
+    }, req).catch(() => {}); // audit failure should never break the draft
 
-  const sanitized = DOMPurify.sanitize(result.text, {
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: [],
-    KEEP_CONTENT: true,
-  });
+    const sanitized = DOMPurify.sanitize(result.text, {
+      ALLOWED_TAGS: [],
+      ALLOWED_ATTR: [],
+      KEEP_CONTENT: true,
+    });
 
-  // Return shape expected by reference AiModule: { draft, _stub, _disclaimer }
-  return NextResponse.json({
-    draft: sanitized,
-    text: sanitized,
-    _stub: result._stub,
-    _disclaimer: "AI-assisted draft. Non-authoritative — review and modify with a qualified attorney before filing.",
-  });
+    // Return shape expected by reference AiModule: { draft, _stub, _disclaimer }
+    return NextResponse.json({
+      draft: sanitized,
+      text: sanitized,
+      _stub: result._stub,
+      _disclaimer: "AI-assisted draft. Non-authoritative — review and modify with a qualified attorney before filing.",
+    });
+  } catch (err: any) {
+    // Catch-all: never let the route return an HTML error page (which causes
+    // "Unexpected token '<'" on the client). Always return JSON.
+    console.error("[ai/draft] unhandled error:", err);
+    return NextResponse.json(
+      {
+        error:
+          "Draft generation failed due to a server error. If you have OpenAI configured as a fallback, it may have been used. Please try again.",
+        detail: err?.message?.substring(0, 300),
+      },
+      { status: 500 },
+    );
+  }
 }
