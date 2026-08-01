@@ -22,16 +22,20 @@ export interface GeminiResult {
 }
 
 // The primary text-generation model. Overridable via GEMINI_TEXT_MODEL env var
-// so you can switch without a code change. Default is gemini-2.0-flash-lite
-// which has separate (and higher) free-tier quotas than gemini-2.0-flash.
-const PRIMARY_MODEL = process.env.GEMINI_TEXT_MODEL || "gemini-2.0-flash-lite";
+// so you can switch without a code change. Default is gemini-2.5-flash-lite
+// — the newest lite model, which has the most generous free-tier quota for
+// newly-created API keys. Older models like gemini-2.0-flash may be
+// quota-exhausted or restricted for new keys.
+const PRIMARY_MODEL = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash-lite";
 
-// Fallback models tried in order if the primary hits a quota error. Each has
-// its own free-tier quota bucket, so if one is exhausted the next may work.
-// IMPORTANT: only list models that are CURRENTLY available on the v1beta API.
-// - gemini-1.5-flash was DEPRECATED and returns 404 "model not found".
-// - gemini-2.5-flash is the newest 2.x flash model (separate quota from 2.0).
+// Fallback models tried in order if the primary hits a quota/error. Each has
+// its own free-tier quota bucket. Listed newest-first because newer models
+// tend to have more generous quotas for newly-created keys.
+// NOTE: gemini-1.5-flash is deprecated (404). gemini-2.5-flash may show
+// "no longer available to new users" for recently-created keys — we still
+// try it as a fallback because it works for older keys.
 const FALLBACK_MODELS = [
+  "gemini-2.0-flash-lite",
   "gemini-2.5-flash",
   "gemini-2.0-flash",
 ];
@@ -51,7 +55,9 @@ function isRetryableError(err: any): boolean {
     msg.includes("404") ||
     msg.includes("NOT_FOUND") ||
     msg.includes("is not found for API version") ||
-    msg.includes("is not supported for")
+    msg.includes("is not supported for") ||
+    msg.includes("no longer available") ||
+    msg.includes("deprecated")
   );
 }
 
