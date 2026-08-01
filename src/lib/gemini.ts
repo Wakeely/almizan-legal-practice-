@@ -84,6 +84,7 @@ export async function callGemini(
   // (deduplicated, excluding the primary if it's already in the list).
   const modelsToTry = Array.from(new Set([PRIMARY_MODEL, ...FALLBACK_MODELS]));
 
+  const failures: Array<{ model: string; error: string }> = [];
   let lastError: any = null;
 
   for (const model of modelsToTry) {
@@ -102,7 +103,9 @@ export async function callGemini(
       return { text, _stub: false };
     } catch (err: any) {
       lastError = err;
-      console.error(`[gemini] ${model} failed:`, err?.message?.substring(0, 200) ?? err);
+      const errSummary = summarizeError(err);
+      failures.push({ model, error: errSummary });
+      console.error(`[gemini] ${model} failed:`, errSummary);
 
       // If it's a retryable error (quota OR model-not-found), try the next
       // model. For other errors (auth, invalid request), fail immediately.
@@ -114,24 +117,68 @@ export async function callGemini(
     }
   }
 
-  // All models failed — return the last error to the user.
-  const errMsg = lastError?.message ?? "Unknown error";
+  // All models failed — build a transparent error report showing exactly
+  // which models were tried and why each failed. This makes it obvious if
+  // the issue is a stale API key (would show "API key not valid"), a real
+  // quota issue (shows "quota exceeded"), or a model availability issue.
+  const report = failures
+    .map((f) => `• ${f.model}: ${f.error}`)
+    .join("\n");
 
-  // If it's a quota error, give the user actionable advice.
-  if (isQuotaError(lastError)) {
+  const isAllQuota = failures.every((f) =>
+    f.error.includes("429") ||
+    f.error.includes("RESOURCE_EXHAUSTED") ||
+    f.error.includes("quota")
+  );
+
+  if (isAllQuota) {
     return {
       text:
-        "⏳ Gemini free-tier quota exhausted for today. Options:\n\n" +
-        "1. Wait for the quota to reset (usually midnight Pacific time).\n" +
-        "2. Enable billing on your Google AI Studio account (https://aistudio.google.com/app/apikey) — paid tier has much higher limits.\n" +
-        "3. Set GEMINI_TEXT_MODEL env var to a different model with available quota.\n\n" +
-        "Note: RAG retrieval still works — the issue is only with the final answer-generation step.",
+        "⏳ All Gemini text models hit their free-tier quota limit.\n\n" +
+        "Models tried:\n" + report + "\n\n" +
+        "Options:\n" +
+        "1. Wait for quota reset (midnight Pacific time).\n" +
+        "2. Enable billing at https://aistudio.google.com — paid tier has much higher limits.\n" +
+        "3. Use a different Google account's API key.\n\n" +
+        "Note: RAG retrieval still works — only the final answer text is blocked.",
       _stub: true,
     };
   }
 
+  // Non-quota error (invalid key, model not found, etc.) — show the raw error
+  // so the user can diagnose it. This is critical for debugging: if the user
+  // changed their API key but didn't redeploy, they'll see "API key not valid"
+  // here, which tells them exactly what's wrong.
   return {
-    text: `[AI ERROR] ${errMsg}`,
+    text:
+      "[AI ERROR] All text-generation models failed:\n\n" +
+      report +
+      "\n\nIf you recently changed GEMINI_API_KEY, make sure you REDEPLOYED on Vercel " +
+      "(env vars only apply on the next deploy). If the error says 'API key not valid', " +
+      "the new key isn't active yet.",
     _stub: true,
   };
+}
+
+/**
+ * Extract a short, human-readable error message from a Gemini SDK error.
+ * The SDK wraps errors in a way that can hide the actual message — we dig
+ * it out so the user can see exactly what went wrong.
+ */
+function summarizeError(err: any): string {
+  const raw = err?.message ?? String(err);
+  // Try to parse the JSON error body if present (Gemini returns errors as
+  // JSON strings inside the message field).
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed?.error?.message) {
+      return parsed.error.message.substring(0, 300);
+    }
+    if (parsed?.error?.code) {
+      return `code ${parsed.error.code}: ${parsed.error.status ?? "error"}`;
+    }
+  } catch {
+    // Not JSON — use the raw message.
+  }
+  return raw.substring(0, 300);
 }
