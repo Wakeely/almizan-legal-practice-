@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { callOpenAI } from "@/lib/openai";
+import { callGroq } from "@/lib/groq";
 
 let _client: GoogleGenAI | null = null;
 
@@ -20,8 +21,8 @@ export interface GeminiMessage {
 export interface GeminiResult {
   text: string;
   _stub: boolean;
-  /** Set when the answer came from the OpenAI fallback (for debugging). */
-  _provider?: "gemini" | "openai";
+  /** Set when the answer came from a fallback provider (for debugging). */
+  _provider?: "gemini" | "openai" | "groq";
 }
 
 // The primary text-generation model. Overridable via GEMINI_TEXT_MODEL env var
@@ -126,17 +127,29 @@ export async function callGemini(
     }
   }
 
-  // All Gemini models failed. If OpenAI is configured, fall back to it
-  // transparently — the caller gets a working answer without seeing the
-  // Gemini failure. This is the key resilience feature: as long as EITHER
-  // Gemini OR OpenAI has available quota, the RAG answer generates.
+  // All Gemini models failed. Try fallback providers in order: OpenAI → Groq.
+  // As long as ANY provider has available quota, the RAG answer generates.
   if (process.env.OPENAI_API_KEY) {
     console.warn("[gemini] all Gemini models failed, falling back to OpenAI...");
     const openaiResult = await callOpenAI(prompt, systemInstruction);
+    if (!openaiResult._stub) {
+      return {
+        text: openaiResult.text,
+        _stub: false,
+        _provider: "openai",
+      };
+    }
+    // OpenAI also failed (e.g. no credits) — fall through to Groq.
+    console.warn("[gemini] OpenAI also failed, trying Groq...");
+  }
+
+  if (process.env.GROQ_API_KEY) {
+    console.warn("[gemini] falling back to Groq (free)...");
+    const groqResult = await callGroq(prompt, systemInstruction);
     return {
-      text: openaiResult.text,
-      _stub: openaiResult._stub,
-      _provider: "openai",
+      text: groqResult.text,
+      _stub: groqResult._stub,
+      _provider: "groq",
     };
   }
 
