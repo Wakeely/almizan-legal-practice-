@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { callOpenAI } from "@/lib/openai";
 
 let _client: GoogleGenAI | null = null;
 
@@ -19,6 +20,8 @@ export interface GeminiMessage {
 export interface GeminiResult {
   text: string;
   _stub: boolean;
+  /** Set when the answer came from the OpenAI fallback (for debugging). */
+  _provider?: "gemini" | "openai";
 }
 
 // The primary text-generation model. Overridable via GEMINI_TEXT_MODEL env var
@@ -123,10 +126,21 @@ export async function callGemini(
     }
   }
 
-  // All models failed — build a transparent error report showing exactly
-  // which models were tried and why each failed. This makes it obvious if
-  // the issue is a stale API key (would show "API key not valid"), a real
-  // quota issue (shows "quota exceeded"), or a model availability issue.
+  // All Gemini models failed. If OpenAI is configured, fall back to it
+  // transparently — the caller gets a working answer without seeing the
+  // Gemini failure. This is the key resilience feature: as long as EITHER
+  // Gemini OR OpenAI has available quota, the RAG answer generates.
+  if (process.env.OPENAI_API_KEY) {
+    console.warn("[gemini] all Gemini models failed, falling back to OpenAI...");
+    const openaiResult = await callOpenAI(prompt, systemInstruction);
+    return {
+      text: openaiResult.text,
+      _stub: openaiResult._stub,
+      _provider: "openai",
+    };
+  }
+
+  // No OpenAI fallback available — return the transparent Gemini error.
   const report = failures
     .map((f) => `• ${f.model}: ${f.error}`)
     .join("\n");
@@ -145,24 +159,22 @@ export async function callGemini(
         "Options:\n" +
         "1. Wait for quota reset (midnight Pacific time).\n" +
         "2. Enable billing at https://aistudio.google.com — paid tier has much higher limits.\n" +
-        "3. Use a different Google account's API key.\n\n" +
+        "3. Set OPENAI_API_KEY as a fallback provider (see README).\n\n" +
         "Note: RAG retrieval still works — only the final answer text is blocked.",
       _stub: true,
+      _provider: "gemini",
     };
   }
 
-  // Non-quota error (invalid key, model not found, etc.) — show the raw error
-  // so the user can diagnose it. This is critical for debugging: if the user
-  // changed their API key but didn't redeploy, they'll see "API key not valid"
-  // here, which tells them exactly what's wrong.
   return {
     text:
-      "[AI ERROR] All text-generation models failed:\n\n" +
+      "[AI ERROR] All Gemini models failed:\n\n" +
       report +
       "\n\nIf you recently changed GEMINI_API_KEY, make sure you REDEPLOYED on Vercel " +
-      "(env vars only apply on the next deploy). If the error says 'API key not valid', " +
-      "the new key isn't active yet.",
+      "(env vars only apply on the next deploy). To use OpenAI as a fallback, " +
+      "set OPENAI_API_KEY in Vercel environment variables.",
     _stub: true,
+    _provider: "gemini",
   };
 }
 
