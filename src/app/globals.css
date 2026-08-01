@@ -214,13 +214,13 @@ code, pre, .font-mono {
   background: #005a75;
 }
 
-/* App background wrapper — brand teal gradient */
+/* App background wrapper — light silver/slate gradient (was teal) */
 .app-theme-wrapper {
-  background: linear-gradient(135deg, #e6f2f6 0%, #f8fafc 50%, #dbeaf1 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
   min-height: 100vh;
 }
 .dark .app-theme-wrapper {
-  background: linear-gradient(135deg, #062a36 0%, #05222b 50%, #0a3545 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e293b 100%);
 }
 
 @layer base {

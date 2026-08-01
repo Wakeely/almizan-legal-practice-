@@ -368,9 +368,9 @@ export default function Header({
       <div className="flex items-center gap-2 shrink-0 min-w-0">
         <ThemeAwareLogo className="h-12 w-auto shrink-0" alt="Al Mizan Legal Practice" />
         {activeMatter && (
-          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-700/50 rounded-lg">
-            <Folder className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
-            <span className="text-xs font-semibold text-teal-800 dark:text-teal-200 truncate max-w-[180px]">
+          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-700/50 rounded-lg">
+            <Folder className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 shrink-0" />
+            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[180px]">
               {translateStaticText(activeMatter.title, isRtl)}
             </span>
           </div>
@@ -382,23 +382,23 @@ export default function Header({
         {/* Global Legal Search Input Trigger */}
         <button
           onClick={() => setShowSearchModal(true)}
-          className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-teal-400 dark:hover:border-teal-500 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 px-3 py-2 h-8 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer group flex-1 min-w-0"
+          className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 px-3 py-2 h-8 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer group flex-1 min-w-0"
           title={t.globalSearchTitle}
         >
-          <Search className="w-4 h-4 text-teal-700 dark:text-teal-400 group-hover:scale-110 transition-transform shrink-0 stroke-[2.2]" />
+          <Search className="w-4 h-4 text-slate-700 dark:text-slate-400 group-hover:scale-110 transition-transform shrink-0 stroke-[2.2]" />
           <span className="truncate flex-grow text-left rtl:text-right font-sans text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300">{t.globalSearchPlaceholder}</span>
-          <kbd className="hidden sm:inline-block bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-700/50 text-teal-800 dark:text-teal-300 px-1.5 py-0.5 rounded text-[10px] font-mono shadow-2xs font-bold shrink-0">
+          <kbd className="hidden sm:inline-block bg-slate-50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 text-slate-800 dark:text-slate-300 px-1.5 py-0.5 rounded text-[10px] font-mono shadow-2xs font-bold shrink-0">
             ⌘K
           </kbd>
         </button>
 
         {/* Matter Dropdown selector */}
-        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-teal-300 dark:hover:border-teal-500 rounded-lg px-2.5 h-8 shadow-sm shrink-0">
-          <Landmark className="w-3.5 h-3.5 text-teal-700 dark:text-teal-400 shrink-0" />
+        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-500 rounded-lg px-2.5 h-8 shadow-sm shrink-0">
+          <Landmark className="w-3.5 h-3.5 text-slate-700 dark:text-slate-400 shrink-0" />
           <select
             value={activeMatterId}
             onChange={(e) => onActiveMatterChange(e.target.value)}
-            className="text-xs font-bold text-teal-950 dark:text-teal-200 bg-transparent focus:outline-none border-none cursor-pointer max-w-[120px]"
+            className="text-xs font-bold text-slate-950 dark:text-slate-200 bg-transparent focus:outline-none border-none cursor-pointer max-w-[120px]"
           >
             {matters.map(m => {
               const localizedTitle = translateStaticText(m.title, isRtl);
@@ -421,7 +421,7 @@ export default function Header({
         {currentMode === 'Lawyer' && (
           <button
             onClick={() => setShowModal(true)}
-            className="h-8 w-8 bg-teal-700 hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-500 rounded-lg text-white shadow-sm flex items-center justify-center transition-colors cursor-pointer shrink-0"
+            className="h-8 w-8 bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 rounded-lg text-white shadow-sm flex items-center justify-center transition-colors cursor-pointer shrink-0"
             title={t.newIntake}
           >
             <Plus className="w-4 h-4" />
@@ -532,7 +532,7 @@ export default function Header({
                               </div>
                             )}
                             {n.type === 'message' && (
-                              <div className="w-7 h-7 bg-teal-50 border border-teal-100 text-teal-600 rounded-lg flex items-center justify-center">
+                              <div className="w-7 h-7 bg-slate-50 border border-slate-100 text-slate-600 rounded-lg flex items-center justify-center">
                                 <MessageSquare className="w-4 h-4" />
                               </div>
                             )}
@@ -628,10 +628,10 @@ export default function Header({
           {/* Language Switcher */}
           <button
             onClick={handleLanguageToggle}
-            className="h-8 w-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 hover:border-teal-300 dark:hover:border-teal-500 rounded-lg shadow-xs flex items-center justify-center transition-all cursor-pointer shrink-0"
+            className="h-8 w-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/20 hover:border-slate-300 dark:hover:border-slate-500 rounded-lg shadow-xs flex items-center justify-center transition-all cursor-pointer shrink-0"
             title="Toggle Language / تغيير اللغة"
           >
-            <Languages className="w-4 h-4 text-teal-700 dark:text-teal-400" />
+            <Languages className="w-4 h-4 text-slate-700 dark:text-slate-400" />
           </button>
 
           {/* Global Dark / Light Theme Toggle Button */}
@@ -640,7 +640,7 @@ export default function Header({
             className={`h-8 w-8 flex items-center justify-center rounded-lg border transition-all cursor-pointer shrink-0 ${
               isDark
                 ? 'bg-slate-800 text-amber-400 border-slate-700 hover:bg-slate-700'
-                : 'bg-white text-teal-800 border-slate-200 hover:bg-teal-50 shadow-xs'
+                : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50 shadow-xs'
             }`}
             title={
               isDark
@@ -663,7 +663,7 @@ export default function Header({
           {onShowLandingPage && (
             <button
               onClick={onShowLandingPage}
-              className="h-8 w-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-teal-700 dark:hover:text-teal-400 hover:border-teal-300 dark:hover:border-teal-500 rounded-lg shadow-xs transition-all cursor-pointer shrink-0"
+              className="h-8 w-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 rounded-lg shadow-xs transition-all cursor-pointer shrink-0"
               title={isRtl ? 'الصفحة التعريفية للموقع' : 'View Landing Showcase'}
             >
               <Sparkles className="w-4 h-4" />
