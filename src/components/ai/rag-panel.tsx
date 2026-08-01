@@ -94,52 +94,58 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
   const [answer, setAnswer] = useState<RagAnswer | null>(null);
   const [expandedSource, setExpandedSource] = useState<number | null>(null);
 
-  // --- Seed panel state (Managing Partner only) ---
-  // The seed endpoint is gated by RAG_SEED_ENABLED=1 on the server. We probe
-  // GET /api/ai/rag/seed on mount to learn whether the button should show.
-  const [seedStatus, setSeedStatus] = useState<{
+  // --- One-click setup state (Managing Partner only) ---
+  // The setup endpoint is gated by RAG_SEED_ENABLED=1 on the server. We probe
+  // GET /api/ai/rag/setup on mount to learn the current RAG state and decide
+  // whether to show the one-click setup button.
+  const [setupStatus, setSetupStatus] = useState<{
     enabled: boolean;
     hasGeminiKey: boolean;
+    tablesExist: boolean;
+    pgvectorEnabled: boolean;
+    embeddingColumnsExist: boolean;
+    matchFunctionExists: boolean;
     corpusCount: number;
     withEmbeddings: number;
+    fullySetup: boolean;
   } | null>(null);
-  const [seedLoading, setSeedLoading] = useState(false);
-  const [seedResult, setSeedResult] = useState<any>(null);
-  const [seedError, setSeedError] = useState<string | null>(null);
+  const [setupLoading, setSetupLoading] = useState(false);
+  const [setupResult, setSetupResult] = useState<any>(null);
+  const [setupError, setSetupError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isManagingPartner) return;
-    fetch('/api/ai/rag/seed', { cache: 'no-store' })
+    fetch('/api/ai/rag/setup', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data) setSeedStatus(data);
+        if (data) setSetupStatus(data);
       })
       .catch(() => {
-        // Endpoint not deployed yet or erroring — just hide the button.
+        // Endpoint not deployed yet — just hide the button.
       });
   }, [isManagingPartner]);
 
-  const handleSeed = async () => {
+  const handleSetup = async () => {
     if (!confirm(
       isRtl
-        ? 'سيتم إنشاء تضمينات (embeddings) لـ 31 مادة قانونية عبر Gemini. قد يستغرق ذلك 30-60 ثانية. هل تريد المتابعة؟'
-        : 'This will generate Gemini embeddings for 31 legal articles (~30-60s). Continue?'
+        ? 'سيتم إعداد نظام RAG بالكامل: إنشاء الجداول، تفعيل pgvector، إنشاء التضمينات لـ 31 مادة قانونية. قد يستغرق ذلك 1-2 دقيقة. هل تريد المتابعة؟'
+        : 'This will set up the entire RAG system: create tables, enable pgvector, generate embeddings for 31 legal articles (~1-2 minutes). Continue?'
     )) return;
-    setSeedLoading(true);
-    setSeedError(null);
-    setSeedResult(null);
+    setSetupLoading(true);
+    setSetupError(null);
+    setSetupResult(null);
     try {
-      const res = await fetch('/api/ai/rag/seed', { method: 'POST' });
+      const res = await fetch('/api/ai/rag/setup', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t.ragErrorGeneric);
-      setSeedResult(data);
-      // Refresh the status probe so the count updates.
-      const statusRes = await fetch('/api/ai/rag/seed', { cache: 'no-store' });
-      if (statusRes.ok) setSeedStatus(await statusRes.json());
+      setSetupResult(data);
+      // Refresh the status probe.
+      const statusRes = await fetch('/api/ai/rag/setup', { cache: 'no-store' });
+      if (statusRes.ok) setSetupStatus(await statusRes.json());
     } catch (err: any) {
-      setSeedError(err.message || t.ragErrorGeneric);
+      setSetupError(err.message || t.ragErrorGeneric);
     } finally {
-      setSeedLoading(false);
+      setSetupLoading(false);
     }
   };
 
@@ -189,91 +195,99 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
         <span>{t.ragSubtitle}</span>
       </div>
 
-      {/* --- Seed panel (Managing Partner only, only when RAG_SEED_ENABLED=1) --- */}
-      {isManagingPartner && seedStatus?.enabled && (
-        <div className="border border-amber-200 bg-amber-50 rounded-2xl p-3 flex flex-col gap-2">
+      {/* --- One-click RAG setup (Managing Partner only, only when RAG_SEED_ENABLED=1 AND not fully setup) --- */}
+      {isManagingPartner && setupStatus?.enabled && !setupStatus.fullySetup && (
+        <div className="border border-indigo-300 bg-indigo-50 rounded-2xl p-3.5 flex flex-col gap-2.5">
           <div className="flex items-start gap-2">
-            <DatabaseZap className="w-4 h-4 mt-0.5 shrink-0 text-amber-600" />
+            <DatabaseZap className="w-4 h-4 mt-0.5 shrink-0 text-indigo-600" />
             <div className="flex-grow min-w-0">
-              <div className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+              <div className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
                 <Lock className="w-3 h-3" />
-                {isRtl ? 'أداة التحميل المؤقتة (للمدير فقط)' : 'Temporary seed tool (Managing Partner only)'}
+                {isRtl ? 'إعداد RAG بنقرة واحدة (للمدير فقط)' : 'One-click RAG setup (Managing Partner only)'}
               </div>
-              <div className="text-[10px] text-amber-700 mt-0.5">
+              <div className="text-[10px] text-indigo-700 mt-0.5 leading-relaxed">
                 {isRtl
-                  ? `المدوّنة الحالية: ${seedStatus.corpusCount} مادة، ${seedStatus.withEmbeddings} منها بتضمينات. الهدف: 31 مادة بتضمينات.`
-                  : `Current corpus: ${seedStatus.corpusCount} articles, ${seedStatus.withEmbeddings} with embeddings. Target: 31 embedded.`}
+                  ? 'هذا الزر ينشئ كل شيء: الجداول، تفعيل pgvector، الفهارس، دوال البحث، وتحميل 31 مادة قانونية بتضميناتها. لا حاجة لأي SQL أو طرفية.'
+                  : 'This button creates everything: tables, pgvector extension, indexes, search functions, and seeds 31 legal articles with embeddings. No SQL or terminal needed.'}
               </div>
-              {!seedStatus.hasGeminiKey && (
-                <div className="text-[10px] text-red-600 mt-1 font-semibold">
+
+              {/* Status checklist */}
+              <div className="mt-2 space-y-0.5 text-[10px] font-mono">
+                <SetupCheck done={setupStatus.tablesExist} label={isRtl ? 'الجداول' : 'Tables'} />
+                <SetupCheck done={setupStatus.pgvectorEnabled} label={isRtl ? 'pgvector' : 'pgvector'} />
+                <SetupCheck done={setupStatus.embeddingColumnsExist} label={isRtl ? 'أعمدة التضمين' : 'Embedding cols'} />
+                <SetupCheck done={setupStatus.matchFunctionExists} label={isRtl ? 'دوال البحث' : 'Match functions'} />
+                <SetupCheck
+                  done={setupStatus.withEmbeddings >= 31}
+                  label={isRtl ? `المدوّنة (${setupStatus.withEmbeddings}/31)` : `Corpus (${setupStatus.withEmbeddings}/31)`}
+                />
+              </div>
+
+              {!setupStatus.hasGeminiKey && (
+                <div className="text-[10px] text-red-600 mt-2 font-semibold">
                   {isRtl
-                    ? '⚠ GEMINI_API_KEY غير مضبوط على الخادم — لا يمكن إنشاء التضمينات.'
-                    : '⚠ GEMINI_API_KEY not set on server — cannot generate embeddings.'}
+                    ? '⚠ GEMINI_API_KEY غير مضبوط على الخادم. أضفه في Vercel → Settings → Environment Variables ثم أعد النشر.'
+                    : '⚠ GEMINI_API_KEY not set on server. Add it in Vercel → Settings → Environment Variables, then redeploy.'}
                 </div>
               )}
             </div>
           </div>
 
           <button
-            onClick={handleSeed}
-            disabled={seedLoading || !seedStatus.hasGeminiKey}
-            className="w-full py-2 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleSetup}
+            disabled={setupLoading || !setupStatus.hasGeminiKey}
+            className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {seedLoading ? (
+            {setupLoading ? (
               <>
                 <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
-                <span>{isRtl ? 'جاري التحميل (30-60 ثانية)...' : 'Seeding (~30-60s)...'}</span>
+                <span>{isRtl ? 'جاري الإعداد (1-2 دقيقة)...' : 'Setting up (~1-2 min)...'}</span>
               </>
             ) : (
               <>
                 <DatabaseZap className="w-3.5 h-3.5 shrink-0" />
-                <span>{isRtl ? 'تحميل المدوّنة الأردنية (31 مادة)' : 'Seed Jordanian corpus (31 articles)'}</span>
+                <span>{isRtl ? 'إعداد RAG بنقرة واحدة' : 'Set up RAG in one click'}</span>
               </>
             )}
           </button>
 
-          {seedError && (
+          {setupError && (
             <div className="text-[10px] text-red-700 bg-red-50 border border-red-200 rounded-lg p-2">
-              {seedError}
+              {setupError}
             </div>
           )}
 
-          {seedResult?.ok && (
-            <div className="text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg p-2">
-              <div className="font-bold mb-0.5">
-                {isRtl ? '✓ تم التحميل بنجاح' : '✓ Seed complete'}
+          {setupResult && (
+            <div className="text-[10px] text-slate-800 bg-white border border-slate-200 rounded-lg p-2.5">
+              <div className={`font-bold mb-1 ${setupResult.ok ? 'text-emerald-700' : 'text-amber-700'}`}>
+                {setupResult.ok
+                  ? (isRtl ? '✓ اكتمل الإعداد بنجاح' : '✓ Setup complete')
+                  : (isRtl ? '⚠ اكتمل الإعداد جزئياً' : '⚠ Setup partially complete')}
               </div>
-              <div>
-                {isRtl
-                  ? `أُدرج: ${seedResult.summary.inserted} | حُدّث: ${seedResult.summary.updated} | تضمينات: ${seedResult.summary.embeddingsWritten}/${seedResult.summary.totalArticles}`
-                  : `Inserted: ${seedResult.summary.inserted} | Updated: ${seedResult.summary.updated} | Embeddings: ${seedResult.summary.embeddingsWritten}/${seedResult.summary.totalArticles}`}
-              </div>
-              {seedResult.summary.embeddingErrors > 0 && (
-                <div className="mt-1 text-amber-700">
+              {setupResult.steps?.map((s: any, i: number) => (
+                <div key={i} className={`flex items-start gap-1.5 ${s.ok ? 'text-emerald-700' : 'text-red-700'}`}>
+                  <span className="font-mono shrink-0">{s.ok ? '✓' : '✗'}</span>
+                  <span className="flex-grow">
+                    <span className="font-semibold">Step {s.step}:</span> {s.message}
+                    {s.detail && <span className="block text-slate-500 mt-0.5 font-mono text-[9px]">{s.detail}</span>}
+                  </span>
+                </div>
+              ))}
+              {setupResult.textFallbackOnly && (
+                <div className="mt-1.5 text-amber-700">
                   {isRtl
-                    ? `⚠ ${seedResult.summary.embeddingErrors} خطأ في التضمين (تحقق من pgvector)`
-                    : `⚠ ${seedResult.summary.embeddingErrors} embedding errors (check pgvector setup)`}
+                    ? '⚠ تعذّر تفعيل pgvector من داخل التطبيق. RAG يعمل في وضع البحث النصي فقط. لتفعيل البحث الدلالي، فعّل إضافة pgvector من Vercel → Storage → Postgres → Settings.'
+                    : '⚠ pgvector could not be enabled from app code. RAG is running in text-search mode. To enable semantic search, enable the pgvector extension from Vercel → Storage → Postgres → Settings.'}
                 </div>
               )}
-              <div className="mt-1 text-slate-600">
-                {isRtl
-                  ? 'الآن اذهب إلى Vercel → Settings → Environment Variables واضبط RAG_SEED_ENABLED=0 ثم أعد النشر لإخفاء هذا الزر.'
-                  : 'Now go to Vercel → Settings → Environment Variables and set RAG_SEED_ENABLED=0, then redeploy to hide this button.'}
-              </div>
+              {setupResult.ok && (
+                <div className="mt-1.5 text-slate-600">
+                  {isRtl
+                    ? 'الآن جرّب طرح سؤال. ثم اذهب إلى Vercel → Settings → Environment Variables واضبط RAG_SEED_ENABLED=0 وأعد النشر لإخفاء هذا الزر.'
+                    : 'Try asking a question now. Then go to Vercel → Settings → Environment Variables, set RAG_SEED_ENABLED=0, and redeploy to hide this button.'}
+                </div>
+              )}
             </div>
-          )}
-
-          {seedResult?.errorDetails && seedResult.errorDetails.length > 0 && (
-            <details className="text-[10px] text-slate-600">
-              <summary className="cursor-pointer font-semibold">
-                {isRtl ? 'تفاصيل الأخطاء' : 'Error details'}
-              </summary>
-              <ul className="mt-1 space-y-0.5">
-                {seedResult.errorDetails.map((d: string, i: number) => (
-                  <li key={i} className="font-mono">{d}</li>
-                ))}
-              </ul>
-            </details>
           )}
         </div>
       )}
@@ -561,6 +575,15 @@ function SourceChip({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function SetupCheck({ done, label }: { done: boolean; label: string }) {
+  return (
+    <div className={`flex items-center gap-1.5 ${done ? 'text-emerald-600' : 'text-slate-400'}`}>
+      <span className="font-mono">{done ? '✓' : '○'}</span>
+      <span>{label}</span>
     </div>
   );
 }
