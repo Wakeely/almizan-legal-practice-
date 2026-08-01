@@ -71,7 +71,16 @@ export default function Page() {
         try {
           const res = await fetch("/api/matters", { cache: "no-store" });
           if (res.ok) {
-            const data: Matter[] = await res.json();
+            const raw = await res.json();
+            // The API returns { data: Matter[], pagination: {...} }.
+            // Extract the array; fall back to [] if the shape is unexpected
+            // (e.g. an error object slipped through). This prevents the
+            // "matters.find is not a function" crash that turns the page white.
+            const data: Matter[] = Array.isArray(raw)
+              ? raw
+              : Array.isArray(raw?.data)
+                ? raw.data
+                : [];
             setMatters(data);
             // Phase 1.1: write-back to IndexedDB so the cache is populated
             // for offline refresh.
