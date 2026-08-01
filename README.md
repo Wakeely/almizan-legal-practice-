@@ -332,11 +332,13 @@ src/lib/rag/
 src/app/api/ai/rag/route.ts        — POST grounded Q&A
 src/app/api/ai/rag/ingest/route.ts — POST re-ingest document/transcript/matter
 
-src/components/ai/rag-panel.tsx    — "Ask with Sources" UI tab
-data/jordanian-corpus.ts           — curated Jordanian legal corpus (31 articles)
-scripts/rag/seed-jordan-corpus.ts  — embed + upsert corpus into LegalCorpus
+src/components/ai/rag-panel.tsx    — "Ask with Sources" UI tab (+ admin seed button)
+src/data/jordanian-corpus.ts       — curated Jordanian legal corpus (31 articles)
+scripts/rag/seed-jordan-corpus.ts  — embed + upsert corpus into LegalCorpus (CLI)
 scripts/rag/test-rag-jordan.ts     — Arabic query smoke test
-prisma/sql/rag_pgvector_setup.sql  — pgvector extension + HNSW indexes + match functions
+prisma/sql/rag_pgvector_setup.sql  — pgvector extension + HNSW indexes + match functions (full)
+prisma/sql/rag_pgvector_setup_split.sql — SAME, split into one-statement-per-block for Vercel Query UI
+src/app/api/ai/rag/seed/route.ts   — TEMPORARY admin-only browser seeder (no terminal)
 ```
 
 ### Multi-tenant isolation (mandatory)
@@ -350,38 +352,106 @@ prisma/sql/rag_pgvector_setup.sql  — pgvector extension + HNSW indexes + match
 - The `/api/ai/rag` route calls `verifyMatterBelongsToOrg()` **before** any
   retrieval runs.
 
-### Setup (production — Postgres + pgvector)
+### Setup (production — Vercel Postgres, NO TERMINAL)
 
-Run these steps **in this exact order**. Skipping step 2 is the most common
-cause of "vector search unavailable" warnings in production:
+Vercel's Postgres Query UI throws `cannot insert multiple commands into a
+prepared statement` when you paste the whole `rag_pgvector_setup.sql` file at
+once. This walkthrough avoids the terminal entirely.
 
-```bash
-# STEP 1 — Create the tables (DocumentChunk, LegalCorpus) via Prisma.
-#          This creates columns with Prisma's camelCase names: "organizationId",
-#          "matterId", "lawName", "articleNumber", etc. (no @map renames).
-bun run db:push
-#   (or: bun run db:migrate  if you manage migrations explicitly)
+**Prerequisites (set these in Vercel → Project → Settings → Environment
+Variables, scoped to Production):**
+- `DATABASE_URL` — auto-injected when you link a Vercel Postgres store. Don't
+  paste this manually; let Vercel wire it.
+- `PRISMA_DATABASE_URL` — the DIRECT (non-pooled) connection string. In
+  Vercel Postgres settings, copy the "Direct Connection" URL (ends in
+  `?pgbouncer=true` is the POOLED one — you want the other). Needed for DDL.
+- `GEMINI_API_KEY` — from https://aistudio.google.com/app/apikey
+- `NEXTAUTH_SECRET` + `NEXTAUTH_URL` — already required by the app.
 
-# STEP 2 — Run the pgvector setup SQL. This MUST run AFTER step 1 because it
-#          ALTERs the tables created above. It is idempotent — safe to re-run.
-#          Enables the vector extension, adds the `embedding vector(768)`
-#          column, creates HNSW indexes, and defines match_document_chunks()
-#          + match_legal_corpus() functions.
-#          NOTE: use the DIRECT (non-pooled) connection URL for DDL — on
-#          Vercel Postgres this is PRISMA_DATABASE_URL, not DATABASE_URL.
-psql "$PRISMA_DATABASE_URL" -f prisma/sql/rag_pgvector_setup.sql
-#   (or the shortcut: bun run rag:setup-sql  — but ensure $DATABASE_URL points
-#    at a connection that can run DDL, i.e. NOT a PgBouncer pooled connection)
+**NEVER paste DB credentials or API keys into chat tools or commit them to
+git. Set them only in Vercel's Environment Variables UI.**
 
-# STEP 3 — Seed the Jordanian corpus. Embeds each article via Gemini
-#          (text-embedding-004, 768-dim) and upserts into LegalCorpus.
-#          Idempotent — re-run after editing data/jordanian-corpus.ts.
-GEMINI_API_KEY=... bun run rag:seed
+#### Step 1 — Deploy once so Prisma creates the tables
 
-# STEP 4 — Smoke-test retrieval with Arabic queries. Confirms the match
-#          functions return relevant articles with similarity scores.
-GEMINI_API_KEY=... bun run rag:test
+Push the latest `main` to GitHub (or just trigger a Vercel redeploy). The
+build script runs `prisma generate` + `prisma db push`, which creates
+`DocumentChunk` and `LegalCorpus` tables with camelCase columns
+(`"organizationId"`, `"matterId"`, `"lawName"`, `"articleNumber"`, etc. — no
+`@map` renames in this repo).
+
+Verify: in Vercel → Storage → your Postgres → Query, run:
+```sql
+SELECT tablename FROM pg_tables WHERE tablename IN ('DocumentChunk', 'LegalCorpus');
 ```
+Should return 2 rows. If it returns 0, the deploy hasn't run `prisma db push`
+yet — check the Vercel build logs.
+
+#### Step 2 — Run the pgvector setup SQL (one statement at a time)
+
+Open `prisma/sql/rag_pgvector_setup_split.sql` in the repo. It's the same
+setup as `rag_pgvector_setup.sql` but split into 9 numbered statements +
+a verification query, so Vercel Query accepts each one.
+
+For EACH numbered block (1 through 9): copy from `-- BEGIN STATEMENT N` to
+`-- END STATEMENT N`, paste into Vercel → Storage → Postgres → Query, click
+**Run**. Wait for "Success" before the next one.
+
+Statement 1 enables the pgvector extension. Statements 2-3 add the
+`embedding vector(768)` columns. Statements 4-5 create HNSW indexes.
+Statements 6-9 define the `match_document_chunks()`, `match_legal_corpus()`,
+`set_document_chunk_embedding()`, `set_legal_corpus_embedding()` functions.
+
+If statement 1 errors with `extension vector does not exist` or `access to
+extension vector is not allowed`, your Vercel Postgres instance doesn't have
+pgvector. All current Vercel Postgres plans support it — if yours doesn't,
+spin up a fresh Postgres store (the free tier supports pgvector) and re-point
+`DATABASE_URL`. Until pgvector is available, the RAG system gracefully falls
+back to text search — the app will NOT crash, you'll just see a "Vector search
+unavailable — using text search" badge in the UI.
+
+After all 9 statements succeed, run the verification query at the bottom of
+the split file. It should return 4 rows (the function names).
+
+#### Step 3 — Seed the Jordanian corpus (NO TERMINAL — browser button)
+
+Instead of `bun run rag:seed` (which needs a terminal), use the temporary
+admin-only seed endpoint:
+
+1. In Vercel → Settings → Environment Variables, add:
+   - `RAG_SEED_ENABLED` = `1` (scoped to Production)
+2. Trigger a redeploy (Vercel → Deployments → Redeploy). The env var only
+   takes effect on the next deploy.
+3. Log in to the app as a **Managing Partner**. Open any matter → AI module →
+   **"Ask with Sources"** tab. You'll see an amber **"Seed Jordanian corpus
+   (31 articles)"** button (only visible to Managing Partners, and only when
+   `RAG_SEED_ENABLED=1`).
+4. Click it. Confirm the prompt. Wait ~30-60 seconds — it embeds 31 articles
+   via Gemini and writes the vectors to `LegalCorpus.embedding`.
+5. The success panel shows: `Inserted: N | Updated: N | Embeddings: 31/31`.
+   If `Embeddings` is less than 31, check the error details — most likely
+   pgvector isn't set up (re-do Step 2).
+6. **LOCK IT DOWN**: go back to Vercel → Settings → Environment Variables,
+   set `RAG_SEED_ENABLED` = `0` (or delete the variable), and redeploy. The
+   amber button disappears. The endpoint returns 403 even for Managing
+   Partners. This prevents accidental re-runs (which cost Gemini quota).
+
+#### Step 4 — Verify
+
+In Vercel → Storage → Postgres → Query, run:
+```sql
+SELECT COUNT(*) AS total,
+       COUNT(embedding) AS with_embeddings
+FROM "LegalCorpus";
+```
+Expected: `total = 31`, `with_embeddings = 31`.
+
+Then in the app UI: open any matter → AI module → "Ask with Sources" tab.
+Try this Arabic question:
+> ما هي مدة استئناف الأحكام الصادرة عن محاكم البداية؟
+
+You should get a grounded answer citing **قانون أصول المحاكمات المدنية م152**
+(the 30-day appeal deadline article), with a green "Grounded — 1 source"
+badge and an expandable source chip showing the article text.
 
 **Column-name convention (important):** Prisma creates columns with the exact
 camelCase names declared in `schema.prisma` (no `@map` renames are used in this
@@ -394,6 +464,24 @@ Postgres and would silently fail to match. The `match_document_chunks()` and
 column-quoting; `retrieve.ts` calls them via `SELECT * FROM match_*()` rather
 than inlining the similarity query, so future schema changes only need the SQL
 function updated.
+
+#### Setup (production — terminal alternative)
+
+If you DO have a terminal with `psql` and `bun`:
+
+```bash
+# Step 1: tables created by prisma db push (runs during `bun run build`)
+bun run build
+
+# Step 2: pgvector setup (use the DIRECT connection URL for DDL)
+psql "$PRISMA_DATABASE_URL" -f prisma/sql/rag_pgvector_setup.sql
+
+# Step 3: seed the corpus
+GEMINI_API_KEY=... bun run rag:seed
+
+# Step 4: smoke-test
+GEMINI_API_KEY=... bun run rag:test
+```
 
 ### Setup (local dev — SQLite, no pgvector)
 

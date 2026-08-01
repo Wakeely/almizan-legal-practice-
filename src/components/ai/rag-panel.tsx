@@ -17,7 +17,7 @@
 //   - Arabic + English: all strings from i18n, RTL-aware.
 // =============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
   RefreshCw,
@@ -33,9 +33,12 @@ import {
   ChevronUp,
   BookOpen,
   Database,
+  DatabaseZap,
+  Lock,
 } from 'lucide-react';
 import { Matter } from '@/lib/types';
 import { useLanguage } from '@/components/providers/language-provider';
+import { useAuth } from '@/components/providers/auth-provider';
 
 // Mirror of src/lib/rag/types.ts Citation / RagAnswer shapes.
 // Duplicated here to avoid pulling server-only types into the client bundle.
@@ -76,6 +79,13 @@ interface RagPanelProps {
 
 export default function RagPanel({ activeMatter }: RagPanelProps) {
   const { t, isRtl } = useLanguage();
+  const { user } = useAuth();
+  // Accept both forms — see seed/route.ts for the inconsistency explanation.
+  // The Role type only lists the spaced form, but the DB may hold either.
+  const role = user?.role as string | undefined;
+  const isManagingPartner =
+    role === 'MANAGING_PARTNER' || role === 'Managing Partner';
+
   const [question, setQuestion] = useState('');
   const [includeMatter, setIncludeMatter] = useState(true);
   const [includeCorpus, setIncludeCorpus] = useState(true);
@@ -83,6 +93,55 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [answer, setAnswer] = useState<RagAnswer | null>(null);
   const [expandedSource, setExpandedSource] = useState<number | null>(null);
+
+  // --- Seed panel state (Managing Partner only) ---
+  // The seed endpoint is gated by RAG_SEED_ENABLED=1 on the server. We probe
+  // GET /api/ai/rag/seed on mount to learn whether the button should show.
+  const [seedStatus, setSeedStatus] = useState<{
+    enabled: boolean;
+    hasGeminiKey: boolean;
+    corpusCount: number;
+    withEmbeddings: number;
+  } | null>(null);
+  const [seedLoading, setSeedLoading] = useState(false);
+  const [seedResult, setSeedResult] = useState<any>(null);
+  const [seedError, setSeedError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isManagingPartner) return;
+    fetch('/api/ai/rag/seed', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) setSeedStatus(data);
+      })
+      .catch(() => {
+        // Endpoint not deployed yet or erroring — just hide the button.
+      });
+  }, [isManagingPartner]);
+
+  const handleSeed = async () => {
+    if (!confirm(
+      isRtl
+        ? 'سيتم إنشاء تضمينات (embeddings) لـ 31 مادة قانونية عبر Gemini. قد يستغرق ذلك 30-60 ثانية. هل تريد المتابعة؟'
+        : 'This will generate Gemini embeddings for 31 legal articles (~30-60s). Continue?'
+    )) return;
+    setSeedLoading(true);
+    setSeedError(null);
+    setSeedResult(null);
+    try {
+      const res = await fetch('/api/ai/rag/seed', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t.ragErrorGeneric);
+      setSeedResult(data);
+      // Refresh the status probe so the count updates.
+      const statusRes = await fetch('/api/ai/rag/seed', { cache: 'no-store' });
+      if (statusRes.ok) setSeedStatus(await statusRes.json());
+    } catch (err: any) {
+      setSeedError(err.message || t.ragErrorGeneric);
+    } finally {
+      setSeedLoading(false);
+    }
+  };
 
   const handleAsk = async () => {
     if (!question.trim() || loading) return;
@@ -129,6 +188,95 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
         <BookOpen className="w-3.5 h-3.5 mt-0.5 shrink-0 text-slate-400" />
         <span>{t.ragSubtitle}</span>
       </div>
+
+      {/* --- Seed panel (Managing Partner only, only when RAG_SEED_ENABLED=1) --- */}
+      {isManagingPartner && seedStatus?.enabled && (
+        <div className="border border-amber-200 bg-amber-50 rounded-2xl p-3 flex flex-col gap-2">
+          <div className="flex items-start gap-2">
+            <DatabaseZap className="w-4 h-4 mt-0.5 shrink-0 text-amber-600" />
+            <div className="flex-grow min-w-0">
+              <div className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                <Lock className="w-3 h-3" />
+                {isRtl ? 'أداة التحميل المؤقتة (للمدير فقط)' : 'Temporary seed tool (Managing Partner only)'}
+              </div>
+              <div className="text-[10px] text-amber-700 mt-0.5">
+                {isRtl
+                  ? `المدوّنة الحالية: ${seedStatus.corpusCount} مادة، ${seedStatus.withEmbeddings} منها بتضمينات. الهدف: 31 مادة بتضمينات.`
+                  : `Current corpus: ${seedStatus.corpusCount} articles, ${seedStatus.withEmbeddings} with embeddings. Target: 31 embedded.`}
+              </div>
+              {!seedStatus.hasGeminiKey && (
+                <div className="text-[10px] text-red-600 mt-1 font-semibold">
+                  {isRtl
+                    ? '⚠ GEMINI_API_KEY غير مضبوط على الخادم — لا يمكن إنشاء التضمينات.'
+                    : '⚠ GEMINI_API_KEY not set on server — cannot generate embeddings.'}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={handleSeed}
+            disabled={seedLoading || !seedStatus.hasGeminiKey}
+            className="w-full py-2 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {seedLoading ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                <span>{isRtl ? 'جاري التحميل (30-60 ثانية)...' : 'Seeding (~30-60s)...'}</span>
+              </>
+            ) : (
+              <>
+                <DatabaseZap className="w-3.5 h-3.5 shrink-0" />
+                <span>{isRtl ? 'تحميل المدوّنة الأردنية (31 مادة)' : 'Seed Jordanian corpus (31 articles)'}</span>
+              </>
+            )}
+          </button>
+
+          {seedError && (
+            <div className="text-[10px] text-red-700 bg-red-50 border border-red-200 rounded-lg p-2">
+              {seedError}
+            </div>
+          )}
+
+          {seedResult?.ok && (
+            <div className="text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg p-2">
+              <div className="font-bold mb-0.5">
+                {isRtl ? '✓ تم التحميل بنجاح' : '✓ Seed complete'}
+              </div>
+              <div>
+                {isRtl
+                  ? `أُدرج: ${seedResult.summary.inserted} | حُدّث: ${seedResult.summary.updated} | تضمينات: ${seedResult.summary.embeddingsWritten}/${seedResult.summary.totalArticles}`
+                  : `Inserted: ${seedResult.summary.inserted} | Updated: ${seedResult.summary.updated} | Embeddings: ${seedResult.summary.embeddingsWritten}/${seedResult.summary.totalArticles}`}
+              </div>
+              {seedResult.summary.embeddingErrors > 0 && (
+                <div className="mt-1 text-amber-700">
+                  {isRtl
+                    ? `⚠ ${seedResult.summary.embeddingErrors} خطأ في التضمين (تحقق من pgvector)`
+                    : `⚠ ${seedResult.summary.embeddingErrors} embedding errors (check pgvector setup)`}
+                </div>
+              )}
+              <div className="mt-1 text-slate-600">
+                {isRtl
+                  ? 'الآن اذهب إلى Vercel → Settings → Environment Variables واضبط RAG_SEED_ENABLED=0 ثم أعد النشر لإخفاء هذا الزر.'
+                  : 'Now go to Vercel → Settings → Environment Variables and set RAG_SEED_ENABLED=0, then redeploy to hide this button.'}
+              </div>
+            </div>
+          )}
+
+          {seedResult?.errorDetails && seedResult.errorDetails.length > 0 && (
+            <details className="text-[10px] text-slate-600">
+              <summary className="cursor-pointer font-semibold">
+                {isRtl ? 'تفاصيل الأخطاء' : 'Error details'}
+              </summary>
+              <ul className="mt-1 space-y-0.5">
+                {seedResult.errorDetails.map((d: string, i: number) => (
+                  <li key={i} className="font-mono">{d}</li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
 
       {/* Toggles */}
       <div className="flex flex-wrap gap-2">

@@ -20,7 +20,7 @@
 // =============================================================================
 
 import { PrismaClient } from "@prisma/client";
-import { JORDANIAN_CORPUS, CORPUS_STATS } from "../../data/jordanian-corpus";
+import { JORDANIAN_CORPUS, CORPUS_STATS } from "../../src/data/jordanian-corpus";
 import { generateEmbedding, toVectorLiteral } from "../../src/lib/rag/embed";
 
 // Use a standalone Prisma client (not the shared one) so this script can be
