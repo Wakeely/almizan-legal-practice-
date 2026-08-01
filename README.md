@@ -352,17 +352,48 @@ prisma/sql/rag_pgvector_setup.sql  — pgvector extension + HNSW indexes + match
 
 ### Setup (production — Postgres + pgvector)
 
-```bash
-# 1. After `prisma db push` has created DocumentChunk + LegalCorpus tables:
-psql "$DATABASE_URL" -f prisma/sql/rag_pgvector_setup.sql
-#    (enables pgvector, adds embedding columns, creates HNSW indexes + match fns)
+Run these steps **in this exact order**. Skipping step 2 is the most common
+cause of "vector search unavailable" warnings in production:
 
-# 2. Seed the Jordanian corpus (embeds each article via Gemini):
+```bash
+# STEP 1 — Create the tables (DocumentChunk, LegalCorpus) via Prisma.
+#          This creates columns with Prisma's camelCase names: "organizationId",
+#          "matterId", "lawName", "articleNumber", etc. (no @map renames).
+bun run db:push
+#   (or: bun run db:migrate  if you manage migrations explicitly)
+
+# STEP 2 — Run the pgvector setup SQL. This MUST run AFTER step 1 because it
+#          ALTERs the tables created above. It is idempotent — safe to re-run.
+#          Enables the vector extension, adds the `embedding vector(768)`
+#          column, creates HNSW indexes, and defines match_document_chunks()
+#          + match_legal_corpus() functions.
+#          NOTE: use the DIRECT (non-pooled) connection URL for DDL — on
+#          Vercel Postgres this is PRISMA_DATABASE_URL, not DATABASE_URL.
+psql "$PRISMA_DATABASE_URL" -f prisma/sql/rag_pgvector_setup.sql
+#   (or the shortcut: bun run rag:setup-sql  — but ensure $DATABASE_URL points
+#    at a connection that can run DDL, i.e. NOT a PgBouncer pooled connection)
+
+# STEP 3 — Seed the Jordanian corpus. Embeds each article via Gemini
+#          (text-embedding-004, 768-dim) and upserts into LegalCorpus.
+#          Idempotent — re-run after editing data/jordanian-corpus.ts.
 GEMINI_API_KEY=... bun run rag:seed
 
-# 3. Smoke-test retrieval with Arabic queries:
+# STEP 4 — Smoke-test retrieval with Arabic queries. Confirms the match
+#          functions return relevant articles with similarity scores.
 GEMINI_API_KEY=... bun run rag:test
 ```
+
+**Column-name convention (important):** Prisma creates columns with the exact
+camelCase names declared in `schema.prisma` (no `@map` renames are used in this
+repo). So on Postgres the columns are literally `"organizationId"`,
+`"matterId"`, `"lawName"`, `"articleNumber"`, etc. All raw SQL in
+`prisma/sql/rag_pgvector_setup.sql` and `src/lib/rag/retrieve.ts` quotes these
+identifiers with double quotes — unquoted identifiers fold to lowercase in
+Postgres and would silently fail to match. The `match_document_chunks()` and
+`match_legal_corpus()` SQL functions are the single source of truth for
+column-quoting; `retrieve.ts` calls them via `SELECT * FROM match_*()` rather
+than inlining the similarity query, so future schema changes only need the SQL
+function updated.
 
 ### Setup (local dev — SQLite, no pgvector)
 
@@ -374,6 +405,12 @@ bun run db:push:dev
 DATABASE_URL="file:$(pwd)/prisma/dev.db" bun run rag:seed
 DATABASE_URL="file:$(pwd)/prisma/dev.db" bun run rag:test
 ```
+
+The vector-availability probe (`isVectorSearchAvailable()` in `retrieve.ts`)
+checks BOTH that the embedding column is queryable AND that the
+`match_document_chunks()` function exists in `pg_proc`. This means a
+half-set-up Postgres (tables created but step 2 above not run yet) correctly
+falls back to text search instead of erroring on every retrieval call.
 
 ### What the corpus covers (and what it does NOT)
 

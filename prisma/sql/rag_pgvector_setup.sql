@@ -52,9 +52,14 @@ CREATE INDEX "LegalCorpus_embedding_hnsw"
   WITH (m = 16, ef_construction = 64);
 
 -- 4a. match_document_chunks — org + matter scoped similarity search.
---     SECURITY: organization_id and matter_id are MANDATORY filters. There is
---     no overload that returns cross-org chunks. This is the only sanctioned
---     path to read matter chunks by similarity.
+--     SECURITY: "organizationId" and "matterId" are MANDATORY filters. There
+--     is no overload that returns cross-org chunks. This is the only
+--     sanctioned path to read matter chunks by similarity.
+--
+--     IMPORTANT: Prisma creates columns with the EXACT camelCase names declared
+--     in schema.prisma (no @map), so on Postgres the columns are literally
+--     "organizationId", "matterId", "documentId", etc. We MUST quote them —
+--     unquoted identifiers fold to lowercase in Postgres and would not match.
 CREATE OR REPLACE FUNCTION match_document_chunks(
   query_embedding vector(768),
   filter_org text,
@@ -65,26 +70,26 @@ CREATE OR REPLACE FUNCTION match_document_chunks(
 RETURNS TABLE (
   id text,
   content text,
-  document_id text,
-  transcript_id text,
-  source_type text,
-  page_number int,
-  chunk_index int,
+  documentId text,
+  transcriptId text,
+  sourceType text,
+  pageNumber int,
+  chunkIndex int,
   similarity float
 )
 LANGUAGE sql STABLE AS $$
   SELECT
     dc.id,
     dc.content,
-    dc.document_id,
-    dc.transcript_id,
-    dc.source_type,
-    dc.page_number,
-    dc.chunk_index,
+    dc."documentId",
+    dc."transcriptId",
+    dc."sourceType",
+    dc."pageNumber",
+    dc."chunkIndex",
     (1 - (dc.embedding <=> query_embedding))::float AS similarity
   FROM "DocumentChunk" dc
-  WHERE dc.organization_id = filter_org
-    AND dc.matter_id = filter_matter
+  WHERE dc."organizationId" = filter_org
+    AND dc."matterId" = filter_matter
     AND dc.embedding IS NOT NULL
     AND 1 - (dc.embedding <=> query_embedding) >= match_threshold
   ORDER BY dc.embedding <=> query_embedding
@@ -92,6 +97,7 @@ LANGUAGE sql STABLE AS $$
 $$;
 
 -- 4b. match_legal_corpus — global Jordanian corpus search (read-only shared).
+--     Same camelCase column quoting as match_document_chunks above.
 CREATE OR REPLACE FUNCTION match_legal_corpus(
   query_embedding vector(768),
   match_count int DEFAULT 6,
@@ -99,25 +105,25 @@ CREATE OR REPLACE FUNCTION match_legal_corpus(
 )
 RETURNS TABLE (
   id text,
-  law_name text,
-  law_type text,
-  article_number text,
+  lawName text,
+  lawType text,
+  articleNumber text,
   title text,
   content text,
   year int,
-  source_url text,
+  sourceUrl text,
   similarity float
 )
 LANGUAGE sql STABLE AS $$
   SELECT
     lc.id,
-    lc.law_name,
-    lc.law_type,
-    lc.article_number,
+    lc."lawName",
+    lc."lawType",
+    lc."articleNumber",
     lc.title,
     lc.content,
     lc.year,
-    lc.source_url,
+    lc."sourceUrl",
     (1 - (lc.embedding <=> query_embedding))::float AS similarity
   FROM "LegalCorpus" lc
   WHERE lc.embedding IS NOT NULL

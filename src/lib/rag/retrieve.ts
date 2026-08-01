@@ -22,25 +22,37 @@ import type { RetrievedChunk } from "./types";
 let _vectorAvailableCache: boolean | null = null;
 
 /**
- * Probe whether the DocumentChunk.embedding column exists and is queryable.
- * On SQLite dev, the column doesn't exist, so the probe SQL throws. We cache
- * the result so subsequent retrievals skip straight to text fallback.
+ * Probe whether the pgvector stack is fully available:
+ *   - the DocumentChunk.embedding column exists, AND
+ *   - the match_document_chunks() SQL function exists.
+ *
+ * On SQLite dev the column doesn't exist → throws → returns false.
+ * On Postgres before prisma/sql/rag_pgvector_setup.sql is run, the column
+ * may exist (Prisma creates it via Unsupported("vector")) but the match
+ * function won't → the second check throws → returns false. This catches
+ * the half-set-up state so we fall back to text search instead of erroring
+ * on every retrieval call.
+ *
+ * Result is cached for the process lifetime.
  */
 export async function isVectorSearchAvailable(): Promise<boolean> {
   if (_vectorAvailableCache !== null) return _vectorAvailableCache;
   try {
-    // Cheap probe — SELECT 1 from the column. On SQLite this throws because
-    // the column doesn't exist. On Postgres without pgvector setup it throws
-    // because the `vector` operator isn't recognized.
+    // Check 1: embedding column queryable.
     await db.$queryRaw`
       SELECT 1 FROM "DocumentChunk" WHERE embedding IS NOT NULL LIMIT 1
+    `;
+    // Check 2: match function exists (created by rag_pgvector_setup.sql).
+    await db.$queryRaw`
+      SELECT 1 FROM pg_proc WHERE proname = 'match_document_chunks' LIMIT 1
     `;
     _vectorAvailableCache = true;
   } catch {
     _vectorAvailableCache = false;
     console.warn(
       "[rag/retrieve] vector search unavailable — falling back to text search. " +
-        "(This is expected on SQLite dev or Postgres without pgvector setup.)",
+        "(This is expected on SQLite dev, or Postgres without pgvector / before " +
+        "running prisma/sql/rag_pgvector_setup.sql.)",
     );
   }
   return _vectorAvailableCache;
@@ -54,11 +66,16 @@ export function _resetVectorAvailabilityCache(): void {
 interface RawMatterRow {
   id: string;
   content: string;
-  document_id: string | null;
-  transcript_id: string | null;
-  source_type: string;
-  page_number: number | null;
-  chunk_index: number;
+  // NOTE: these keys MUST match the RETURNS TABLE column aliases declared in
+  // match_document_chunks() (prisma/sql/rag_pgvector_setup.sql). Prisma's
+  // $queryRaw preserves the column names as Postgres returns them, and Postgres
+  // lowercases unquoted identifiers — so we use camelCase aliases inside the
+  // SQL function and read them back here as camelCase keys.
+  documentId: string | null;
+  transcriptId: string | null;
+  sourceType: string;
+  pageNumber: number | null;
+  chunkIndex: number;
   similarity: number;
 }
 
@@ -77,38 +94,36 @@ export async function retrieveMatterChunks(
   if (queryEmbedding && (await isVectorSearchAvailable())) {
     const literal = "[" + queryEmbedding.map((n) => Number(n).toFixed(7)).join(",") + "]";
     try {
+      // We call the match_document_chunks() SQL function (defined in
+      // prisma/sql/rag_pgvector_setup.sql) instead of inlining the query. This
+      // keeps the column-quoting logic in ONE place — if the schema ever adds
+      // @map renames, only the SQL function needs updating, not this file.
+      // The function hard-filters by "organizationId" + "matterId", so the
+      // org+matter scoping is enforced at the DB level (defense in depth).
       const rows = (await db.$queryRaw`
-        SELECT
-          dc.id,
-          dc.content,
-          dc.document_id,
-          dc.transcript_id,
-          dc.source_type,
-          dc.page_number,
-          dc.chunk_index,
-          (1 - (dc.embedding <=> ${literal}::vector))::float AS similarity
-        FROM "DocumentChunk" dc
-        WHERE dc.organization_id = ${organizationId}
-          AND dc.matter_id = ${matterId}
-          AND dc.embedding IS NOT NULL
-        ORDER BY dc.embedding <=> ${literal}::vector
-        LIMIT ${limit}
+        SELECT * FROM match_document_chunks(
+          ${literal}::vector,
+          ${organizationId},
+          ${matterId},
+          ${limit},
+          0.30
+        )
       `) as RawMatterRow[];
 
       // Hydrate document names for citation building.
       const docIds = Array.from(
-        new Set(rows.map((r) => r.document_id).filter(Boolean) as string[]),
+        new Set(rows.map((r) => r.documentId).filter(Boolean) as string[]),
       );
       const docNameMap = await hydrateDocumentNames(docIds);
 
       return rows.map((r) => ({
         chunkId: r.id,
-        type: r.source_type === "transcript" ? "transcript" : "document",
-        documentId: r.document_id ?? undefined,
-        documentName: r.document_id ? docNameMap.get(r.document_id) : undefined,
-        transcriptId: r.transcript_id ?? undefined,
-        pageNumber: r.page_number ?? undefined,
-        chunkIndex: r.chunk_index,
+        type: r.sourceType === "transcript" ? "transcript" : "document",
+        documentId: r.documentId ?? undefined,
+        documentName: r.documentId ? docNameMap.get(r.documentId) : undefined,
+        transcriptId: r.transcriptId ?? undefined,
+        pageNumber: r.pageNumber ?? undefined,
+        chunkIndex: r.chunkIndex,
         content: r.content,
         similarity: r.similarity,
       }));
@@ -192,13 +207,13 @@ async function hydrateDocumentNames(
 
 interface RawCorpusRow {
   id: string;
-  law_name: string;
-  law_type: string;
-  article_number: string;
+  lawName: string;
+  lawType: string;
+  articleNumber: string;
   title: string | null;
   content: string;
   year: number | null;
-  source_url: string | null;
+  sourceUrl: string | null;
   similarity: number;
 }
 
@@ -215,33 +230,27 @@ export async function matchLegalCorpus(
     const literal =
       "[" + queryEmbedding.map((n) => Number(n).toFixed(7)).join(",") + "]";
     try {
+      // Call the match_legal_corpus() SQL function (defined in
+      // prisma/sql/rag_pgvector_setup.sql). Same rationale as matter chunks:
+      // keeps column-quoting in one place.
       const rows = (await db.$queryRaw`
-        SELECT
-          lc.id,
-          lc.law_name,
-          lc.law_type,
-          lc.article_number,
-          lc.title,
-          lc.content,
-          lc.year,
-          lc.source_url,
-          (1 - (lc.embedding <=> ${literal}::vector))::float AS similarity
-        FROM "LegalCorpus" lc
-        WHERE lc.embedding IS NOT NULL
-        ORDER BY lc.embedding <=> ${literal}::vector
-        LIMIT ${limit}
+        SELECT * FROM match_legal_corpus(
+          ${literal}::vector,
+          ${limit},
+          0.30
+        )
       `) as RawCorpusRow[];
 
       return rows.map((r) => ({
         chunkId: r.id,
         type: "statute" as const,
-        lawName: r.law_name,
-        lawType: r.law_type,
-        articleNumber: r.article_number,
+        lawName: r.lawName,
+        lawType: r.lawType,
+        articleNumber: r.articleNumber,
         title: r.title ?? undefined,
         content: r.content,
         year: r.year ?? undefined,
-        sourceUrl: r.source_url ?? undefined,
+        sourceUrl: r.sourceUrl ?? undefined,
         similarity: r.similarity,
       }));
     } catch (err: any) {
