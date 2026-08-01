@@ -591,6 +591,97 @@ delete) so they don't surface in future Q&A.
 
 ---
 
+## Jordanian Law MCP (Self-Hosted)
+
+Al Mizan includes a **fully self-hosted Jordanian Law MCP server** that runs
+inside the app itself — no external dependency, no separate server to manage,
+no third-party API. The statute database lives in your own `LegalCorpus` table
+(the 31 articles seeded via `rag:seed`, extensible by editing
+`src/data/jordanian-corpus.ts`).
+
+### How it works
+
+```
+User asks a question
+       ↓
+Gemini (with function calling)
+       ↓
+calls search_jordanian_legislation / get_jordanian_provision / etc.
+       ↓
+Adapter (src/lib/mcp/jordanian-law.ts)
+       ↓  HTTP POST
+Self-hosted MCP server (src/app/api/mcp/jordanian-law/route.ts)
+       ↓
+Your LegalCorpus database table (31 Jordanian articles)
+       ↓
+Verbatim statute text returned to Gemini
+       ↓
+Grounded answer with real citations
+```
+
+### What the MCP server provides
+
+The endpoint at `/api/mcp/jordanian-law` implements 5 tools:
+
+| Tool | What it does |
+|---|---|
+| `search_legislation` | Search articles by keyword (Arabic or English). Uses pgvector semantic search + text fallback. |
+| `get_provision` | Fetch verbatim text by law name + article number. |
+| `validate_citation` | Parse + verify a citation like "القانون المدني م256". |
+| `check_currency` | Check if a provision is still in force. |
+| `build_legal_stance` | Find supporting + opposing provisions for a position. |
+
+### Configuration (no setup needed)
+
+The MCP server runs automatically as part of Almizan. No env vars required —
+the adapter auto-detects the Vercel URL via `VERCEL_URL` (auto-set by Vercel)
+or `NEXTAUTH_URL` (manually set).
+
+**To verify it's running**, open this URL in your browser:
+```
+https://almizan.legalwakeely.com/api/mcp/jordanian-law
+```
+You should see a JSON response with `status: "operational"` and `articleCount: 31`.
+
+### How to extend the statute database
+
+To add more Jordanian articles:
+1. Edit `src/data/jordanian-corpus.ts` — add entries to the `JORDANIAN_CORPUS` array
+2. Re-run `bun run rag:seed` (or click the one-click setup button in the UI)
+3. New articles are immediately available to all MCP tools — no restart needed
+
+### How to update the database in the future
+
+The statute text is curated, not scraped. To update an article:
+1. Edit the entry in `src/data/jordanian-corpus.ts`
+2. Re-run `bun run rag:seed` — it upserts by `(lawName, articleNumber)`, so
+   existing articles get their text + embedding refreshed
+3. The updated text is immediately available
+
+### Optional: separate Docker deployment
+
+If you want to run the MCP as a separate container (for isolation or scaling),
+you can extract the MCP server into its own Docker image. But for most law
+firms, the built-in self-hosted route is simpler and sufficient.
+
+### What to do if it stops working
+
+1. **Check the health endpoint**: `https://almizan.legalwakeely.com/api/mcp/jordanian-law`
+   - If it returns JSON with `status: "operational"` → the MCP is fine; the issue is elsewhere
+   - If it returns an error → the database table might not exist (re-run the one-click setup)
+2. **Check the article count**: the health endpoint shows `articleCount`. If it's 0, re-seed the corpus.
+3. **If Gemini quota is exhausted**: the MCP tools still work (they use the database, not Gemini), but the model can't generate the final answer. See the "AI Providers" section above.
+4. **The AI routes fall back gracefully**: if the MCP is unreachable, drafting and analysis still work — just without verbatim statute grounding.
+
+### Security
+
+- All MCP calls are server-side only (Next.js API route)
+- Only public legal queries are processed (law name + article number)
+- No client documents, organization data, or matter-specific content is sent to the MCP
+- The statute database is public law — not client confidential
+
+---
+
 ## Brand
 
 **Al Mizan Legal Practice** (الميزان للممارسة القانونية) — "Al Mizan" means

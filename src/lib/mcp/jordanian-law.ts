@@ -1,33 +1,35 @@
 // =============================================================================
-// Al Mizan — Jordanian Law MCP Client Adapter
+// Al Mizan — Jordanian Law MCP Client Adapter (SELF-HOSTED)
 // -----------------------------------------------------------------------------
-// Talks to the "Jordanian Law MCP Server" by Ansvar-Systems to retrieve
-// verbatim official statute text, validate citations, and check whether a
-// provision is still in force.
+// Talks to the SELF-HOSTED Jordanian Law MCP server that runs INSIDE Almizan
+// at /api/mcp/jordanian-law. This is a fully self-contained solution — NO
+// external dependency on any hosted service.
 //
-// === SWITCHING BETWEEN SELF-HOSTED AND HOSTED MODE ===
+// === HOW IT WORKS ===
 //
-// The adapter reads MCP_ENDPOINT from the environment. If set, it uses that
-// URL (self-hosted mode — recommended for client confidentiality). If unset,
-// it falls back to the hosted endpoint at https://jordan-law-mcp.vercel.app.
+// The MCP server (src/app/api/mcp/jordanian-law/route.ts) implements all 5
+// tools (search_legislation, get_provision, validate_citation, check_currency,
+// build_legal_stance) using the LegalCorpus table in your own database. The
+// statute data is the 31 curated articles seeded via rag:seed (extensible by
+// editing src/data/jordanian-corpus.ts).
 //
-// To self-host (recommended for production with real client data):
-//   1. Clone https://github.com/Ansvar-Systems/jordanian-law-mcp
-//   2. Deploy to your own Vercel / Docker / Node server.
-//   3. Set MCP_ENDPOINT=https://your-self-hosted-url/mcp in Vercel env vars.
-//   4. Optionally set MCP_API_KEY if your instance requires auth.
+// The adapter calls this internal endpoint via HTTP. On Vercel, the URL is
+// built from VERCEL_URL (auto-set) or NEXTAUTH_URL (manually set). No env
+// var configuration needed — it just works.
 //
-// To use the hosted endpoint (for testing only — do NOT send client data):
-//   Leave MCP_ENDPOINT unset. The adapter uses the public hosted URL.
-//   Real client matter data is NEVER sent to the MCP — only search queries
-//   and citation strings (law name + article number), which are public law.
+// === WHEN TO OVERRIDE ===
+//
+// If you deploy a SEPARATE MCP server (e.g. a Docker container on a different
+// host for isolation), set MCP_ENDPOINT to its URL:
+//   MCP_ENDPOINT=https://your-separate-mcp-server.com/mcp
+//
+// If MCP_ENDPOINT is unset, the adapter uses the self-hosted internal route.
 //
 // === SECURITY ===
 //   - Server-side only. This file must NEVER be imported from client code.
-//   - Only public legal queries are sent to the MCP. No client documents,
-//     organization data, or matter-specific content is transmitted.
-//   - Every call should be logged via audit() by the caller (organizationId +
-//     userId) for traceability.
+//   - Only public legal queries are sent (law name + article number).
+//   - No client documents, organization data, or matter-specific content.
+//   - Every call should be logged via audit() by the caller.
 //
 // === EXTENSIBILITY ===
 //   This adapter implements NationalLawAdapter from ./types.ts. To add a UAE
@@ -47,13 +49,43 @@ import type {
 } from "./types";
 import { McpError } from "./types";
 
-const DEFAULT_HOSTED_ENDPOINT = "https://jordan-law-mcp.vercel.app/mcp";
+// =============================================================================
+// ENDPOINT CONFIGURATION
+// -----------------------------------------------------------------------------
+// The adapter defaults to the SELF-HOSTED MCP server that runs inside Almizan
+// itself at /api/mcp/jordanian-law. This means:
+//   - NO external dependency (no Ansvar-Systems hosted endpoint)
+//   - The statute database lives in your own LegalCorpus table
+//   - Everything runs on your Vercel deployment
+//
+// To override (e.g. for a separate Docker deployment), set MCP_ENDPOINT env var
+// to the full URL of your MCP server.
+//
+// The self-hosted URL is built from VERCEL_URL (auto-set by Vercel) or
+// NEXTAUTH_URL (set by you). On Vercel, VERCEL_URL is always available.
+// =============================================================================
 const DEFAULT_TIMEOUT_MS = 15000;
+
+function getSelfHostedEndpoint(): string {
+  // On Vercel, VERCEL_URL is automatically set (e.g. "almizan-xxx.vercel.app").
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}/api/mcp/jordanian-law`;
+  }
+  // Fallback to NEXTAUTH_URL (which the user sets manually).
+  if (process.env.NEXTAUTH_URL) {
+    return `${process.env.NEXTAUTH_URL.replace(/\/$/, "")}/api/mcp/jordanian-law`;
+  }
+  // Local dev — relative URL won't work for fetch(), so use localhost.
+  return "http://localhost:3000/api/mcp/jordanian-law";
+}
 
 /**
  * Jordanian Law MCP adapter. Implements the unified NationalLawAdapter
  * surface so it can be registered as Gemini tool declarations and called
  * transparently from AI routes.
+ *
+ * DEFAULT: uses the self-hosted MCP server at /api/mcp/jordanian-law
+ * (runs inside Almizan itself — no external dependency).
  */
 export class JordanianLawMcp implements NationalLawAdapter {
   readonly jurisdiction: Jurisdiction = "JO";
@@ -64,10 +96,11 @@ export class JordanianLawMcp implements NationalLawAdapter {
   private readonly timeoutMs: number;
 
   constructor(opts?: McpAdapterOptions) {
+    // Priority: explicit opts > MCP_ENDPOINT env var > self-hosted internal route
     this.endpoint =
       opts?.endpoint ??
       process.env.MCP_ENDPOINT ??
-      DEFAULT_HOSTED_ENDPOINT;
+      getSelfHostedEndpoint();
     this.apiKey = opts?.apiKey ?? process.env.MCP_API_KEY;
     this.timeoutMs = opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
