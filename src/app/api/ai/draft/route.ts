@@ -4,7 +4,6 @@
 // =============================================================================
 
 import { NextResponse } from "next/server";
-import DOMPurify from "isomorphic-dompurify";
 import { db } from "@/lib/db";
 import { requireUser, orgWhere } from "@/lib/org";
 import { aiRateLimit, getClientIp } from "@/lib/rate-limit";
@@ -12,6 +11,24 @@ import { callGemini } from "@/lib/gemini";
 import { audit } from "@/lib/audit";
 import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
+
+/**
+ * Strip HTML tags from text — simple regex-based sanitizer.
+ * Replaces isomorphic-dompurify (which depends on jsdom and breaks on
+ * Vercel serverless). For legal draft text we only need to strip tags,
+ * not sanitize untrusted HTML, so this is sufficient and dependency-free.
+ */
+function stripHtml(text: string): string {
+  return text
+    .replace(/<[^>]*>/g, "") // strip all HTML tags
+    .replace(/&nbsp;/g, " ") // decode common entities
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
+}
 
 const draftSchema = z.object({
   matterId: z.string().optional(),
@@ -124,11 +141,7 @@ Output ONLY the drafted document text. No commentary, no preamble, no closing no
       details: { template, type: rawTemplate, directiveLength: directive.length, _stub: result._stub },
     }, req).catch(() => {}); // audit failure should never break the draft
 
-    const sanitized = DOMPurify.sanitize(result.text, {
-      ALLOWED_TAGS: [],
-      ALLOWED_ATTR: [],
-      KEEP_CONTENT: true,
-    });
+    const sanitized = stripHtml(result.text);
 
     // Return shape expected by reference AiModule: { draft, _stub, _disclaimer }
     return NextResponse.json({
