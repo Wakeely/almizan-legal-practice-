@@ -379,13 +379,18 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
 
           <button
             onClick={handleGenerateDraft}
-            disabled={loading}
-            className="w-full py-3 bg-indigo-600 text-white rounded-2xl text-xs font-bold hover:bg-indigo-700 shadow-md shadow-indigo-100 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+            disabled={loading || customInstructions.trim().length < 2}
+            className="w-full py-3 bg-indigo-600 text-white rounded-2xl text-xs font-bold hover:bg-indigo-700 shadow-md shadow-indigo-100 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin text-white animate-spin shrink-0" />
-                <span>{isRtl ? 'جاري صياغة النص من جيمي...' : 'Gemini Generating Draft...'}</span>
+                <span>{isRtl ? 'جاري صياغة النص...' : 'Generating Draft...'}</span>
+              </>
+            ) : customInstructions.trim().length < 2 ? (
+              <>
+                <Sparkles className="w-4 h-4 text-amber-300 fill-amber-300 shrink-0" />
+                <span>{isRtl ? 'أدخل التوجيهات أولاً للصياغة' : 'Enter directives to draft'}</span>
               </>
             ) : (
               <>

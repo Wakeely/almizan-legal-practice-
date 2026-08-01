@@ -42,13 +42,13 @@ const draftSchema = z.object({
   ]).optional(),
   type: z.string().min(2).max(100).optional(),
   // The reference UI sends `details` (user directive) — accept either `directive` or `details`
-  directive: z.string().min(2).max(4000).optional(),
-  details: z.string().min(2).max(4000).optional(),
+  // Allow empty/short strings — we fall back to a default directive below so
+  // the draft still generates even if the user didn't type anything.
+  directive: z.string().max(4000).optional(),
+  details: z.string().max(4000).optional(),
   lang: z.enum(["ar", "en"]).optional(),
 }).refine((d) => d.template || d.type, {
   message: "Either template or type is required",
-}).refine((d) => d.directive || d.details, {
-  message: "Either directive or details is required",
 });
 
 const TEMPLATE_PROMPTS: Record<string, string> = {
@@ -97,7 +97,11 @@ export async function POST(req: Request) {
       "Free Text": "free-text",
     };
     const template = templateMap[rawTemplate] ?? "free-text";
-    const directive = data.directive ?? data.details ?? "";
+    // Use the user's directive if provided; otherwise use a sensible default
+    // so the draft still generates (the template prompt alone is enough for
+    // the AI to produce a useful starting point).
+    const directive = (data.directive ?? data.details ?? "").trim() ||
+      `Generate a standard ${template.replace(/-/g, " ")} document based on the matter context above. Include all standard sections for this document type under applicable Jordanian / GCC / MENA law.`;
 
     // Fetch matter context (org-scoped)
     let matter = null;
