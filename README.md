@@ -658,6 +658,84 @@ The statute text is curated, not scraped. To update an article:
    existing articles get their text + embedding refreshed
 3. The updated text is immediately available
 
+### Admin note: adding a new article vs recording an amendment
+
+The `LegalCorpus` table now tracks amendment status. Here's how to handle the
+two most common admin tasks:
+
+#### Adding a NEW article (one that doesn't exist yet)
+
+Add a new entry to `src/data/jordanian-corpus.ts`:
+
+```typescript
+{
+  lawName: "قانون العمل الأردني",
+  lawNameEn: "Jordanian Labour Law",
+  lawType: "labour",
+  articleNumber: "100",            // the article number
+  title: "title of the article",
+  content: "verbatim Arabic text...",
+  year: 1996,
+  sourceUrl: "http://official-source",
+  status: "in_force",              // default — omit to use "in_force"
+  effectiveFrom: "1996-01-01",     // when it took effect (optional)
+  // effectiveTo, amendedBy, supersededBy are omitted for new articles
+},
+```
+
+Then re-run `bun run rag:seed`. The new article is immediately searchable +
+available to all MCP tools.
+
+#### Recording an AMENDMENT to an existing article
+
+When a law is amended, you have two options:
+
+**Option A — update in place (simpler, loses the old text):**
+Edit the existing entry in `src/data/jordanian-corpus.ts`, update the `content`
+to the new amended text, and set:
+```typescript
+status: "amended",                 // or leave as "in_force" if the amendment
+                                   // just updated the text and it's still current
+amendedBy: "Law No. 15 of 2018, Art. 3",  // citation of the amending law
+effectiveFrom: "2018-07-01",       // when the amendment took effect
+```
+Re-run `bun run rag:seed` — the existing row is updated with the new text + status.
+
+**Option B — keep both versions (recommended for historical reference):**
+1. Update the OLD entry: set `status: "superseded"`, `effectiveTo` to the
+   amendment date, and `supersededBy` to the new article's ID (or a citation
+   string like `"Law No. 15 of 2018, Art. 3"`).
+2. Add a NEW entry for the amended version with `status: "in_force"` and
+   `effectiveFrom` set to the amendment date.
+3. Re-run `bun run rag:seed`.
+
+This preserves both texts — the MCP tools will warn users when they retrieve
+the superseded version and point them to the current one.
+
+#### Recording a REPEAL (article no longer in force)
+
+Edit the entry and set:
+```typescript
+status: "repealed",
+effectiveTo: "2024-12-31",         // when it was repealed
+amendedBy: "Law No. X of 2024",    // the repealing law
+```
+The MCP `validate_citation` and `check_currency` tools will now warn users
+that the provision is repealed and should not be cited.
+
+#### Verifying amendment status via the API
+
+Use the `exists` endpoint to check an article's status:
+```
+GET /api/mcp/jordanian-law?action=exists&law=civil&article=256
+```
+Returns: `{ exists, status, superseded, amended, repealed, provision, message }`
+
+Or use the `list` endpoint to see all articles + their statuses:
+```
+GET /api/mcp/jordanian-law?action=list
+```
+
 ### Optional: separate Docker deployment
 
 If you want to run the MCP as a separate container (for isolation or scaling),

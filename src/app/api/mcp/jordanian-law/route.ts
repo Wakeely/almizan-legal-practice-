@@ -73,28 +73,203 @@ export async function POST(req: NextRequest) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// GET — health check / info endpoint
+// GET — health check / list / exists endpoints
+// -----------------------------------------------------------------------------
+// Supports three modes via the ?action= query parameter:
+//
+//   1. (no action)  → health check / server info
+//      GET /api/mcp/jordanian-law
+//
+//   2. action=list  → clean table of all laws/articles in the database
+//      GET /api/mcp/jordanian-law?action=list
+//      Returns: { articles: [{ lawName, lawNameEn, articleNumber, title,
+//                              status, lastUpdated, ... }] }
+//
+//   3. action=exists → check if a specific article exists + its status
+//      GET /api/mcp/jordanian-law?action=exists&law=...&article=...
+//      Returns: { exists, status, superseded, provision, message }
 // ─────────────────────────────────────────────────────────────────────────
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const action = searchParams.get("action");
+
+  // ── action=list: return a clean table of all articles ──────────────────
+  if (action === "list") {
+    try {
+      const articles = await db.legalCorpus.findMany({
+        orderBy: [{ lawName: "asc" }, { articleNumber: "asc" }],
+        select: {
+          id: true,
+          lawName: true,
+          lawNameEn: true,
+          lawType: true,
+          articleNumber: true,
+          title: true,
+          year: true,
+          status: true,
+          effectiveFrom: true,
+          effectiveTo: true,
+          amendedBy: true,
+          supersededBy: true,
+          sourceUrl: true,
+          lastCheckedAt: true,
+          updatedAt: true,
+        },
+      });
+
+      return NextResponse.json({
+        total: articles.length,
+        articles: articles.map((a) => ({
+          id: a.id,
+          lawName: a.lawName,
+          lawNameEn: a.lawNameEn,
+          lawType: a.lawType,
+          articleNumber: a.articleNumber,
+          title: a.title,
+          year: a.year,
+          status: a.status,
+          effectiveFrom: a.effectiveFrom?.toISOString() ?? null,
+          effectiveTo: a.effectiveTo?.toISOString() ?? null,
+          amendedBy: a.amendedBy,
+          supersededBy: a.supersededBy,
+          sourceUrl: a.sourceUrl,
+          lastCheckedAt: a.lastCheckedAt?.toISOString() ?? null,
+          lastUpdated: a.updatedAt.toISOString(),
+        })),
+      });
+    } catch (err: any) {
+      return NextResponse.json(
+        { error: "Failed to list articles", detail: err?.message },
+        { status: 500 },
+      );
+    }
+  }
+
+  // ── action=exists: check if a specific article exists + its status ─────
+  if (action === "exists") {
+    const law = searchParams.get("law");
+    const article = searchParams.get("article");
+
+    if (!law || !article) {
+      return NextResponse.json(
+        { error: "Both 'law' and 'article' query parameters are required" },
+        { status: 400 },
+      );
+    }
+
+    try {
+      // Try exact match first, then partial match on law name.
+      let record = await db.legalCorpus.findFirst({
+        where: {
+          articleNumber: article,
+          OR: [
+            { lawName: { contains: law } },
+            { lawNameEn: { contains: law } },
+          ],
+        },
+      });
+
+      // If no match on law name, try matching just the article number.
+      if (!record) {
+        record = await db.legalCorpus.findFirst({
+          where: { articleNumber: article },
+        });
+      }
+
+      if (!record) {
+        return NextResponse.json({
+          exists: false,
+          status: null,
+          superseded: false,
+          provision: null,
+          message: `No article found matching law="${law}" article="${article}"`,
+        });
+      }
+
+      const isSuperseded =
+        record.status === "superseded" || !!record.supersededBy;
+      const isAmended = record.status === "amended" || !!record.amendedBy;
+      const isRepealed = record.status === "repealed";
+
+      let message = `Found: ${record.lawName} م${record.articleNumber}`;
+      if (isSuperseded) {
+        message += ` — SUPERSEDED${record.supersededBy ? ` by ${record.supersededBy}` : ""}`;
+      } else if (isAmended) {
+        message += ` — AMENDED${record.amendedBy ? ` by ${record.amendedBy}` : ""}`;
+      } else if (isRepealed) {
+        message += ` — REPEALED`;
+      } else {
+        message += ` — in force`;
+      }
+
+      return NextResponse.json({
+        exists: true,
+        status: record.status,
+        superseded: isSuperseded,
+        amended: isAmended,
+        repealed: isRepealed,
+        provision: {
+          id: record.id,
+          lawName: record.lawName,
+          lawNameEn: record.lawNameEn,
+          articleNumber: record.articleNumber,
+          title: record.title,
+          status: record.status,
+          effectiveFrom: record.effectiveFrom?.toISOString() ?? null,
+          effectiveTo: record.effectiveTo?.toISOString() ?? null,
+          amendedBy: record.amendedBy,
+          supersededBy: record.supersededBy,
+          sourceUrl: record.sourceUrl,
+        },
+        message,
+      });
+    } catch (err: any) {
+      return NextResponse.json(
+        { error: "Lookup failed", detail: err?.message },
+        { status: 500 },
+      );
+    }
+  }
+
+  // ── default: health check / server info ────────────────────────────────
   let articleCount = 0;
+  let inForceCount = 0;
+  let amendedCount = 0;
+  let repealedCount = 0;
   try {
     articleCount = await db.legalCorpus.count();
+    inForceCount = await db.legalCorpus.count({ where: { status: "in_force" } });
+    amendedCount = await db.legalCorpus.count({ where: { status: "amended" } });
+    repealedCount = await db.legalCorpus.count({ where: { status: "repealed" } });
   } catch {
     // DB not ready — return 0.
   }
 
   return NextResponse.json({
     server: "Al Mizan Self-Hosted Jordanian Law MCP",
-    version: "1.0.0",
+    version: "1.1.0",
     status: "operational",
     articleCount,
+    statusBreakdown: {
+      in_force: inForceCount,
+      amended: amendedCount,
+      repealed: repealedCount,
+      superseded: await db.legalCorpus.count({ where: { status: "superseded" } }).catch(() => 0),
+    },
+    endpoints: {
+      health: "GET /api/mcp/jordanian-law",
+      list: "GET /api/mcp/jordanian-law?action=list",
+      exists: "GET /api/mcp/jordanian-law?action=exists&law=...&article=...",
+      tools: "POST /api/mcp/jordanian-law { tool, arguments }",
+    },
     tools: [
       "search_legislation",
       "get_provision",
       "validate_citation",
       "check_currency",
       "build_legal_stance",
+      "list_sources",
     ],
     selfHosted: true,
     noExternalDependency: true,
@@ -255,13 +430,19 @@ async function getProvision(args: any): Promise<any> {
       id: article.id,
       jurisdiction: "JO",
       lawName: article.lawName,
+      lawNameEn: article.lawNameEn,
       lawType: article.lawType,
       articleNumber: article.articleNumber,
       title: article.title,
       text: article.content, // Verbatim official text — never paraphrased
       year: article.year,
-      inForce: true,
-      amendedDate: undefined,
+      inForce: article.status === "in_force",
+      status: article.status,
+      amendedBy: article.amendedBy ?? null,
+      supersededBy: article.supersededBy ?? null,
+      effectiveFrom: article.effectiveFrom?.toISOString() ?? null,
+      effectiveTo: article.effectiveTo?.toISOString() ?? null,
+      amendedDate: article.effectiveTo?.toISOString() ?? null,
       repealedDate: undefined,
       repealedBy: undefined,
       sourceUrl: article.sourceUrl,
@@ -274,7 +455,7 @@ async function getProvision(args: any): Promise<any> {
  * 3. validate_citation — check if a citation string resolves to a real article.
  * Parses citations like "القانون المدني م256" or "Civil Code Article 256".
  */
-async function validateCitation(args: any): Promise<{ validation: any }> {
+async function validateCitation(args: any): Promise<any> {
   const { citation } = args ?? {};
   if (!citation || typeof citation !== "string") {
     return {
@@ -340,14 +521,40 @@ async function validateCitation(args: any): Promise<{ validation: any }> {
     bestMatch = scored[0].article;
   }
 
+  // ── Report amendment / currency status in the validation response ──────
+  const inForce = bestMatch.status === "in_force";
+  const isAmended = bestMatch.status === "amended" || !!bestMatch.amendedBy;
+  const isSuperseded = bestMatch.status === "superseded" || !!bestMatch.supersededBy;
+  const isRepealed = bestMatch.status === "repealed";
+
+  let message = `Citation resolved to ${bestMatch.lawName} م${bestMatch.articleNumber}`;
+  if (isSuperseded) {
+    message += ` — WARNING: SUPERSEDED${bestMatch.supersededBy ? ` by ${bestMatch.supersededBy}` : ""}. Use the superseding provision instead.`;
+  } else if (isAmended) {
+    message += ` — NOTE: AMENDED${bestMatch.amendedBy ? ` by ${bestMatch.amendedBy}` : ""}. Text is the pre-amendment version; verify the current text.`;
+  } else if (isRepealed) {
+    message += ` — WARNING: REPEALED. Do not cite this provision.`;
+  } else {
+    message += ` — in force.`;
+  }
+
   return {
     validation: {
       valid: true,
       lawName: bestMatch.lawName,
+      lawNameEn: bestMatch.lawNameEn,
       articleNumber: bestMatch.articleNumber,
       provisionId: bestMatch.id,
-      inForce: true,
-      message: `Citation resolved to ${bestMatch.lawName} م${bestMatch.articleNumber}`,
+      inForce,
+      status: bestMatch.status,
+      amended: isAmended,
+      amendedBy: bestMatch.amendedBy ?? null,
+      superseded: isSuperseded,
+      supersededBy: bestMatch.supersededBy ?? null,
+      repealed: isRepealed,
+      effectiveFrom: bestMatch.effectiveFrom?.toISOString() ?? null,
+      effectiveTo: bestMatch.effectiveTo?.toISOString() ?? null,
+      message,
     },
   };
 }
@@ -357,7 +564,7 @@ async function validateCitation(args: any): Promise<{ validation: any }> {
  * All articles in our corpus are current Jordanian law, so this returns true
  * unless the article doesn't exist.
  */
-async function checkCurrency(args: any): Promise<{ currency: any }> {
+async function checkCurrency(args: any): Promise<any> {
   const { provision_id } = args ?? {};
   if (!provision_id) {
     return {
@@ -377,9 +584,37 @@ async function checkCurrency(args: any): Promise<{ currency: any }> {
       currency: {
         provisionId: provision_id,
         inForce: false,
+        status: "not_found",
         message: "Provision not found in database",
       },
     };
+  }
+
+  // Determine currency from the new status fields.
+  const inForce = article.status === "in_force";
+  const isAmended = article.status === "amended" || !!article.amendedBy;
+  const isSuperseded = article.status === "superseded" || !!article.supersededBy;
+  const isRepealed = article.status === "repealed";
+
+  // Update lastCheckedAt — this is a currency check, so stamp it.
+  try {
+    await db.legalCorpus.update({
+      where: { id: article.id },
+      data: { lastCheckedAt: new Date() },
+    });
+  } catch {
+    // Non-blocking — the currency response still returns.
+  }
+
+  let message = `${article.lawName} م${article.articleNumber} is `;
+  if (inForce) {
+    message += "in force.";
+  } else if (isSuperseded) {
+    message += `SUPERSEDED${article.supersededBy ? ` by ${article.supersededBy}` : ""}.`;
+  } else if (isAmended) {
+    message += `AMENDED${article.amendedBy ? ` by ${article.amendedBy}` : ""}.`;
+  } else if (isRepealed) {
+    message += "REPEALED.";
   }
 
   return {
@@ -387,11 +622,19 @@ async function checkCurrency(args: any): Promise<{ currency: any }> {
       provisionId: article.id,
       lawName: article.lawName,
       articleNumber: article.articleNumber,
-      inForce: true,
-      amendedDate: undefined,
-      repealedDate: undefined,
-      repealedBy: undefined,
-      notes: "Article is part of the current Jordanian legal corpus. Always verify against the official gazette before filing.",
+      inForce,
+      status: article.status,
+      amendedDate: article.effectiveTo?.toISOString() ?? null,
+      amendedBy: article.amendedBy ?? null,
+      repealedDate: article.effectiveTo?.toISOString() ?? null,
+      repealedBy: isRepealed ? article.amendedBy : null,
+      supersededBy: article.supersededBy ?? null,
+      effectiveFrom: article.effectiveFrom?.toISOString() ?? null,
+      effectiveTo: article.effectiveTo?.toISOString() ?? null,
+      lastCheckedAt: new Date().toISOString(),
+      message,
+      notes:
+        "Currency checked against the Al Mizan LegalCorpus database. Always verify against the official gazette before filing.",
     },
   };
 }

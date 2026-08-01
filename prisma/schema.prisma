@@ -552,12 +552,24 @@ model DocumentChunk {
 model LegalCorpus {
   id            String   @id @default(cuid())
   lawName       String   // e.g. "القانون المدني الأردني"
+  lawNameEn     String?  // e.g. "Jordanian Civil Code"
   lawType       String   // 'civil' | 'labour' | 'procedure' | 'evidence' | 'traffic' | 'rent' | 'maintenance' | 'commercial'
   articleNumber String   // e.g. "256"
   title         String?
-  content       String   // Arabic article text
+  content       String   // Arabic article text (verbatim official text)
   year          Int?
   sourceUrl     String?
+
+  // ── Amendment / currency tracking ──────────────────────────────────────
+  // These fields let check_currency + validate_citation report whether a
+  // provision is current, amended, or superseded. Existing rows get sensible
+  // defaults via the migration (status='in_force', lastCheckedAt=now).
+  status          String   @default("in_force") // 'in_force' | 'amended' | 'repealed' | 'superseded'
+  effectiveFrom   DateTime?                      // when the article took effect
+  effectiveTo     DateTime?                      // when it ceased to be in force (null = still current)
+  amendedBy       String?                        // citation of the amending law (e.g. "Law No. 15 of 2018, Art. 3")
+  supersededBy    String?                        // id of the superseding provision in this table (if any)
+  lastCheckedAt   DateTime?  @default(now())     // last time currency was verified against official source
 
   embedding     Unsupported("vector(768)")?
 
@@ -566,6 +578,7 @@ model LegalCorpus {
 
   @@unique([lawName, articleNumber])
   @@index([lawType])
+  @@index([status])
 }
 
 // -----------------------------------------------------------------------------

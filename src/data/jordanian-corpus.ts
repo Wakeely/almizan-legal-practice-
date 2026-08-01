@@ -23,12 +23,19 @@
 
 export interface CorpusArticle {
   lawName: string;
+  lawNameEn?: string;       // English law name (e.g. "Jordanian Civil Code")
   lawType: string;
   articleNumber: string;
   title?: string;
   content: string;
   year?: number;
   sourceUrl?: string;
+  // Amendment / currency tracking (optional — defaults to in_force)
+  status?: "in_force" | "amended" | "repealed" | "superseded";
+  effectiveFrom?: string;   // ISO date string
+  effectiveTo?: string;     // ISO date string (null/undefined = still current)
+  amendedBy?: string;       // citation of the amending law
+  supersededBy?: string;    // id of the superseding provision
 }
 
 export const JORDANIAN_CORPUS: CorpusArticle[] = [
@@ -37,6 +44,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   // ===========================================================================
   {
     lawName: "القانون المدني الأردني",
+    lawNameEn: "Jordanian Civil Code",
     lawType: "civil",
     articleNumber: "146",
     title: "أركان العقد",
@@ -47,6 +55,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "القانون المدني الأردني",
+    lawNameEn: "Jordanian Civil Code",
     lawType: "civil",
     articleNumber: "166",
     title: "وجوب تنفيذ العقد بحسن نية",
@@ -56,6 +65,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "القانون المدني الأردني",
+    lawNameEn: "Jordanian Civil Code",
     lawType: "civil",
     articleNumber: "183",
     title: "المسؤولية عن الأعمال الشخصية — الضرر",
@@ -65,6 +75,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "القانون المدني الأردني",
+    lawNameEn: "Jordanian Civil Code",
     lawType: "civil",
     articleNumber: "256",
     title: "المسؤولية التقصيرية — التعويض",
@@ -74,6 +85,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "القانون المدني الأردني",
+    lawNameEn: "Jordanian Civil Code",
     lawType: "civil",
     articleNumber: "257",
     title: "عناصر المسؤولية",
@@ -83,6 +95,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "القانون المدني الأردني",
+    lawNameEn: "Jordanian Civil Code",
     lawType: "civil",
     articleNumber: "265",
     title: "الإثراء بلا سبب",
@@ -92,6 +105,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "القانون المدني الأردني",
+    lawNameEn: "Jordanian Civil Code",
     lawType: "civil",
     articleNumber: "336",
     title: "تقادم الالتزامات — المدة",
@@ -101,6 +115,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "القانون المدني الأردني",
+    lawNameEn: "Jordanian Civil Code",
     lawType: "civil",
     articleNumber: "347",
     title: "وقف التقادم",
@@ -114,6 +129,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   // ===========================================================================
   {
     lawName: "قانون العمل الأردني",
+    lawNameEn: "Jordanian Labour Law",
     lawType: "labour",
     articleNumber: "23",
     title: "عقد العمل — شكله ومضمونه",
@@ -124,6 +140,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون العمل الأردني",
+    lawNameEn: "Jordanian Labour Law",
     lawType: "labour",
     articleNumber: "67",
     title: "ساعات العمل الأسبوعية",
@@ -133,6 +150,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون العمل الأردني",
+    lawNameEn: "Jordanian Labour Law",
     lawType: "labour",
     articleNumber: "74",
     title: "العمل الإضافي — الأجر",
@@ -142,6 +160,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون العمل الأردني",
+    lawNameEn: "Jordanian Labour Law",
     lawType: "labour",
     articleNumber: "61",
     title: "إنهاء عقد العمل غير المحدد المدة — التعويض",
@@ -151,6 +170,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون العمل الأردني",
+    lawNameEn: "Jordanian Labour Law",
     lawType: "labour",
     articleNumber: "82",
     title: "الإصابات العملية — مسؤولية صاحب العمل",
@@ -164,6 +184,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   // ===========================================================================
   {
     lawName: "قانون أصول المحاكمات المدنية",
+    lawNameEn: "Civil Procedure Law",
     lawType: "procedure",
     articleNumber: "5",
     title: "اختصاص المحاكم النظامية",
@@ -174,6 +195,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون أصول المحاكمات المدنية",
+    lawNameEn: "Civil Procedure Law",
     lawType: "procedure",
     articleNumber: "43",
     title: "رفع الدعوى — صحيفة الدعوى",
@@ -183,6 +205,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون أصول المحاكمات المدنية",
+    lawNameEn: "Civil Procedure Law",
     lawType: "procedure",
     articleNumber: "60",
     title: "ميعاد الحضور — التأخير",
@@ -192,6 +215,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون أصول المحاكمات المدنية",
+    lawNameEn: "Civil Procedure Law",
     lawType: "procedure",
     articleNumber: "76",
     title: "عبء الإثبات",
@@ -201,6 +225,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون أصول المحاكمات المدنية",
+    lawNameEn: "Civil Procedure Law",
     lawType: "procedure",
     articleNumber: "152",
     title: "الاستئناف — ميعاده",
@@ -214,6 +239,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   // ===========================================================================
   {
     lawName: "قانون البينات",
+    lawNameEn: "Evidence Law",
     lawType: "evidence",
     articleNumber: "2",
     title: "الطرق المقبولة للإثبات",
@@ -224,6 +250,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون البينات",
+    lawNameEn: "Evidence Law",
     lawType: "evidence",
     articleNumber: "13",
     title: "قوة المستند الرسمي",
@@ -233,6 +260,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون البينات",
+    lawNameEn: "Evidence Law",
     lawType: "evidence",
     articleNumber: "39",
     title: "الإثبات بالبينة الشفوية — الحدود",
@@ -242,6 +270,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون البينات",
+    lawNameEn: "Evidence Law",
     lawType: "evidence",
     articleNumber: "44",
     title: "شهادة الشهود — شروطها",
@@ -255,6 +284,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   // ===========================================================================
   {
     lawName: "قانون المالكين والمستأجرين",
+    lawNameEn: "Landlords and Tenants Law",
     lawType: "rent",
     articleNumber: "5",
     title: "عقد الإيجار — تسجيله",
@@ -265,6 +295,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون المالكين والمستأجرين",
+    lawNameEn: "Landlords and Tenants Law",
     lawType: "rent",
     articleNumber: "13",
     title: "أسباب إخلاء المستأجر",
@@ -274,6 +305,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون المالكين والمستأجرين",
+    lawNameEn: "Landlords and Tenants Law",
     lawType: "rent",
     articleNumber: "17",
     title: "زيادة الأجرة — الضوابط",
@@ -287,6 +319,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   // ===========================================================================
   {
     lawName: "قانون السير",
+    lawNameEn: "Traffic Law",
     lawType: "traffic",
     articleNumber: "31",
     title: "سرعة القيادة — الحدود",
@@ -297,6 +330,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون السير",
+    lawNameEn: "Traffic Law",
     lawType: "traffic",
     articleNumber: "46",
     title: "المسؤولية عن حوادث السير",
@@ -306,6 +340,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون السير",
+    lawNameEn: "Traffic Law",
     lawType: "traffic",
     articleNumber: "70",
     title: "التأمين الإلزامي — المركبات",
@@ -319,6 +354,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   // ===========================================================================
   {
     lawName: "قانون الأحوال الشخصية",
+    lawNameEn: "Personal Status Law",
     lawType: "maintenance",
     articleNumber: "66",
     title: "وجوب النفقة على الزوجة",
@@ -329,6 +365,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون الأحوال الشخصية",
+    lawNameEn: "Personal Status Law",
     lawType: "maintenance",
     articleNumber: "68",
     title: "سقوط النفقة — الحالات",
@@ -338,6 +375,7 @@ export const JORDANIAN_CORPUS: CorpusArticle[] = [
   },
   {
     lawName: "قانون الأحوال الشخصية",
+    lawNameEn: "Personal Status Law",
     lawType: "maintenance",
     articleNumber: "175",
     title: "نفقة الأولاد — تجب على الأب",

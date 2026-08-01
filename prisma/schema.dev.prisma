@@ -496,6 +496,7 @@ model DocumentChunk {
 model LegalCorpus {
   id            String   @id @default(cuid())
   lawName       String
+  lawNameEn     String?
   lawType       String
   articleNumber String
   title         String?
@@ -503,11 +504,20 @@ model LegalCorpus {
   year          Int?
   sourceUrl     String?
 
+  // Amendment / currency tracking (same as prod schema)
+  status          String   @default("in_force")
+  effectiveFrom   DateTime?
+  effectiveTo     DateTime?
+  amendedBy       String?
+  supersededBy    String?
+  lastCheckedAt   DateTime?  @default(now())
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@unique([lawName, articleNumber])
   @@index([lawType])
+  @@index([status])
 }
 
 // -----------------------------------------------------------------------------
