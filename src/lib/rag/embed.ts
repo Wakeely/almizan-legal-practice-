@@ -4,18 +4,20 @@
 // Same key + client pattern as src/lib/gemini.ts. SERVER-SIDE ONLY — the
 // GEMINI_API_KEY must never reach the browser bundle.
 //
-// Model: text-embedding-004 (768 dimensions). This matches the Almoostashar
-// reference pattern and is the dimension declared in the pgvector columns.
+// Model: gemini-embedding-001 (768 dimensions default). This is the current
+// production Gemini embedding model. The older 'text-embedding-004' was
+// deprecated/removed and returns 404 "model not found" on some API versions.
 //
-// If the key is unset or the call fails, we return null and the caller decides
-// whether to skip embedding (still insert the chunk row, just without a vector)
-// or fail loudly. Ingest always inserts the row so re-embedding later is a
-// matter of re-running the ingest endpoint, not re-uploading the document.
+// If the key is unset or the call fails, we return { values: null, error } and
+// the caller decides whether to skip embedding (still insert the chunk row,
+// just without a vector) or fail loudly. Ingest always inserts the row so
+// re-embedding later is a matter of re-running the ingest endpoint, not
+// re-uploading the document.
 // =============================================================================
 
 import { GoogleGenAI } from "@google/genai";
 
-const EMBEDDING_MODEL = "text-embedding-004";
+const EMBEDDING_MODEL = "gemini-embedding-001";
 export const EMBEDDING_DIM = 768;
 
 let _client: GoogleGenAI | null = null;
@@ -62,6 +64,9 @@ export async function generateEmbedding(text: string): Promise<EmbeddingResult> 
     const result = await client.models.embedContent({
       model: EMBEDDING_MODEL,
       contents: truncated,
+      config: {
+        outputDimensionality: EMBEDDING_DIM,
+      },
     });
     const values = result.embeddings?.[0]?.values;
     if (!values || values.length !== EMBEDDING_DIM) {
@@ -96,6 +101,9 @@ export async function generateEmbeddings(
     const result = await client.models.embedContent({
       model: EMBEDDING_MODEL,
       contents: texts.map((t) => t.slice(0, 8000)),
+      config: {
+        outputDimensionality: EMBEDDING_DIM,
+      },
     });
     const embeddings = result.embeddings ?? [];
     return texts.map((_, i): number[] | null => {
