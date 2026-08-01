@@ -113,6 +113,54 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
   const [setupResult, setSetupResult] = useState<any>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
 
+  // --- Migration state (Managing Partner only) ---
+  // Detects whether the LegalCorpus table is missing the new amendment
+  // columns (lawNameEn, status, etc.). If so, shows a prominent migration
+  // banner — independent of RAG_SEED_ENABLED, so the admin always sees it.
+  const [migrateStatus, setMigrateStatus] = useState<{
+    enabled: boolean;
+    migrationNeeded: boolean;
+    diagnosis: string;
+    articleCount: number;
+  } | null>(null);
+  const [migrateLoading, setMigrateLoading] = useState(false);
+  const [migrateResult, setMigrateResult] = useState<any>(null);
+  const [migrateError, setMigrateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isManagingPartner) return;
+    fetch('/api/mcp/migrate', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (data) setMigrateStatus(data); })
+      .catch(() => {});
+  }, [isManagingPartner]);
+
+  const handleMigrate = async () => {
+    if (!confirm(
+      isRtl
+        ? 'سيتم تحديث قاعدة البيانات وإعادة تحميل المدوّنة. يستغرق ثوانٍ. هل تريد المتابعة؟'
+        : 'This will update the database schema and re-seed the corpus (~10 seconds). Continue?'
+    )) return;
+    setMigrateLoading(true);
+    setMigrateError(null);
+    setMigrateResult(null);
+    try {
+      const res = await fetch('/api/mcp/migrate', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t.ragErrorGeneric);
+      setMigrateResult(data);
+      // Refresh both status probes.
+      const migRes = await fetch('/api/mcp/migrate', { cache: 'no-store' });
+      if (migRes.ok) setMigrateStatus(await migRes.json());
+      const setupRes = await fetch('/api/ai/rag/setup', { cache: 'no-store' });
+      if (setupRes.ok) setSetupStatus(await setupRes.json());
+    } catch (err: any) {
+      setMigrateError(err.message || t.ragErrorGeneric);
+    } finally {
+      setMigrateLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isManagingPartner) return;
     fetch('/api/ai/rag/setup', { cache: 'no-store' })
@@ -194,6 +242,85 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
         <BookOpen className="w-3.5 h-3.5 mt-0.5 shrink-0 text-slate-400" />
         <span>{t.ragSubtitle}</span>
       </div>
+
+      {/* --- MIGRATION BANNER (Managing Partner only, shows when schema is out of sync) --- */}
+      {/* This shows EVEN IF RAG_SEED_ENABLED=0, because a broken schema is
+          critical and the admin needs to see it immediately. The POST endpoint
+          still requires RAG_SEED_ENABLED=1, but the detection (GET) is always on. */}
+      {isManagingPartner && migrateStatus?.migrationNeeded && (
+        <div className="border border-rose-300 bg-rose-50 rounded-2xl p-3.5 flex flex-col gap-2.5">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-rose-600" />
+            <div className="flex-grow min-w-0">
+              <div className="text-xs font-bold text-rose-900">
+                {isRtl ? 'تحديث قاعدة البيانات مطلوب' : 'Database update required'}
+              </div>
+              <div className="text-[10px] text-rose-700 mt-1 leading-relaxed">
+                {isRtl
+                  ? 'قاعدة البيانات تفتقد أعمدة تتبع التعديلات (lawNameEn, status, إلخ). هذا يمنع نقطة list من العمل. انقر الزر أدناه لإضافة الأعمدة وإعادة تحميل المدوّنة.'
+                  : 'The database is missing amendment-tracking columns (lawNameEn, status, etc.). This breaks the list endpoint. Click the button below to add the columns and re-seed the corpus.'}
+              </div>
+              <div className="text-[9px] text-rose-500 mt-1 font-mono">
+                {migrateStatus.diagnosis}
+              </div>
+            </div>
+          </div>
+
+          {migrateStatus.enabled ? (
+            <button
+              onClick={handleMigrate}
+              disabled={migrateLoading}
+              className="w-full py-2.5 bg-rose-600 text-white rounded-xl text-xs font-bold hover:bg-rose-700 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {migrateLoading ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                  <span>{isRtl ? 'جاري التحديث...' : 'Migrating...'}</span>
+                </>
+              ) : (
+                <>
+                  <DatabaseZap className="w-3.5 h-3.5 shrink-0" />
+                  <span>{isRtl ? 'تحديث قاعدة البيانات الآن' : 'Update database now'}</span>
+                </>
+              )}
+            </button>
+          ) : (
+            <div className="text-[10px] text-rose-700 bg-rose-100 border border-rose-200 rounded-lg p-2">
+              {isRtl
+                ? 'لتفعيل هذا الزر، اضبط RAG_SEED_ENABLED=1 في Vercel → Settings → Environment Variables ثم أعد النشر.'
+                : 'To enable this button, set RAG_SEED_ENABLED=1 in Vercel → Settings → Environment Variables, then redeploy.'}
+            </div>
+          )}
+
+          {migrateError && (
+            <div className="text-[10px] text-rose-700 bg-rose-100 border border-rose-200 rounded-lg p-2">
+              {migrateError}
+            </div>
+          )}
+
+          {migrateResult?.ok && (
+            <div className="text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg p-2.5">
+              <div className="font-bold mb-0.5">✓ {isRtl ? 'اكتمل التحديث' : 'Migration complete'}</div>
+              <div>
+                {isRtl
+                  ? `تم تحديث ${migrateResult.summary?.totalArticles ?? 31} مادة. الآن اضبط RAG_SEED_ENABLED=0 وأعد النشر.`
+                  : `${migrateResult.summary?.totalArticles ?? 31} articles updated. Now set RAG_SEED_ENABLED=0 and redeploy.`}
+              </div>
+            </div>
+          )}
+
+          {migrateResult && !migrateResult.ok && (
+            <div className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+              <div className="font-bold mb-0.5">⚠ {isRtl ? 'تحديث جزئي' : 'Partial migration'}</div>
+              {migrateResult.steps?.map((s: any, i: number) => (
+                <div key={i} className={s.ok ? 'text-emerald-700' : 'text-rose-700'}>
+                  {s.ok ? '✓' : '✗'} {s.message}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* --- One-click RAG setup (Managing Partner only, only when RAG_SEED_ENABLED=1 AND not fully setup) --- */}
       {isManagingPartner && setupStatus?.enabled && !setupStatus.fullySetup && (
