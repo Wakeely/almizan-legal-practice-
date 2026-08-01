@@ -40,7 +40,7 @@ import {
   getAllFromOfflineStore,
   STORES,
 } from "@/lib/offline-storage";
-import { RefreshCw, Lock, FolderOpen } from "lucide-react";
+import { RefreshCw, Lock, FolderOpen, BarChart3, Briefcase, FileText, Calendar, Sparkles, Sword, Receipt } from "lucide-react";
 
 type View = "landing" | "workspace";
 
@@ -57,7 +57,12 @@ export default function Page() {
   const [matters, setMatters] = useState<Matter[]>([]);
   const [activeMatterId, setActiveMatterId] = useState<string>("");
   const [mattersLoading, setMattersLoading] = useState(true);
-  const [activeMobileTab, setActiveMobileTab] = useState<"all" | "analytics" | "tasks" | "docs" | "ai">("all");
+  // Section tab — replaces the old long-scroll layout. Each tab shows ONE
+  // section full-screen, so the user never has to scroll up/down to find
+  // what they need. Mirrors the mobile nav tabs.
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "matter" | "documents" | "calendar" | "ai" | "warroom" | "billing"
+  >("overview");
 
   const fetchMatters = useCallback(async () => {
     setMattersLoading(true);
@@ -113,11 +118,22 @@ export default function Page() {
     }
   }, []);
 
-  // Listen for mobile-tab-changed events emitted by MobileBottomNav
+  // Listen for mobile-tab-changed events from MobileBottomNav — now maps to
+  // the same activeTab state used by the desktop tab bar, so mobile + desktop
+  // share the same navigation.
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail) setActiveMobileTab(detail);
+      const detail = (e as CustomEvent).detail as string | undefined;
+      if (!detail) return;
+      // Map old mobile tab names to the new unified tab state.
+      const tabMap: Record<string, typeof activeTab> = {
+        analytics: "overview",
+        tasks: "matter",
+        docs: "documents",
+        ai: "ai",
+        all: "overview",
+      };
+      setActiveTab(tabMap[detail] ?? "overview");
     };
     window.addEventListener("mobile-tab-changed", handler);
     return () => window.removeEventListener("mobile-tab-changed", handler);
@@ -277,59 +293,113 @@ export default function Page() {
 
       {/* Main Panel Controller */}
       {activeMatter ? (
-        <main className="flex-grow flex flex-col gap-3 sm:gap-4 md:gap-8 mt-4">
+        <main className="flex-grow flex flex-col mt-4">
           {mode === "Lawyer" ? (
-            <div className="flex flex-col gap-3 sm:gap-4 md:gap-6" id="lawyer-workspace">
-              {/* Row 1: Analytics */}
-              <div id="analytics-module" className={activeMobileTab !== "all" && activeMobileTab !== "analytics" ? "hidden lg:block" : "block"}>
-                <AnalyticsModule activeMatter={activeMatter} />
-              </div>
-
-              {/* Row 2: Matter details + Kanban */}
-              <div id="tasks-module" className={activeMobileTab !== "all" && activeMobileTab !== "tasks" ? "hidden lg:block" : "block"}>
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 sm:gap-4 md:gap-6">
-                  <div className="xl:col-span-4">
-                    <MattersModule activeMatter={activeMatter} onMatterUpdated={handleMatterUpdated} />
-                  </div>
-                  <div className="xl:col-span-8">
-                    <TasksModule matterId={activeMatter.id} matters={matters} />
-                  </div>
+            <div className="flex flex-col gap-4" id="lawyer-workspace">
+              {/* ─── Section Tab Bar ─── */}
+              {/* Replaces the old long-scroll layout. Each tab shows ONE section
+                  full-screen — no more scrolling up/down to find what you need. */}
+              <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border border-border rounded-2xl p-1.5 shadow-sm">
+                <div className="flex gap-1 overflow-x-auto scrollbar-none">
+                  <TabButton
+                    active={activeTab === "overview"}
+                    onClick={() => setActiveTab("overview")}
+                    icon={<BarChart3 className="w-4 h-4 shrink-0" />}
+                    label={t.tabOverview}
+                  />
+                  <TabButton
+                    active={activeTab === "matter"}
+                    onClick={() => setActiveTab("matter")}
+                    icon={<Briefcase className="w-4 h-4 shrink-0" />}
+                    label={t.tabMatter}
+                  />
+                  <TabButton
+                    active={activeTab === "documents"}
+                    onClick={() => setActiveTab("documents")}
+                    icon={<FileText className="w-4 h-4 shrink-0" />}
+                    label={t.tabDocuments}
+                  />
+                  <TabButton
+                    active={activeTab === "calendar"}
+                    onClick={() => setActiveTab("calendar")}
+                    icon={<Calendar className="w-4 h-4 shrink-0" />}
+                    label={t.tabCalendar}
+                  />
+                  <TabButton
+                    active={activeTab === "ai"}
+                    onClick={() => setActiveTab("ai")}
+                    icon={<Sparkles className="w-4 h-4 shrink-0" />}
+                    label={t.tabAi}
+                  />
+                  <TabButton
+                    active={activeTab === "warroom"}
+                    onClick={() => setActiveTab("warroom")}
+                    icon={<Sword className="w-4 h-4 shrink-0" />}
+                    label={t.tabWarRoom}
+                  />
+                  <TabButton
+                    active={activeTab === "billing"}
+                    onClick={() => setActiveTab("billing")}
+                    icon={<Receipt className="w-4 h-4 shrink-0" />}
+                    label={t.tabBilling}
+                  />
                 </div>
               </div>
 
-              {/* Row 3: Documents + Billing */}
-              <div id="documents-module" className={activeMobileTab !== "all" && activeMobileTab !== "docs" ? "hidden lg:block" : "block"}>
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 sm:gap-4 md:gap-6">
-                  <div className="xl:col-span-6">
+              {/* ─── Section Content (only the active tab renders) ─── */}
+              <div className="flex-grow">
+                {activeTab === "overview" && (
+                  <div id="analytics-module" className="animate-in fade-in duration-200">
+                    <AnalyticsModule activeMatter={activeMatter} />
+                  </div>
+                )}
+
+                {activeTab === "matter" && (
+                  <div id="tasks-module" className="animate-in fade-in duration-200 grid grid-cols-1 xl:grid-cols-12 gap-4">
+                    <div className="xl:col-span-5">
+                      <MattersModule activeMatter={activeMatter} onMatterUpdated={handleMatterUpdated} />
+                    </div>
+                    <div className="xl:col-span-7">
+                      <TasksModule matterId={activeMatter.id} matters={matters} />
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === "documents" && (
+                  <div id="documents-module" className="animate-in fade-in duration-200">
                     <DocumentsModule
                       matterId={activeMatter.id}
                       onRefreshExpenses={handleRefreshMatter}
                     />
                   </div>
-                  <div className="xl:col-span-6">
+                )}
+
+                {activeTab === "calendar" && (
+                  <div id="calendar-module" className="animate-in fade-in duration-200">
+                    <CalendarModule matterId={activeMatter.id} matters={matters} />
+                  </div>
+                )}
+
+                {activeTab === "ai" && (
+                  <div id="ai-module" className="animate-in fade-in duration-200">
+                    <AiModule activeMatter={activeMatter} />
+                  </div>
+                )}
+
+                {activeTab === "warroom" && (
+                  <div id="warroom-module" className="animate-in fade-in duration-200">
+                    <WarRoomModule activeMatter={activeMatter} />
+                  </div>
+                )}
+
+                {activeTab === "billing" && (
+                  <div id="billing-module" className="animate-in fade-in duration-200">
                     <BillingModule
                       activeMatter={activeMatter}
                       onRefreshMatter={handleRefreshMatter}
                     />
                   </div>
-                </div>
-              </div>
-
-              {/* Row 4: Calendar (includes Court Rules Calculator + Print Preview) */}
-              <div id="calendar-module" className={activeMobileTab !== "all" ? "hidden lg:block" : "block"}>
-                <CalendarModule matterId={activeMatter.id} matters={matters} />
-              </div>
-
-              {/* Row 5: AI Copilot + War Room (Turn 4) */}
-              <div id="ai-module" className={activeMobileTab !== "all" && activeMobileTab !== "ai" ? "hidden lg:block" : "block"}>
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 sm:gap-4 md:gap-6">
-                  <div className="xl:col-span-6">
-                    <WarRoomModule activeMatter={activeMatter} />
-                  </div>
-                  <div className="xl:col-span-6">
-                    <AiModule activeMatter={activeMatter} />
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           ) : (
@@ -362,5 +432,37 @@ export default function Page() {
       </footer>
     </div>
     </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TabButton — a single tab in the workspace section tab bar.
+// Active tab gets the indigo background; inactive tabs are muted.
+// Icon + label, horizontally scrollable on small screens.
+// ─────────────────────────────────────────────────────────────────────────────
+function TabButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+        active
+          ? "bg-indigo-600 text-white shadow-sm"
+          : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+      }`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
   );
 }

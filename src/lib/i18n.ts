@@ -171,6 +171,15 @@ export interface TranslationDict {
   mobileNavClient: string;
   mobileNavLawyer: string;
   mobileNavAll: string;
+
+  // Workspace section tabs (full-screen tab layout)
+  tabOverview: string;
+  tabMatter: string;
+  tabDocuments: string;
+  tabCalendar: string;
+  tabAi: string;
+  tabWarRoom: string;
+  tabBilling: string;
   mobileQuickActions: string;
   mobileCases: string;
   mobileDrawerTitle: string;
@@ -419,6 +428,15 @@ export const translations: Record<Language, TranslationDict> = {
     mobileSiteEndpoints: "أقسام المنظومة",
     mobileActiveCases: "القضايا القائمة",
 
+    // Workspace section tabs
+    tabOverview: "نظرة عامة",
+    tabMatter: "القضية",
+    tabDocuments: "المستندات",
+    tabCalendar: "التقويم",
+    tabAi: "الذكاء الاصطناعي",
+    tabWarRoom: "غرفة الحرب",
+    tabBilling: "الفواتير",
+
     // Footer
     firmHash: "معرف المكتب الموثق: 0x821A_LEGAL_PRO",
     copyright: "حقوق الطبع محفوظة © ٢٠٢٦ نظام الميزان • متوافق مع مركز التحكيم ومحاكم مركز دبي المالي العالمي",
@@ -657,6 +675,15 @@ export const translations: Record<Language, TranslationDict> = {
     mobileDrawerTitle: "Navigation & Modules",
     mobileSiteEndpoints: "Site Modules",
     mobileActiveCases: "Active Disputes",
+
+    // Workspace section tabs
+    tabOverview: "Overview",
+    tabMatter: "Matter",
+    tabDocuments: "Documents",
+    tabCalendar: "Calendar",
+    tabAi: "AI Copilot",
+    tabWarRoom: "War Room",
+    tabBilling: "Billing",
 
     // Footer
     firmHash: "Firm Hash: 0x821A_LEGAL_PRO",
