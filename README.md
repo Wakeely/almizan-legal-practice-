@@ -371,35 +371,54 @@ Variables, scoped to Production):**
 **NEVER paste DB credentials or API keys into chat tools or commit them to
 git. Set them only in Vercel's Environment Variables UI.**
 
-#### Step 1 — Deploy once so Prisma creates the tables
+#### Step 1 — Create the RAG tables (DocumentChunk + LegalCorpus)
 
-Push the latest `main` to GitHub (or just trigger a Vercel redeploy). The
-build script runs `prisma generate` + `prisma db push`, which creates
-`DocumentChunk` and `LegalCorpus` tables with camelCase columns
-(`"organizationId"`, `"matterId"`, `"lawName"`, `"articleNumber"`, etc. — no
-`@map` renames in this repo).
+The Vercel build runs `prisma generate` but **does not** run `prisma db push`
+automatically (to avoid accidental data loss). So on a fresh database, the
+two RAG tables don't exist yet. You create them in one of two ways:
 
-Verify: in Vercel → Storage → your Postgres → Query, run:
+**Option A (preferred) — let the build create them automatically:**
+
+1. Make sure `PRISMA_DATABASE_URL` is set in Vercel → Settings → Environment
+   Variables (the DIRECT, non-pooled Postgres connection string — copy it
+   from Vercel → Storage → your Postgres → "Direct Connection").
+2. Trigger a redeploy. The build script (`scripts/safe-db-push.js`) runs
+   `prisma db push` against the production schema, creating both tables
+   with the correct camelCase column names. If `PRISMA_DATABASE_URL` is
+   missing, the build logs a warning but still succeeds — the app runs,
+   RAG just returns empty until the tables exist.
+
+**Option B (manual, no env var needed) — paste the CREATE TABLE SQL:**
+
+Open `prisma/sql/create_rag_tables.sql` in the repo. Paste each numbered
+statement (1-4) one at a time into Vercel → Storage → Postgres → Query.
+This creates both tables + their indexes with the exact column names Prisma
+expects (camelCase, quoted: `"organizationId"`, `"matterId"`, `"lawName"`,
+`"articleNumber"`, etc.).
+
+**Verify the tables exist:**
 ```sql
 SELECT tablename FROM pg_tables WHERE tablename IN ('DocumentChunk', 'LegalCorpus');
 ```
-Should return 2 rows. If it returns 0, the deploy hasn't run `prisma db push`
-yet — check the Vercel build logs.
+Should return 2 rows. If it returns 0, Step 1 didn't work — check the Vercel
+build logs for the `[build] prisma db push FAILED` warning, or re-paste the
+CREATE TABLE statements from `create_rag_tables.sql`.
 
 #### Step 2 — Run the pgvector setup SQL (one statement at a time)
 
-Open `prisma/sql/rag_pgvector_setup_split.sql` in the repo. It's the same
-setup as `rag_pgvector_setup.sql` but split into 9 numbered statements +
-a verification query, so Vercel Query accepts each one.
+Once the tables exist (Step 1), open `prisma/sql/rag_pgvector_setup_split.sql`
+in the repo. It's split into 9 numbered single statements + a verification
+query, so Vercel Query accepts each one.
 
 For EACH numbered block (1 through 9): copy from `-- BEGIN STATEMENT N` to
 `-- END STATEMENT N`, paste into Vercel → Storage → Postgres → Query, click
 **Run**. Wait for "Success" before the next one.
 
 Statement 1 enables the pgvector extension. Statements 2-3 add the
-`embedding vector(768)` columns. Statements 4-5 create HNSW indexes.
-Statements 6-9 define the `match_document_chunks()`, `match_legal_corpus()`,
-`set_document_chunk_embedding()`, `set_legal_corpus_embedding()` functions.
+`embedding vector(768)` columns (to the tables created in Step 1). Statements
+4-5 create HNSW indexes. Statements 6-9 define the `match_document_chunks()`,
+`match_legal_corpus()`, `set_document_chunk_embedding()`,
+`set_legal_corpus_embedding()` functions.
 
 If statement 1 errors with `extension vector does not exist` or `access to
 extension vector is not allowed`, your Vercel Postgres instance doesn't have
@@ -408,6 +427,9 @@ spin up a fresh Postgres store (the free tier supports pgvector) and re-point
 `DATABASE_URL`. Until pgvector is available, the RAG system gracefully falls
 back to text search — the app will NOT crash, you'll just see a "Vector search
 unavailable — using text search" badge in the UI.
+
+If statement 2 errors with `relation "DocumentChunk" does not exist`, you
+skipped Step 1 — go back and create the tables first.
 
 After all 9 statements succeed, run the verification query at the bottom of
 the split file. It should return 4 rows (the function names).
