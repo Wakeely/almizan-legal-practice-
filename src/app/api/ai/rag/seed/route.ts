@@ -130,10 +130,17 @@ export async function POST(req: Request) {
       }
 
       // Embed + write vector via raw SQL (Prisma can't write Unsupported("vector")).
-      const embedding = await generateEmbedding(
+      const embResult = await generateEmbedding(
         `${article.lawName} — المادة ${article.articleNumber}\n${article.title ?? ""}\n${article.content}`,
       );
-      const literal = toVectorLiteral(embedding);
+      if (!embResult.values) {
+        embeddingErrors++;
+        if (errorDetails.length < 5) {
+          errorDetails.push(`${article.lawName} م${article.articleNumber}: ${embResult.error ?? "embedding failed"}`);
+        }
+        continue;
+      }
+      const literal = toVectorLiteral(embResult.values);
       if (!literal) {
         embeddingErrors++;
         continue;

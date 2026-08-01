@@ -36,18 +36,27 @@ export function isEmbeddingConfigured(): boolean {
 
 /**
  * Generate a single 768-dim embedding for a piece of text.
- * Returns null when the key is missing or the API call fails — callers handle
- * the null case (e.g. insert chunk without vector, or skip ingest).
+ * Returns { values } on success, or { values: null, error } on failure.
+ * Callers should check .values and surface .error to the user if present.
  *
  * Input is truncated to ~8000 chars to stay within the model's token budget
  * and to keep latency reasonable. Chunking happens upstream in chunk.ts.
  */
-export async function generateEmbedding(text: string): Promise<number[] | null> {
+export interface EmbeddingResult {
+  values: number[] | null;
+  error?: string;
+}
+
+export async function generateEmbedding(text: string): Promise<EmbeddingResult> {
   const client = getClient();
-  if (!client) return null;
+  if (!client) {
+    return { values: null, error: "GEMINI_API_KEY is not set on the server" };
+  }
 
   const truncated = text.slice(0, 8000);
-  if (!truncated.trim()) return null;
+  if (!truncated.trim()) {
+    return { values: null, error: "empty text" };
+  }
 
   try {
     const result = await client.models.embedContent({
@@ -56,15 +65,15 @@ export async function generateEmbedding(text: string): Promise<number[] | null> 
     });
     const values = result.embeddings?.[0]?.values;
     if (!values || values.length !== EMBEDDING_DIM) {
-      console.error(
-        `[rag/embed] unexpected embedding length: got ${values?.length ?? 0}, expected ${EMBEDDING_DIM}`,
-      );
-      return null;
+      const msg = `unexpected embedding length: got ${values?.length ?? 0}, expected ${EMBEDDING_DIM}`;
+      console.error(`[rag/embed] ${msg}`);
+      return { values: null, error: msg };
     }
-    return values;
+    return { values };
   } catch (err: any) {
-    console.error("[rag/embed] call failed:", err?.message ?? err);
-    return null;
+    const msg = err?.message ?? String(err);
+    console.error("[rag/embed] call failed:", msg);
+    return { values: null, error: msg };
   }
 }
 

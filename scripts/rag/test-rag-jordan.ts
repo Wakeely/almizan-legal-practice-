@@ -76,9 +76,10 @@ async function main() {
     console.log("─".repeat(72));
     console.log(`Query [${tc.label}]: ${tc.query}`);
 
-    const embedding = await generateEmbedding(tc.query);
+    const embResult = await generateEmbedding(tc.query);
+    const embedding = embResult.values;
     if (!embedding) {
-      console.log("  ⚠ No embedding (GEMINI_API_KEY unset?) — text fallback only.");
+      console.log(`  ⚠ No embedding — ${embResult.error ?? "unknown error"}`);
     }
 
     const hits = await matchLegalCorpus(embedding, 4, tc.query);

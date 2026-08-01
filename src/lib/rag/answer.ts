@@ -46,7 +46,8 @@ export async function answerRagQuestion(
   const includeCorpus = opts.includeCorpus !== false;
 
   // 1. Embed the question.
-  const queryEmbedding = await generateEmbedding(opts.question);
+  const embResult = await generateEmbedding(opts.question);
+  const queryEmbedding = embResult.values;
 
   // 2. Retrieve chunks in parallel.
   const [matterChunks, corpusChunks] = await Promise.all([

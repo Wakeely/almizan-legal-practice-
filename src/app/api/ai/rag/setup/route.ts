@@ -404,12 +404,24 @@ export async function POST(req: Request) {
       }
 
       // Embed + write vector.
-      const embedding = await generateEmbedding(
+      const embResult = await generateEmbedding(
         `${article.lawName} — المادة ${article.articleNumber}\n${article.title ?? ""}\n${article.content}`,
       );
-      const literal = toVectorLiteral(embedding);
+      if (!embResult.values) {
+        embeddingErrors++;
+        if (errorDetails.length < 5) {
+          errorDetails.push(
+            `${article.lawName} م${article.articleNumber}: embedding failed — ${embResult.error ?? "unknown"}`
+          );
+        }
+        continue;
+      }
+      const literal = toVectorLiteral(embResult.values);
       if (!literal) {
         embeddingErrors++;
+        if (errorDetails.length < 5) {
+          errorDetails.push(`${article.lawName} م${article.articleNumber}: vector serialization failed`);
+        }
         continue;
       }
       try {

@@ -83,12 +83,13 @@ async function main() {
       }
 
       // Embed + write vector.
-      const embedding = await generateEmbedding(
+      const embResult = await generateEmbedding(
         `${article.lawName} — المادة ${article.articleNumber}\n${article.title ?? ""}\n${article.content}`,
       );
-      const literal = toVectorLiteral(embedding);
+      const literal = toVectorLiteral(embResult.values);
       if (!literal) {
         embeddingSkipped = true;
+        if (embResult.error) console.warn(`  [seed] embed failed: ${embResult.error}`);
         continue;
       }
       try {
