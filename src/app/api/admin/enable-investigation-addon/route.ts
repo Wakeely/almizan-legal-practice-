@@ -65,10 +65,14 @@ export async function POST(req: Request) {
   }
 
   // ── Layer 2: token check ───────────────────────────────────────────────
-  const expectedToken = process.env.PASSWORD_RESET_TOKEN;
+  // Accept EITHER PASSWORD_RESET_TOKEN OR ADMIN_BOOTSTRAP_TOKEN so the owner
+  // can use whichever token they have on hand. Both are kill-switched by
+  // INVESTIGATION_SETUP_ENABLED above.
+  const expectedToken =
+    process.env.PASSWORD_RESET_TOKEN ?? process.env.ADMIN_BOOTSTRAP_TOKEN;
   if (!expectedToken || expectedToken.length < 8) {
     return NextResponse.json(
-      { error: "Server misconfigured: PASSWORD_RESET_TOKEN env var is not set." },
+      { error: "Server misconfigured: neither PASSWORD_RESET_TOKEN nor ADMIN_BOOTSTRAP_TOKEN is set. Set one in Vercel env vars + redeploy." },
       { status: 500 },
     );
   }
