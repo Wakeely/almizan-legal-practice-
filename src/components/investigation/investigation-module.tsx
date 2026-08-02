@@ -151,6 +151,16 @@ export default function InvestigationModule({ activeMatter }: InvestigationModul
     }
   }, [addonEnabled, roleAllowed, view, fetchList]);
 
+  // When entering detail view with a selectedId, fetch the detail.
+  // This covers both: (a) clicking an item in the list, and (b) being
+  // redirected here after starting a new investigation (handleStart sets
+  // selectedId + view='detail' but doesn't call fetchDetail itself).
+  useEffect(() => {
+    if (view === 'detail' && selectedId) {
+      fetchDetail(selectedId);
+    }
+  }, [view, selectedId, fetchDetail]);
+
   // ── Start a new investigation ──────────────────────────────────────────
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
