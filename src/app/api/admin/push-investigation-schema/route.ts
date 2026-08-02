@@ -33,8 +33,8 @@
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/org";
 import { audit } from "@/lib/audit";
+import { authRateLimit, getClientIp } from "@/lib/rate-limit";
 
 interface StepResult {
   step: string;
@@ -46,19 +46,65 @@ interface StepResult {
 export async function POST(req: Request) {
   const steps: StepResult[] = [];
 
-  // ── Layer 1: auth — Managing Partner only ──────────────────────────────
-  const r = await requireRole(["MANAGING_PARTNER", "Managing Partner"]);
-  if (r.ok === false) return r.response;
-
-  // ── Layer 2: kill-switch — env var must be set ─────────────────────────
+  // ── Layer 1: kill-switch — env var must be set ─────────────────────────
+  // NOTE: This endpoint previously required requireRole(["Managing Partner"]),
+  // but that created a chicken-and-egg problem: if login is broken (e.g.
+  // because the Organization table is missing investigationAgentEnabled),
+  // the owner can't log in to run this endpoint. So we switched to the same
+  // token-based auth the password-reset + diagnose-login endpoints use.
+  // The token is shared across all admin endpoints via PASSWORD_RESET_TOKEN.
   if (process.env.INVESTIGATION_SETUP_ENABLED !== "1") {
     return NextResponse.json(
       {
         error:
-          "Investigation setup endpoint is disabled. Set INVESTIGATION_SETUP_ENABLED=1 in Vercel environment variables, redeploy, then retry. After setup succeeds, set it back to 0 to lock this endpoint down.",
+          "Investigation setup endpoint is disabled. Set INVESTIGATION_SETUP_ENABLED=1 + PASSWORD_RESET_TOKEN=<your-secret> in Vercel environment variables, redeploy, then retry.",
         disabled: true,
       },
       { status: 403 },
+    );
+  }
+
+  // ── Layer 2: token check (same token as password reset) ────────────────
+  const expectedToken = process.env.PASSWORD_RESET_TOKEN;
+  if (!expectedToken || expectedToken.length < 8) {
+    return NextResponse.json(
+      {
+        error:
+          "Server misconfigured: PASSWORD_RESET_TOKEN env var is not set. Set it to a random string of at least 16 characters, redeploy, then retry.",
+      },
+      { status: 500 },
+    );
+  }
+
+  // Token can be supplied in the body OR as a Bearer header, to support
+  // both fetch-from-console (body) and browser-address-bar (header) usage.
+  let suppliedToken: string | undefined;
+  const authHeader = req.headers.get("authorization") ?? "";
+  if (authHeader.startsWith("Bearer ")) {
+    suppliedToken = authHeader.slice(7);
+  } else {
+    try {
+      const body = await req.json().catch((): null => null);
+      suppliedToken = body?.token;
+    } catch {
+      suppliedToken = undefined;
+    }
+  }
+
+  if (!suppliedToken || suppliedToken !== expectedToken) {
+    return NextResponse.json(
+      { error: "Invalid or missing token. Pass { token: '...' } in the body or Authorization: Bearer <token> header." },
+      { status: 401 },
+    );
+  }
+
+  // ── Rate limit ─────────────────────────────────────────────────────────
+  const ip = getClientIp(req);
+  const limit = await authRateLimit(ip);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Too many attempts. Please retry shortly." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(limit.retryAfterMs / 1000)) } },
     );
   }
 
@@ -384,13 +430,13 @@ export async function POST(req: Request) {
     {
       action: "admin.investigation_schema_setup",
       entity: "organization",
-      entityId: r.session.organizationId,
       details: {
         allOk,
         tablesCreated,
         indexesCreated,
         indexErrors,
         stepCount: steps.length,
+        authMethod: "token",
       },
     },
     req,
@@ -410,11 +456,8 @@ export async function POST(req: Request) {
 }
 
 // GET — returns whether the endpoint is enabled, WITHOUT running anything.
-// Useful for the owner to check status before triggering the POST.
+// No auth required for GET (it reveals only enabled/disabled status, nothing sensitive).
 export async function GET() {
-  const r = await requireRole(["MANAGING_PARTNER", "Managing Partner"]);
-  if (r.ok === false) return r.response;
-
   return NextResponse.json({
     enabled: process.env.INVESTIGATION_SETUP_ENABLED === "1",
     message:
