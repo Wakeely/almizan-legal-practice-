@@ -68,9 +68,12 @@ export async function POST(req: Request) {
   // Accept EITHER PASSWORD_RESET_TOKEN OR ADMIN_BOOTSTRAP_TOKEN so the owner
   // can use whichever token they have on hand. Both are kill-switched by
   // INVESTIGATION_SETUP_ENABLED above.
-  const expectedToken =
-    process.env.PASSWORD_RESET_TOKEN ?? process.env.ADMIN_BOOTSTRAP_TOKEN;
-  if (!expectedToken || expectedToken.length < 8) {
+  const resetToken = process.env.PASSWORD_RESET_TOKEN;
+  const bootstrapToken = process.env.ADMIN_BOOTSTRAP_TOKEN;
+  const validTokens = [resetToken, bootstrapToken].filter(
+    (t): t is string => !!t && t.length >= 8,
+  );
+  if (validTokens.length === 0) {
     return NextResponse.json(
       { error: "Server misconfigured: neither PASSWORD_RESET_TOKEN nor ADMIN_BOOTSTRAP_TOKEN is set. Set one in Vercel env vars + redeploy." },
       { status: 500 },
@@ -98,7 +101,7 @@ export async function POST(req: Request) {
   }
   const data = parsed.data;
 
-  if (data.token !== expectedToken) {
+  if (!validTokens.includes(data.token)) {
     return NextResponse.json(
       { error: "Invalid token." },
       { status: 401 },
