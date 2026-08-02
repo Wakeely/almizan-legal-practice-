@@ -29,6 +29,7 @@ import BillingModule from "@/components/billing/billing-module";
 import CalendarModule from "@/components/calendar/calendar-module";
 import AiModule from "@/components/ai/ai-module";
 import WarRoomModule from "@/components/war-room/war-room-module";
+import InvestigationModule from "@/components/investigation/investigation-module";
 import ClientPortal from "@/components/client-portal/client-portal";
 import OfflineBanner from "@/components/offline/offline-banner";
 import SyncStatusIndicator from "@/components/offline/sync-status-indicator";
@@ -40,7 +41,7 @@ import {
   getAllFromOfflineStore,
   STORES,
 } from "@/lib/offline-storage";
-import { RefreshCw, Lock, FolderOpen, BarChart3, Briefcase, FileText, Calendar, Sparkles, Sword, Receipt } from "lucide-react";
+import { RefreshCw, Lock, FolderOpen, BarChart3, Briefcase, FileText, Calendar, Sparkles, Sword, Receipt, FileSearch } from "lucide-react";
 
 type View = "landing" | "workspace";
 
@@ -61,7 +62,7 @@ export default function Page() {
   // section full-screen, so the user never has to scroll up/down to find
   // what they need. Mirrors the mobile nav tabs.
   const [activeTab, setActiveTab] = useState<
-    "overview" | "matter" | "documents" | "calendar" | "ai" | "warroom" | "billing"
+    "overview" | "matter" | "documents" | "calendar" | "ai" | "warroom" | "billing" | "investigation"
   >("overview");
 
   const fetchMatters = useCallback(async () => {
@@ -343,6 +344,12 @@ export default function Page() {
                     icon={<Receipt className="w-4 h-4 shrink-0" />}
                     label={t.tabBilling}
                   />
+                  <TabButton
+                    active={activeTab === "investigation"}
+                    onClick={() => setActiveTab("investigation")}
+                    icon={<FileSearch className="w-4 h-4 shrink-0" />}
+                    label={isRtl ? "التحقيق" : "Investigation"}
+                  />
                 </div>
               </div>
 
@@ -398,6 +405,12 @@ export default function Page() {
                       activeMatter={activeMatter}
                       onRefreshMatter={handleRefreshMatter}
                     />
+                  </div>
+                )}
+
+                {activeTab === "investigation" && (
+                  <div id="investigation-module" className="animate-in fade-in duration-200">
+                    <InvestigationModule activeMatter={activeMatter} />
                   </div>
                 )}
               </div>

@@ -36,6 +36,10 @@ export interface UserProfile {
   billingCycle: BillingCycle;
   renewalDate: string;
   biometricEnabled: boolean;
+  // ── Paid add-on toggles (mirrors Organization columns) ─────────────────
+  // When false, the UI shows an upgrade CTA instead of the module, and the
+  // API returns 402. Phase 2: Case Investigation Agent.
+  investigationAgentEnabled: boolean;
 }
 
 export interface Matter {

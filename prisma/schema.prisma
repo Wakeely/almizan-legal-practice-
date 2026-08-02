@@ -37,32 +37,48 @@ datasource db {
 // -----------------------------------------------------------------------------
 
 model Organization {
-  id              String   @id @default(cuid())
-  name            String
-  slug            String   @unique
-  barAssociationId String?  // firm-level bar registration (e.g. JBA-2026-881)
-  jurisdiction    String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
+  barAssociationId String? // firm-level bar registration (e.g. JBA-2026-881)
+  jurisdiction     String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // ── Paid add-on toggles ────────────────────────────────────────────────
+  // Each add-on is a Boolean defaulting to false. API routes gate on these
+  // BEFORE doing any work, and the UI shows an upgrade CTA when disabled.
+  // Phase 1: Case Investigation Agent.
+  investigationAgentEnabled Boolean @default(false)
 
   // Relations — every tenant-owned model lives here
-  users           User[]
-  matters         Matter[]
-  documents       Document[]
-  tasks           Task[]
-  timeEntries     TimeEntry[]
-  invoices        Invoice[]
-  calendarEvents  CalendarEvent[]
-  timelineEvents  TimelineEvent[]
-  clientMessages  ClientMessage[]
-  privilegeLog    PrivilegeLogEntry[]
-  depositions     DepositionTranscript[]
-  warRoomWitnesses WarRoomWitness[]
-  warRoomExhibits WarRoomExhibit[]
-  conflictChecks  ConflictCheck[]
-  auditLogs       AuditLog[]
-  sessions        Session[]
-  accounts        Account[]
+  users                             User[]
+  matters                           Matter[]
+  documents                         Document[]
+  tasks                             Task[]
+  timeEntries                       TimeEntry[]
+  invoices                          Invoice[]
+  calendarEvents                    CalendarEvent[]
+  timelineEvents                    TimelineEvent[]
+  clientMessages                    ClientMessage[]
+  privilegeLog                      PrivilegeLogEntry[]
+  depositions                       DepositionTranscript[]
+  warRoomWitnesses                  WarRoomWitness[]
+  warRoomExhibits                   WarRoomExhibit[]
+  conflictChecks                    ConflictCheck[]
+  auditLogs                         AuditLog[]
+  sessions                          Session[]
+  accounts                          Account[]
+  investigations                    CaseInvestigation[]
+  InvestigationIntake               InvestigationIntake[]
+  InvestigationResearch             InvestigationResearch[]
+  InvestigationCourtRouting         InvestigationCourtRouting[]
+  InvestigationDraft                InvestigationDraft[]
+  InvestigationCitationVerification InvestigationCitationVerification[]
+  InvestigationFactConsistency      InvestigationFactConsistency[]
+  InvestigationAssembly             InvestigationAssembly[]
+  InvestigationReview               InvestigationReview[]
+  InvestigationAgentRun             InvestigationAgentRun[]
 }
 
 // Role is encoded as String + Zod validation in API routes (SQLite has no enum).
@@ -70,15 +86,15 @@ model Organization {
 // | 'LEGAL_EXECUTIVE' | 'CLIENT_REPRESENTATIVE'
 
 model User {
-  id              String   @id @default(cuid())
-  email           String   @unique
-  name            String
-  passwordHash    String
+  id               String  @id @default(cuid())
+  email            String  @unique
+  name             String
+  passwordHash     String
   barAssociationId String?
-  jurisdiction    String?
-  accountType     String   @default("Law Firm") // 'Law Firm' | 'Solo Practitioner' | 'Corporate Counsel' | 'Client'
-  role            String   @default("MANAGING_PARTNER") // enum Role, validated server-side
-  avatarUrl       String?
+  jurisdiction     String?
+  accountType      String  @default("Law Firm") // 'Law Firm' | 'Solo Practitioner' | 'Corporate Counsel' | 'Client'
+  role             String  @default("MANAGING_PARTNER") // enum Role, validated server-side
+  avatarUrl        String?
 
   // Subscription fields
   subscriptionTier String  @default("Free Trial")
@@ -88,19 +104,23 @@ model User {
   maxSeats         Int     @default(10)
   billingCycle     String  @default("Monthly")
   renewalDate      String?
-  biometricEnabled Boolean  @default(false)
+  biometricEnabled Boolean @default(false)
 
   // Multi-tenancy
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  deletedAt     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  accounts        Account[]
-  sessions        Session[]
-  auditLogs       AuditLog[]
+  accounts  Account[]
+  sessions  Session[]
+  auditLogs AuditLog[]
+
+  // Case Investigation Agent back-relations.
+  startedInvestigations CaseInvestigation[]
+  investigationReviews  InvestigationReview[]
 
   @@index([deletedAt])
 }
@@ -120,27 +140,28 @@ model Account {
   id_token          String?
   session_state     String?
 
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organizationId    String
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  sessionToken   String       @unique
+  userId         String
+  expires        DateTime
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organizationId String
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
   identifier String
   token      String
   expires    DateTime
+
   @@unique([identifier, token])
 }
 
@@ -149,9 +170,9 @@ model VerificationToken {
 // -----------------------------------------------------------------------------
 
 model Matter {
-  id                   String   @id @default(cuid())
-  organizationId       String
-  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   title                String
   description          String?
@@ -160,32 +181,32 @@ model Matter {
   jurisdiction         String
   opposingParty        String?
   opposingCounsel      String?
-  budget               Float    @default(0)
-  expenses             Float    @default(0)
-  riskLevel            String   @default("Medium") // 'High' | 'Medium' | 'Low'
-  winProbability        Int      @default(50) // 0-100
-  judge                 String?
-  court                 String?
-  statuteOfLimitations  String?
+  budget               Float   @default(0)
+  expenses             Float   @default(0)
+  riskLevel            String  @default("Medium") // 'High' | 'Medium' | 'Low'
+  winProbability       Int     @default(50) // 0-100
+  judge                String?
+  court                String?
+  statuteOfLimitations String?
   statuteDeadline      String?
-  status                String   @default("Active")
-  aiStrategy            String?
+  status               String  @default("Active")
+  aiStrategy           String?
 
-  deletedAt            DateTime?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  documents            Document[]
-  tasks                Task[]
-  timeEntries          TimeEntry[]
-  invoices             Invoice[]
-  calendarEvents       CalendarEvent[]
-  timelineEvents       TimelineEvent[]
-  clientMessages       ClientMessage[]
-  privilegeLog         PrivilegeLogEntry[]
-  depositions          DepositionTranscript[]
-  warRoomWitnesses     WarRoomWitness[]
-  warRoomExhibits      WarRoomExhibit[]
+  documents        Document[]
+  tasks            Task[]
+  timeEntries      TimeEntry[]
+  invoices         Invoice[]
+  calendarEvents   CalendarEvent[]
+  timelineEvents   TimelineEvent[]
+  clientMessages   ClientMessage[]
+  privilegeLog     PrivilegeLogEntry[]
+  depositions      DepositionTranscript[]
+  warRoomWitnesses WarRoomWitness[]
+  warRoomExhibits  WarRoomExhibit[]
   // Audit log entries are queryable via AuditLog.matterId — no back-relation
   // needed; keeping AuditLog structurally independent prevents accidental
   // cascade-delete of audit history when a matter is deleted.
@@ -199,33 +220,33 @@ model Matter {
 // -----------------------------------------------------------------------------
 
 model Document {
-  id                String   @id @default(cuid())
-  organizationId    String
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  matterId          String
-  matter            Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId       String
+  matter         Matter       @relation(fields: [matterId], references: [id], onDelete: Cascade)
 
   name              String
   category          String
   fileSize          String
   uploadedBy        String
   deletedAt         DateTime?
-  uploadedAt        DateTime @default(now())
-  visibleToClient   Boolean  @default(false)
-  version           Int      @default(1)
+  uploadedAt        DateTime  @default(now())
+  visibleToClient   Boolean   @default(false)
+  version           Int       @default(1)
   aiSummary         String?
-  aiTags            String?  // JSON-encoded array (SQLite has no array type)
-  isRedacted        Boolean  @default(false)
+  aiTags            String? // JSON-encoded array (SQLite has no array type)
+  isRedacted        Boolean   @default(false)
   redactedVersionId String?
-  redactionCount    Int      @default(0)
+  redactionCount    Int       @default(0)
 
   // File storage — three fields supporting two strategies:
   // 1. Vercel Blob (production): blobUrl is set, fileContent/fileMimeType are null
   // 2. DB fallback (dev / no Blob token): fileContent holds the raw bytes,
   //    fileMimeType holds the content type, blobUrl is null
-  blobUrl           String?
-  fileContent       Bytes?
-  fileMimeType      String?
+  blobUrl      String?
+  fileContent  Bytes?
+  fileMimeType String?
 
   @@index([organizationId, matterId])
   @@index([deletedAt])
@@ -236,24 +257,24 @@ model Document {
 // -----------------------------------------------------------------------------
 
 model Task {
-  id               String   @id @default(cuid())
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  matterId         String
-  matter           Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId       String
+  matter         Matter       @relation(fields: [matterId], references: [id], onDelete: Cascade)
 
   title            String
   description      String?
   assignedTo       String
   dueDate          String
-  priority         String   @default("Medium") // 'Low' | 'Medium' | 'High'
-  visibleToClient  Boolean  @default(false)
-  status           String   @default("To Do") // 'To Do' | 'In Progress' | 'Under Review' | 'Completed'
-  dependsOnTaskIds String?  // JSON-encoded array of task IDs
+  priority         String  @default("Medium") // 'Low' | 'Medium' | 'High'
+  visibleToClient  Boolean @default(false)
+  status           String  @default("To Do") // 'To Do' | 'In Progress' | 'Under Review' | 'Completed'
+  dependsOnTaskIds String? // JSON-encoded array of task IDs
 
-  deletedAt        DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@index([organizationId, matterId])
   @@index([deletedAt])
@@ -264,44 +285,44 @@ model Task {
 // -----------------------------------------------------------------------------
 
 model TimeEntry {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   matterId       String
-  matter         Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  matter         Matter       @relation(fields: [matterId], references: [id], onDelete: Cascade)
 
-  description    String
-  hours          Float
-  rate           Float
-  date           String
-  billed         Boolean  @default(false)
-  taskCode       String?  // UTBMS Task Code (L110–L420)
-  activityCode   String?  // UTBMS Activity Code (A101–A106)
-  isBillable     Boolean  @default(true)
+  description  String
+  hours        Float
+  rate         Float
+  date         String
+  billed       Boolean @default(false)
+  taskCode     String? // UTBMS Task Code (L110–L420)
+  activityCode String? // UTBMS Activity Code (A101–A106)
+  isBillable   Boolean @default(true)
 
-  deletedAt      DateTime?
-  createdAt      DateTime @default(now())
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([organizationId, matterId])
   @@index([deletedAt])
 }
 
 model Invoice {
-  id            String   @id @default(cuid())
+  id             String       @id @default(cuid())
   organizationId String
-  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  matterId      String
-  matter        Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId       String
+  matter         Matter       @relation(fields: [matterId], references: [id], onDelete: Cascade)
 
   invoiceNumber String
   totalAmount   Float
-  status        String   @default("Draft") // 'Draft' | 'Sent' | 'Paid' | 'Overdue'
+  status        String  @default("Draft") // 'Draft' | 'Sent' | 'Paid' | 'Overdue'
   dueDate       String
   issueDate     String?
   paymentTxId   String?
 
-  deletedAt     DateTime?
-  createdAt     DateTime @default(now())
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([organizationId, matterId])
   @@index([deletedAt])
@@ -312,24 +333,24 @@ model Invoice {
 // -----------------------------------------------------------------------------
 
 model CalendarEvent {
-  id                  String   @id @default(cuid())
-  organizationId      String
-  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  matterId           String
-  matter             Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId       String
+  matter         Matter       @relation(fields: [matterId], references: [id], onDelete: Cascade)
 
-  title              String
-  description        String?
-  startDate          String
-  endDate            String?
-  time               String?
-  location           String?
-  category           String   @default("Hearing") // 'Hearing' | 'Court Deadline' | 'Client Meeting' | 'Filing' | 'Arbitration'
+  title                  String
+  description            String?
+  startDate              String
+  endDate                String?
+  time                   String?
+  location               String?
+  category               String  @default("Hearing") // 'Hearing' | 'Court Deadline' | 'Client Meeting' | 'Filing' | 'Arbitration'
   syncedToGoogleCalendar Boolean @default(false)
-  googleEventId      String?
+  googleEventId          String?
 
-  deletedAt          DateTime?
-  createdAt          DateTime @default(now())
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([organizationId, matterId])
   @@index([deletedAt])
@@ -340,36 +361,36 @@ model CalendarEvent {
 // -----------------------------------------------------------------------------
 
 model TimelineEvent {
-  id              String   @id @default(cuid())
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  matterId        String
-  matter          Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId       String
+  matter         Matter       @relation(fields: [matterId], references: [id], onDelete: Cascade)
 
   title           String
   description     String
   date            String
-  visibleToClient Boolean  @default(false)
+  visibleToClient Boolean @default(false)
   type            String?
 
-  deletedAt       DateTime?
-  createdAt       DateTime @default(now())
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([organizationId, matterId])
   @@index([deletedAt])
 }
 
 model ClientMessage {
-  id              String   @id @default(cuid())
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  matterId        String
-  matter          Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId       String
+  matter         Matter       @relation(fields: [matterId], references: [id], onDelete: Cascade)
 
-  sender          String   @default("Lawyer") // 'Lawyer' | 'Client'
-  text            String
-  deletedAt       DateTime?
-  timestamp       DateTime @default(now())
+  sender    String    @default("Lawyer") // 'Lawyer' | 'Client'
+  text      String
+  deletedAt DateTime?
+  timestamp DateTime  @default(now())
 
   @@index([organizationId, matterId])
   @@index([deletedAt])
@@ -380,11 +401,11 @@ model ClientMessage {
 // -----------------------------------------------------------------------------
 
 model PrivilegeLogEntry {
-  id               String   @id @default(cuid())
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  matterId         String
-  matter           Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId       String
+  matter         Matter       @relation(fields: [matterId], references: [id], onDelete: Cascade)
 
   docControlNum    String
   docDate          String
@@ -392,13 +413,13 @@ model PrivilegeLogEntry {
   recipients       String
   docType          String
   subject          String
-  privilegeClaimed String   @default("Attorney-Client Privilege")
+  privilegeClaimed String  @default("Attorney-Client Privilege")
   justification    String
-  isRedacted       Boolean  @default(false)
-  reviewStatus     String   @default("Flagged") // 'Flagged' | 'Verified' | 'Withheld'
+  isRedacted       Boolean @default(false)
+  reviewStatus     String  @default("Flagged") // 'Flagged' | 'Verified' | 'Withheld'
 
-  deletedAt        DateTime?
-  createdAt        DateTime @default(now())
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([organizationId, matterId])
   @@index([deletedAt])
@@ -409,41 +430,42 @@ model PrivilegeLogEntry {
 // -----------------------------------------------------------------------------
 
 model DepositionTranscript {
-  id                   String   @id @default(cuid())
-  organizationId       String
-  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  matterId             String
-  matter               Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId       String
+  matter         Matter       @relation(fields: [matterId], references: [id], onDelete: Cascade)
 
   witnessName          String
   witnessRole          String
   depositionDate       String
-  deponentParty        String   @default("Fact Witness")
-  pagesCount           Int      @default(0)
+  deponentParty        String           @default("Fact Witness")
+  pagesCount           Int              @default(0)
   pages                TranscriptPage[]
   keyAdmissionsSummary String?
   deletedAt            DateTime?
-  uploadedAt           DateTime @default(now())
+  uploadedAt           DateTime         @default(now())
 
   @@index([organizationId, matterId])
   @@index([deletedAt])
 }
 
 model TranscriptPage {
-  id                   String   @id @default(cuid())
-  organizationId       String
-  transcriptId         String
-  transcript           DepositionTranscript @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+  id             String               @id @default(cuid())
+  organizationId String
+  transcriptId   String
+  transcript     DepositionTranscript @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
 
-  pageNumber           Int
-  lineNumber           String?
-  timestamp            String?
-  speaker              String
-  text                 String
-  isKeyAdmission       Boolean  @default(false)
-  tags                 String?  // JSON-encoded array
+  pageNumber     Int
+  lineNumber     String?
+  timestamp      String?
+  speaker        String
+  text           String
+  isKeyAdmission Boolean @default(false)
+  tags           String? // JSON-encoded array
 
-  deletedAt            DateTime?
+  deletedAt DateTime?
+
   @@index([organizationId, transcriptId])
   @@index([deletedAt])
 }
@@ -453,38 +475,38 @@ model TranscriptPage {
 // -----------------------------------------------------------------------------
 
 model WarRoomWitness {
-  id              String   @id @default(cuid())
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  matterId        String
-  matter          Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId       String
+  matter         Matter       @relation(fields: [matterId], references: [id], onDelete: Cascade)
 
-  name            String
-  type            String   @default("Fact") // 'Fact' | 'Expert' | 'Adverse'
+  name             String
+  type             String  @default("Fact") // 'Fact' | 'Expert' | 'Adverse'
   examinationNotes String?
-  order           Int      @default(0)
+  order            Int     @default(0)
 
-  deletedAt       DateTime?
-  createdAt       DateTime @default(now())
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([organizationId, matterId])
   @@index([deletedAt])
 }
 
 model WarRoomExhibit {
-  id              String   @id @default(cuid())
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  matterId        String
-  matter          Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  matterId       String
+  matter         Matter       @relation(fields: [matterId], references: [id], onDelete: Cascade)
 
-  exhibitNumber   String   // P-1, D-1, etc.
+  exhibitNumber   String // P-1, D-1, etc.
   description     String
-  admissionStatus String   @default("Pending") // 'Pending' | 'Admitted' | 'Excluded'
-  party           String   @default("Plaintiff")
+  admissionStatus String @default("Pending") // 'Pending' | 'Admitted' | 'Excluded'
+  party           String @default("Plaintiff")
 
-  deletedAt       DateTime?
-  createdAt       DateTime @default(now())
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([organizationId, matterId])
   @@index([deletedAt])
@@ -495,19 +517,19 @@ model WarRoomExhibit {
 // -----------------------------------------------------------------------------
 
 model ConflictCheck {
-  id              String   @id @default(cuid())
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   certificateNumber String  @default("") // WKL-ETH-XXXXXX
-  searchQuery     String
-  matchedEntities String?  // JSON-encoded array
-  clearanceStatus String   @default("Pending") // 'Pending' | 'Cleared' | 'Conflict'
-  ethicalWallSet  Boolean  @default(false)
-  notes           String?
+  searchQuery       String
+  matchedEntities   String? // JSON-encoded array
+  clearanceStatus   String  @default("Pending") // 'Pending' | 'Cleared' | 'Conflict'
+  ethicalWallSet    Boolean @default(false)
+  notes             String?
 
-  deletedAt       DateTime?
-  createdAt       DateTime @default(now())
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([organizationId])
   @@index([deletedAt])
@@ -526,12 +548,12 @@ model ConflictCheck {
 // -----------------------------------------------------------------------------
 
 model DocumentChunk {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   organizationId String
   matterId       String
   documentId     String?
   transcriptId   String?
-  sourceType     String   // 'document' | 'transcript'
+  sourceType     String // 'document' | 'transcript'
   pageNumber     Int?
   chunkIndex     Int
   content        String
@@ -540,9 +562,9 @@ model DocumentChunk {
   // pgvector column. Managed via raw SQL (prisma/sql/rag_pgvector_setup.sql).
   // Prisma cannot read/write Unsupported types via the client — all embedding
   // reads/writes go through db.$queryRaw. On SQLite dev, this column is absent.
-  embedding      Unsupported("vector(768)")?
+  embedding Unsupported("vector(768)")?
 
-  createdAt      DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([organizationId, matterId])
   @@index([organizationId, documentId])
@@ -550,13 +572,13 @@ model DocumentChunk {
 }
 
 model LegalCorpus {
-  id            String   @id @default(cuid())
-  lawName       String   // e.g. "القانون المدني الأردني"
-  lawNameEn     String?  // e.g. "Jordanian Civil Code"
-  lawType       String   // 'civil' | 'labour' | 'procedure' | 'evidence' | 'traffic' | 'rent' | 'maintenance' | 'commercial'
-  articleNumber String   // e.g. "256"
+  id            String  @id @default(cuid())
+  lawName       String // e.g. "القانون المدني الأردني"
+  lawNameEn     String? // e.g. "Jordanian Civil Code"
+  lawType       String // 'civil' | 'labour' | 'procedure' | 'evidence' | 'traffic' | 'rent' | 'maintenance' | 'commercial'
+  articleNumber String // e.g. "256"
   title         String?
-  content       String   // Arabic article text (verbatim official text)
+  content       String // Arabic article text (verbatim official text)
   year          Int?
   sourceUrl     String?
 
@@ -564,17 +586,17 @@ model LegalCorpus {
   // These fields let check_currency + validate_citation report whether a
   // provision is current, amended, or superseded. Existing rows get sensible
   // defaults via the migration (status='in_force', lastCheckedAt=now).
-  status          String   @default("in_force") // 'in_force' | 'amended' | 'repealed' | 'superseded'
-  effectiveFrom   DateTime?                      // when the article took effect
-  effectiveTo     DateTime?                      // when it ceased to be in force (null = still current)
-  amendedBy       String?                        // citation of the amending law (e.g. "Law No. 15 of 2018, Art. 3")
-  supersededBy    String?                        // id of the superseding provision in this table (if any)
-  lastCheckedAt   DateTime?  @default(now())     // last time currency was verified against official source
+  status        String    @default("in_force") // 'in_force' | 'amended' | 'repealed' | 'superseded'
+  effectiveFrom DateTime? // when the article took effect
+  effectiveTo   DateTime? // when it ceased to be in force (null = still current)
+  amendedBy     String? // citation of the amending law (e.g. "Law No. 15 of 2018, Art. 3")
+  supersededBy  String? // id of the superseding provision in this table (if any)
+  lastCheckedAt DateTime? @default(now()) // last time currency was verified against official source
 
-  embedding     Unsupported("vector(768)")?
+  embedding Unsupported("vector(768)")?
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([lawName, articleNumber])
   @@index([lawType])
@@ -586,22 +608,393 @@ model LegalCorpus {
 // -----------------------------------------------------------------------------
 
 model AuditLog {
-  id              String   @id @default(cuid())
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  userId          String?
-  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  action          String   // e.g. 'matter.create', 'auth.login', 'document.redact'
-  entity          String?  // 'matter' | 'document' | 'task' | ...
-  entityId        String?
-  matterId        String?
-  details         String?  // JSON-encoded
-  ipAddress       String?
-  userAgent       String?
+  action    String // e.g. 'matter.create', 'auth.login', 'document.redact'
+  entity    String? // 'matter' | 'document' | 'task' | ...
+  entityId  String?
+  matterId  String?
+  details   String? // JSON-encoded
+  ipAddress String?
+  userAgent String?
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([organizationId, createdAt])
   @@index([userId])
+}
+
+// =============================================================================
+// Case Investigation Agent — PAID ADD-ON (Phase 1 schema only)
+// -----------------------------------------------------------------------------
+// Multi-tenant paid feature. Gated by Organization.investigationAgentEnabled.
+// Every model here carries `organizationId` and a relation to Organization,
+// exactly like ConflictCheck and the other tenant-owned models above.
+//
+// PIPELINE (run in this order; later phases will implement the agents):
+//   1. Intake Agent          → InvestigationIntake
+//   2. Research Agent        → InvestigationResearch        (reuses LegalCorpus RAG)
+//   3. Court Routing Agent   → InvestigationCourtRouting    (lookup, not invention)
+//   4. Drafting Agent        → InvestigationDraft           (template population)
+//   5. Citation Verify Agent → InvestigationCitationVerification (BLOCKING)
+//   6. Fact Consistency Agent→ InvestigationFactConsistency    (BLOCKING for tier 1/2)
+//   7. Assembler             → InvestigationAssembly        (only if 5 + 6 passed)
+//
+// Attorney review gate: after Assembly, status moves to awaiting_attorney_review
+// and a Managing Partner / Senior Associate / In-House Counsel must approve,
+// reject, or request changes via InvestigationReview before the package is
+// considered final (status = completed).
+//
+// CONVENTIONS (match the rest of this schema):
+//   - "Enum" fields are String + Zod validation (SQLite-portable).
+//   - Complex/nested data is stored as JSON-encoded String? and parsed at the
+//     API boundary (same pattern as ConflictCheck.matchedEntities).
+//   - Soft delete via deletedAt + @@index([deletedAt]) in PROD schema only.
+//   - The global AuditLog (above) records user-facing actions like
+//     'investigation.start' and 'investigation.review'. InvestigationAgentRun
+//     below is a SEPARATE concept: one row per internal agent execution, used
+//     to track pipeline progress / errors / latency.
+// =============================================================================
+
+model CaseInvestigation {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Optional link to a Matter. Investigations can be started standalone (e.g.
+  // pre-engagement due diligence) — matterId is null in that case.
+  matterId String?
+  // No back-relation to Matter: an investigation is conceptually independent
+  // and we don't want Matter.cascade to delete investigation history. The
+  // matterId is stored for reference + scoping helpers only.
+
+  // User who started the investigation (auditable trigger).
+  startedByUserId String?
+  startedBy       User?   @relation(fields: [startedByUserId], references: [id], onDelete: SetNull)
+
+  // User-facing title (e.g. "Breach of contract — Acme vs Beta").
+  title String
+
+  // Pipeline status. Zod-validated in API routes.
+  // 'queued' | 'running' | 'awaiting_attorney_review' | 'completed' | 'failed'
+  status String @default("queued")
+
+  // Free-text input the user supplied to start the investigation (intake brief,
+  // pasted complaint text, etc.). Kept on the parent row so the pipeline can
+  // re-run from any step without losing the original input.
+  intakeInput String
+
+  // Tier controls verification strictness. Citation verify is always blocking;
+  // fact consistency is blocking for tier 1 + 2 and advisory for tier 3.
+  // '1' | '2' | '3'
+  verificationTier String @default("2")
+
+  // When the pipeline hit a terminal failure, a short human-readable reason
+  // is stored here (the full per-agent trace lives in InvestigationAgentRun).
+  failureReason String?
+
+  // Preferred output language for the assembled package.
+  // 'ar' | 'en'
+  lang String @default("ar")
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Child rows — one per pipeline stage. Cascade-deleted with the investigation.
+  intake                InvestigationIntake?
+  research              InvestigationResearch?
+  courtRouting          InvestigationCourtRouting?
+  draft                 InvestigationDraft?
+  citationVerifications InvestigationCitationVerification[]
+  factChecks            InvestigationFactConsistency[]
+  assembly              InvestigationAssembly?
+  reviews               InvestigationReview[]
+  agentRuns             InvestigationAgentRun[]
+
+  @@index([organizationId])
+  @@index([organizationId, matterId])
+  @@index([deletedAt])
+  @@index([status])
+}
+
+// ── Stage 1: Intake ────────────────────────────────────────────────────────
+// Extracted parties, claims, facts, dates, amounts. Each extracted fact
+// carries a source anchor pointing back at the intake input (so the citation
+// verify + fact consistency agents can re-check it).
+model InvestigationIntake {
+  id              String            @id @default(cuid())
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  investigationId String            @unique
+  investigation   CaseInvestigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  // JSON-encoded arrays/objects — parsed at the API boundary.
+  // Shape defined in src/lib/agents/types.ts (IntakeResult).
+  //   parties:   [{name, role, contact?}]
+  //   claims:    [{text, type, sourceAnchor}]
+  //   facts:     [{text, category, sourceAnchor, confidence}]
+  //   dates:     [{date, label, sourceAnchor}]
+  //   amounts:   [{amount, currency, label, sourceAnchor}]
+  partiesJson String?
+  claimsJson  String?
+  factsJson   String?
+  datesJson   String?
+  amountsJson String?
+
+  // Short LLM-generated summary of the intake, shown in the UI.
+  summary String?
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([organizationId, investigationId])
+  @@index([deletedAt])
+}
+
+// ── Stage 2: Research ──────────────────────────────────────────────────────
+// Output of the Research Agent: corpus hits (statutes) + matter chunk hits.
+// Reuses the real matchLegalCorpus + retrieveMatterChunks via rag-service.
+model InvestigationResearch {
+  id              String            @id @default(cuid())
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  investigationId String            @unique
+  investigation   CaseInvestigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  // The queries the research agent issued (so we can re-run / audit them).
+  // JSON-encoded string[].
+  queriesJson String?
+
+  // Top corpus hits, JSON-encoded RetrievedChunk[] (see src/lib/rag/types.ts).
+  // Only statutes that ACTUALLY exist in LegalCorpus — no invented citations.
+  corpusHitsJson String?
+
+  // Top matter chunk hits (org + matter scoped), JSON-encoded RetrievedChunk[].
+  matterHitsJson String?
+
+  // True when corpus returned 0 hits — the UI must surface this honestly
+  // rather than letting the drafting agent invent citations.
+  noCorpusHits Boolean @default(false)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([organizationId, investigationId])
+  @@index([deletedAt])
+}
+
+// ── Stage 3: Court Routing ─────────────────────────────────────────────────
+// Court jurisdiction / forum routing from a reference table — NOT LLM
+// invention. The reference table itself will live in code (Phase 2) and the
+// agent just does a lookup + records what it picked + why.
+model InvestigationCourtRouting {
+  id              String            @id @default(cuid())
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  investigationId String            @unique
+  investigation   CaseInvestigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  // Resolved court / forum code, e.g. 'court_of_first_instance_amman'.
+  courtCode   String?
+  courtNameAr String?
+  courtNameEn String?
+
+  // Why this court was picked — JSON-encoded { rule, matchedFacts[] }.
+  routingReasonJson String?
+
+  // True when no court could be resolved from the reference table. The
+  // pipeline must NOT invent a court — it surfaces "no match" to the user.
+  noMatch Boolean @default(false)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([organizationId, investigationId])
+  @@index([deletedAt])
+}
+
+// ── Stage 4: Drafting ──────────────────────────────────────────────────────
+// Template-populated draft sections. The Drafting Agent ONLY fills template
+// slots from intake + research outputs; it never free-form generates legal
+// arguments. Templates live in code (Phase 2).
+model InvestigationDraft {
+  id              String            @id @default(cuid())
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  investigationId String            @unique
+  investigation   CaseInvestigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  // Which template was used, e.g. 'breach_of_contract_v1'.
+  templateId String?
+
+  // JSON-encoded array of { sectionKey, heading, body, citationIds[] }.
+  // citationIds reference InvestigationCitationVerification rows below.
+  sectionsJson String?
+
+  // Full assembled draft text (readable preview for the UI).
+  renderedText String?
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([organizationId, investigationId])
+  @@index([deletedAt])
+}
+
+// ── Stage 5: Citation Verification (BLOCKING) ──────────────────────────────
+// One row per citation that the Citation Verify Agent checked against the
+// real LegalCorpus. If ANY row has status='failed', the Assembler is blocked
+// and the investigation moves to 'failed' (or back to drafting for a retry).
+model InvestigationCitationVerification {
+  id              String            @id @default(cuid())
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  investigationId String
+  investigation   CaseInvestigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  // The citation as it appeared in the draft (e.g. "القانون المدني، المادة 256").
+  claimedCitation String
+
+  // 'verified' | 'failed' | 'not_found' | 'amended' | 'superseded'
+  status String
+
+  // If verified, the matching LegalCorpus row id + similarity score.
+  corpusId   String?
+  similarity Float?
+
+  // Short reasoning for the verifier's decision (shown to attorney reviewer).
+  reason String?
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([organizationId, investigationId])
+  @@index([deletedAt])
+  @@index([status])
+}
+
+// ── Stage 6: Fact Consistency (BLOCKING for tier 1/2) ──────────────────────
+// One row per hard fact the Fact Consistency Agent checked against the intake.
+// Tier 1 + 2: any 'failed' row blocks the Assembler.
+// Tier 3 (advisory): failures are surfaced to the attorney reviewer but do
+// not block — they get to make the call.
+model InvestigationFactConsistency {
+  id              String            @id @default(cuid())
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  investigationId String
+  investigation   CaseInvestigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  // The fact being checked (e.g. "Contract signed on 2024-03-15").
+  factText String
+
+  // Where the fact was used in the draft (section key or line ref).
+  usageRef String?
+
+  // 'consistent' | 'inconsistent' | 'unverifiable'
+  status String
+
+  // What the intake actually said (the source anchor value).
+  intakeValue String?
+
+  reason String?
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([organizationId, investigationId])
+  @@index([deletedAt])
+  @@index([status])
+}
+
+// ── Stage 7: Assembly ──────────────────────────────────────────────────────
+// Final assembled package. Only written if stages 5 + 6 pass (or pass as
+// advisory for tier 3). Holds the structured output the attorney reviews.
+model InvestigationAssembly {
+  id              String            @id @default(cuid())
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  investigationId String            @unique
+  investigation   CaseInvestigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  // Full structured package, JSON-encoded InvestigationPackage
+  // (defined in src/lib/agents/types.ts).
+  packageJson String
+
+  // Optional PDF blob URL — populated in Phase 3 (Arabic RTL PDF). Null until then.
+  pdfBlobUrl String?
+
+  // Did both verification stages pass? (Mirror of the blocking condition.)
+  verificationsPassed Boolean @default(false)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([organizationId, investigationId])
+  @@index([deletedAt])
+}
+
+// ── Attorney Review ────────────────────────────────────────────────────────
+// One row per review action. A review can approve / reject / request changes.
+// The investigation status moves to 'completed' only when an 'approve' row
+// exists. Multiple rows = a revision history (e.g. request changes → approve).
+model InvestigationReview {
+  id              String            @id @default(cuid())
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  investigationId String
+  investigation   CaseInvestigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  reviewerId String
+  reviewer   User   @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  // 'approve' | 'reject' | 'request_changes'
+  decision String
+
+  // Free-text reviewer note (required for reject / request_changes).
+  note String?
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId, investigationId])
+  @@index([reviewerId])
+}
+
+// ── Per-agent execution log ────────────────────────────────────────────────
+// One row per agent execution within the pipeline. Distinct from the global
+// AuditLog: AuditLog records user-facing actions ('investigation.start');
+// this table records internal agent runs ('intake', 'research', ...) with
+// timing + token usage + error traces for debugging + observability.
+model InvestigationAgentRun {
+  id              String            @id @default(cuid())
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  investigationId String
+  investigation   CaseInvestigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  // 'intake' | 'research' | 'court_routing' | 'drafting'
+  // | 'citation_verify' | 'fact_consistency' | 'assembler'
+  agentName String
+
+  // 'pending' | 'running' | 'passed' | 'failed' | 'skipped'
+  status String
+
+  startedAt  DateTime?
+  finishedAt DateTime?
+  durationMs Int?
+
+  // JSON-encoded { input, output, error, tokenUsage } — size-bounded by the
+  // orchestrator in Phase 2.
+  traceJson String?
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId, investigationId])
+  @@index([agentName])
+  @@index([status])
 }
