@@ -23,7 +23,7 @@ import { INVESTIGATION_ALLOWED_ROLES } from '@/lib/agents/types';
 export async function GET(req: NextRequest) {
   // ── Auth gate ──────────────────────────────────────────────────────────
   const auth = await requireRole([...INVESTIGATION_ALLOWED_ROLES]);
-  if (!auth.ok) return auth.response;
+  if (auth.ok === false) return auth.response;
   const { session } = auth;
 
   // ── Input validation ───────────────────────────────────────────────────

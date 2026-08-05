@@ -25,7 +25,7 @@ import {
 
 export async function GET(req: NextRequest) {
   const auth = await requireRole([...INVESTIGATION_ALLOWED_ROLES]);
-  if (!auth.ok) return auth.response;
+  if (auth.ok === false) return auth.response;
 
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type');
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const auth = await requireRole([...INVESTIGATION_ALLOWED_ROLES]);
-  if (!auth.ok) return auth.response;
+  if (auth.ok === false) return auth.response;
   const { session } = auth;
 
   try {

@@ -24,7 +24,7 @@ export async function requireRole(roles: string[]): Promise<
   { ok: true; session: SessionUser } | { ok: false; response: NextResponse }
 > {
   const r = await requireUser();
-  if (!r.ok) return r;
+  if (r.ok === false) return r;
   if (!roles.includes(r.session.role)) {
     return {
       ok: false,
