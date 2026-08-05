@@ -150,7 +150,7 @@ export async function GET(req: NextRequest) {
 
   // ── Return PDF ─────────────────────────────────────────────────────────
   const filename = getReportFilename(investigation.id);
-  return new NextResponse(pdfBuffer, {
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',
