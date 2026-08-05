@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
+    "postinstall": "npx playwright install chromium --with-deps 2>/dev/null || echo 'Playwright chromium install skipped (may need manual install on some hosts)'",
     "build": "prisma generate --schema=prisma/schema.prisma && next build",
     "start": "next start",
     "lint": "eslint .",

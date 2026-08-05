@@ -16,7 +16,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireRole } from '@/lib/org';
 import { audit } from '@/lib/audit';
-import { chromium } from 'playwright';
 import { generatePdfHtml, getReportFilename, type PdfReportInput } from '@/lib/pdf-report-template';
 import type { InvestigationPackage } from '@/lib/agents/types';
 import { INVESTIGATION_ALLOWED_ROLES } from '@/lib/agents/types';
@@ -99,9 +98,13 @@ export async function GET(req: NextRequest) {
   // ── Playwright PDF generation ──────────────────────────────────────────
   let pdfBuffer: Buffer;
   try {
+    // Dynamic import so the route doesn't crash at build time if Playwright
+    // or Chromium isn't installed yet.
+    const { chromium } = await import('playwright');
+
     const browser = await chromium.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu'],
     });
 
     try {
@@ -122,9 +125,16 @@ export async function GET(req: NextRequest) {
     } finally {
       await browser.close();
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('[case-report-pdf] Playwright error:', err);
-    return NextResponse.json({ error: 'PDF generation failed' }, { status: 500 });
+    const msg = err?.message || '';
+    if (msg.includes('Executable doesn\'t exist') || msg.includes('playwright') || msg.includes('chromium')) {
+      return NextResponse.json(
+        { error: 'PDF generation is not available yet — Chromium browser is still being installed. Please try again in a few minutes, or contact your administrator.' },
+        { status: 503 }
+      );
+    }
+    return NextResponse.json({ error: 'PDF generation failed. Please try again.' }, { status: 500 });
   }
 
   // ── Audit log ──────────────────────────────────────────────────────────
