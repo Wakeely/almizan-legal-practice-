@@ -4,7 +4,7 @@
 
 export interface OCRRequest {
   /** Raw file bytes */
-  file: Buffer;
+  file: Uint8Array;
   /** Original filename (for format detection) */
   filename: string;
   /** MIME type of the file */
@@ -34,7 +34,7 @@ export interface OCRHealthResponse {
 
 export interface OCRBatchRequest {
   files: Array<{
-    buffer: Buffer;
+    buffer: Uint8Array;
     filename: string;
     mimeType: string;
   }>;

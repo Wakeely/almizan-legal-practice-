@@ -45,7 +45,7 @@ export async function extractTextWithOCR(
   const formData = new FormData();
   formData.append(
     "file",
-    new Blob([request.file], { type: request.mimeType }),
+    new Blob([new Uint8Array(request.file)], { type: request.mimeType }),
     request.filename,
   );
   formData.append("engine", request.engine || "auto");
@@ -92,7 +92,7 @@ export async function extractTextBatch(
   for (const file of request.files) {
     formData.append(
       "files",
-      new Blob([file.buffer], { type: file.mimeType }),
+      new Blob([new Uint8Array(file.buffer)], { type: file.mimeType }),
       file.filename,
     );
   }

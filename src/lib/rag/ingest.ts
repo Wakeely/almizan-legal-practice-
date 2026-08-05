@@ -252,7 +252,7 @@ export async function extractTextFromFile(
   if (isBinary) {
     try {
       const result = await extractTextWithOCR({
-        file: Buffer.from(bytes),
+        file: bytes,
         filename: filename || "document",
         mimeType,
         engine: "auto",
