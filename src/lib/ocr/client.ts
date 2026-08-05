@@ -2,7 +2,7 @@
 // Al Mizan OCR Client
 // =============================================================================
 // Calls the Python OCR service (PaddleOCR-VL) for document text extraction.
-// The OCR service runs as a mini-service alongside the Next.js app.
+// The OCR service runs as a separate deployment (Railway/Render).
 // =============================================================================
 
 import type {
