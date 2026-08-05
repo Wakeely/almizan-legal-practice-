@@ -21,6 +21,8 @@ import {
   ShieldCheck,
   ScrollText,
   RefreshCw,
+  Download,
+  FileDown,
 } from 'lucide-react';
 import type { Matter } from '@/lib/types';
 
@@ -395,6 +397,20 @@ export function DetailView({
         <AttorneyReviewPanel investigationId={detail.id} isAr={isAr} onReviewed={onReviewed} />
       )}
       {detail.reviews.length > 0 && <ReviewHistory reviews={detail.reviews} isAr={isAr} />}
+
+      {/* ─── Download PDF Report & Generate Document ─── */}
+      {detail.assembly && (
+        <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+          <h4 className="text-sm font-bold flex items-center gap-2">
+            <FileDown className="w-4 h-4 text-primary" />
+            {isAr ? 'تصدير المستندات' : 'Document Export'}
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            <DownloadPdfButton investigationId={detail.id} isAr={isAr} />
+            <GenerateDocumentButton investigationId={detail.id} isAr={isAr} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -699,5 +715,149 @@ export function StatusBadge({ status, isAr }: { status: string; isAr: boolean })
   const m = map[status] ?? { ar: status, en: status, cls: 'bg-muted text-muted-foreground' };
   return (
     <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${m.cls}`}>{isAr ? m.ar : m.en}</span>
+  );
+}
+
+// =============================================================================
+// DownloadPdfButton — Feature 1: Download PDF Case Report
+// =============================================================================
+
+function DownloadPdfButton({ investigationId, isAr }: { investigationId: string; isAr: boolean }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleDownload = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/case-report-pdf?investigationId=${investigationId}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      // Extract filename from Content-Disposition header
+      const disposition = res.headers.get('Content-Disposition');
+      const filenameMatch = disposition?.match(/filename="?(.+?)"?$/);
+      a.download = filenameMatch?.[1] || `CaseCraft-Report-${investigationId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(err?.message || (isAr ? 'فشل تحميل التقرير' : 'Failed to download report'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={loading}
+      className="px-3 py-2 text-xs font-bold bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition flex items-center gap-1.5 disabled:opacity-50"
+    >
+      {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+      {isAr ? 'تحميل تقرير PDF' : 'Download PDF Report'}
+    </button>
+  );
+}
+
+// =============================================================================
+// GenerateDocumentButton — Feature 2: Generate Legal Document (DOCX)
+// =============================================================================
+
+function GenerateDocumentButton({ investigationId, isAr }: { investigationId: string; isAr: boolean }) {
+  const [loading, setLoading] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+
+  const fetchTemplates = async () => {
+    setTemplatesLoading(true);
+    try {
+      const res = await fetch('/api/generate-document');
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      setTemplates(data.templates || []);
+      setShowTemplatePicker(true);
+    } catch {
+      alert(isAr ? 'فشل تحميل القوالب' : 'Failed to load templates');
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
+
+  const handleGenerate = async (templateId: string, lang: 'ar' | 'en') => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/generate-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId, investigationId, lang }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const disposition = res.headers.get('Content-Disposition');
+      const filenameMatch = disposition?.match(/filename="?(.+?)"?$/);
+      a.download = filenameMatch?.[1] || `CaseCraft-Document.docx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setShowTemplatePicker(false);
+    } catch (err: any) {
+      alert(err?.message || (isAr ? 'فشل إنشاء المستند' : 'Failed to generate document'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={fetchTemplates}
+        disabled={templatesLoading}
+        className="px-3 py-2 text-xs font-bold border border-border rounded-lg hover:bg-accent transition flex items-center gap-1.5 disabled:opacity-50"
+      >
+        {templatesLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+        {isAr ? 'إنشاء مستند قانوني' : 'Generate Legal Document'}
+      </button>
+
+      {showTemplatePicker && (
+        <div className="absolute z-50 top-full mt-2 left-0 min-w-[320px] bg-card border border-border rounded-xl shadow-lg p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold">{isAr ? 'اختر قالبًا' : 'Select Template'}</span>
+            <button onClick={() => setShowTemplatePicker(false)} className="text-muted-foreground hover:text-foreground text-xs">✕</button>
+          </div>
+          {templates.length === 0 ? (
+            <p className="text-xs text-muted-foreground">{isAr ? 'لا توجد قوالب' : 'No templates available'}</p>
+          ) : (
+            templates.map((t: any) => (
+              <div key={t.id} className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-accent/50 transition">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold truncate">{isAr && t.nameAr ? t.nameAr : t.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{t.type} · {t.language || 'en'}</p>
+                </div>
+                <button
+                  onClick={() => handleGenerate(t.id, (t.language || 'en') as 'ar' | 'en')}
+                  disabled={loading}
+                  className="px-2 py-1 text-[10px] font-bold bg-primary text-primary-foreground rounded hover:opacity-90 transition disabled:opacity-50 shrink-0"
+                >
+                  {loading ? '...' : (isAr ? 'إنشاء' : 'Generate')}
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
   );
 }

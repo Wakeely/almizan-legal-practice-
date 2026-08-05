@@ -79,6 +79,7 @@ model Organization {
   InvestigationAssembly             InvestigationAssembly[]
   InvestigationReview               InvestigationReview[]
   InvestigationAgentRun             InvestigationAgentRun[]
+  documentTemplates                 DocumentTemplate[]
 }
 
 // Role is encoded as String + Zod validation in API routes (SQLite has no enum).
@@ -997,4 +998,41 @@ model InvestigationAgentRun {
   @@index([organizationId, investigationId])
   @@index([agentName])
   @@index([status])
+}
+
+// =============================================================================
+// Legal Document Templates (Feature 2 — Document Automation)
+// =============================================================================
+// Templates with merge fields ({{fieldName}}) that can be populated from
+// investigation packages. Org-scoped for multi-tenancy.
+// =============================================================================
+
+model DocumentTemplate {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Template metadata
+  name          String  // e.g. "Statement of Claim"
+  nameAr        String? // Arabic name: "بيان الدعوى"
+  type          String  // 'statement_of_claim' | 'statement_of_defense' | 'motion_summary_judgment' | 'legal_notice' | 'custom'
+  category      String? // 'litigation' | 'corporate' | 'arbitration' | 'general'
+  language      String  @default("en") // 'ar' | 'en' | 'bilingual'
+  description   String?
+  descriptionAr String?
+
+  // Template content with merge fields ({{fieldName}} syntax)
+  content String // The full template text with merge fields
+
+  // Lifecycle
+  isActive   Boolean  @default(true)
+  isBuiltIn  Boolean  @default(false) // true = system-provided seed templates
+  version    Int      @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([isActive])
 }
