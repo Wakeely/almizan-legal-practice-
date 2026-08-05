@@ -17,6 +17,7 @@
 import { db } from "@/lib/db";
 import { chunkText, chunkTranscriptPages } from "./chunk";
 import { generateEmbeddings, toVectorLiteral } from "./embed";
+import { extractTextWithOCR, checkOCRHealth } from "@/lib/ocr";
 import type { IngestDocumentInput, IngestTranscriptInput } from "./types";
 
 export interface IngestResult {
@@ -207,31 +208,64 @@ export async function deleteTranscriptChunks(
 }
 
 /**
- * Extract plain text from a document's raw bytes. Best-effort — supports the
- * common text-bearing MIME types. For PDF/DOCX we'd want a real parser; for
- * now we extract text from text/*, CSV, and treat binary formats as empty
- * (the lawyer can still ask questions about the document NAME + AI summary,
- * both of which are chunked separately if you call ingestDocument with a
- * constructed text from metadata).
+ * Extract plain text from a document's raw bytes.
  *
- * This is intentionally minimal — extending it to PDF/DOCX is a Phase R5+ task
- * and should use a server-side library like pdf-parse or mammoth.
+ * - Text files (text/*, CSV, JSON): decoded directly
+ * - Digital PDFs/DOCX: native text extraction via OCR service
+ * - Scanned PDFs/Images: OCR via PaddleOCR-VL
+ *
+ * Falls back to empty string if OCR service is unavailable.
  */
-export function extractTextFromFile(
+export async function extractTextFromFile(
   bytes: Uint8Array,
   mimeType: string | null,
-): string {
+  filename?: string,
+): Promise<string> {
   if (!mimeType) return "";
+
+  // Text files — decode directly (no OCR needed)
   const isText =
     mimeType.startsWith("text/") ||
     mimeType === "application/csv" ||
     mimeType === "application/json";
-  if (!isText) return "";
-  try {
-    return new TextDecoder("utf-8").decode(bytes);
-  } catch {
-    return "";
+  if (isText) {
+    try {
+      return new TextDecoder("utf-8").decode(bytes);
+    } catch {
+      return "";
+    }
   }
+
+  // Binary files — use OCR service
+  const isBinary =
+    mimeType === "application/pdf" ||
+    mimeType === "image/png" ||
+    mimeType === "image/jpeg" ||
+    mimeType === "image/jpg" ||
+    mimeType === "image/gif" ||
+    mimeType === "image/webp" ||
+    mimeType.includes("word") ||
+    mimeType.includes("document") ||
+    mimeType.includes("msword") ||
+    mimeType.includes("officedocument");
+
+  if (isBinary) {
+    try {
+      const result = await extractTextWithOCR({
+        file: Buffer.from(bytes),
+        filename: filename || "document",
+        mimeType,
+        engine: "auto",
+        language: "ar", // Default to Arabic for Al Mizan
+      });
+      return result.text;
+    } catch (err) {
+      console.error("[rag/ingest] OCR extraction failed:", err);
+      return "";
+    }
+  }
+
+  return "";
 }
 
 /**

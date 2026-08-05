@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     if (doc.fileContent || doc.blobUrl) {
       try {
         const file = await retrieveFile(doc.blobUrl, doc.fileContent, doc.fileMimeType);
-        text = extractTextFromFile(file.buffer, file.mimeType);
+          text = await extractTextFromFile(file.buffer, file.mimeType, doc.name);
       } catch (err: any) {
         console.warn("[rag/ingest] could not read file:", err?.message ?? err);
       }
@@ -176,7 +176,7 @@ export async function POST(req: Request) {
       if (doc.fileContent || doc.blobUrl) {
         try {
           const file = await retrieveFile(doc.blobUrl, doc.fileContent, doc.fileMimeType);
-          text = extractTextFromFile(file.buffer, file.mimeType);
+        text = await extractTextFromFile(file.buffer, file.mimeType, doc.name);
         } catch { /* ignore */ }
       }
       if (!text.trim()) {

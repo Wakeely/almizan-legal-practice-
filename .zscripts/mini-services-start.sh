@@ -50,7 +50,7 @@ main() {
         return
     fi
     
-    # 查找所有 mini-service-*.js 文件
+    # 启动 Node.js 服务 (mini-service-*.js)
     service_files=""
     for file in "$DIST_DIR"/mini-service-*.js; do
         if [ -f "$file" ]; then
@@ -62,44 +62,88 @@ main() {
         fi
     done
     
-    # 计算服务文件数量
-    service_count=0
+    # 计算 Node.js 服务文件数量
+    node_count=0
     for file in $service_files; do
-        service_count=$((service_count + 1))
+        node_count=$((node_count + 1))
     done
     
-    if [ $service_count -eq 0 ]; then
-        echo "ℹ️  未找到任何 mini service 文件"
-        return
+    if [ $node_count -gt 0 ]; then
+        echo "📦 找到 $node_count 个 Node.js 服务，开始启动..."
+        echo ""
+        
+        # 启动每个 Node.js 服务
+        for file in $service_files; do
+            service_name=$(basename "$file" .js | sed 's/mini-service-//')
+            echo "▶️  启动服务: $service_name (Node.js)..."
+            
+            # 使用 bun 运行服务（后台运行）
+            bun "$file" &
+            pid=$!
+            if [ -z "$pids" ]; then
+                pids="$pid"
+            else
+                pids="$pids $pid"
+            fi
+            
+            # 等待一小段时间检查进程是否成功启动
+            sleep 0.5
+            if ! kill -0 "$pid" 2>/dev/null; then
+                echo "❌ $service_name 启动失败"
+                # 从字符串中移除失败的 PID
+                pids=$(echo "$pids" | sed "s/\b$pid\b//" | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
+            else
+                echo "✅ $service_name 已启动 (PID: $pid)"
+            fi
+        done
     fi
     
-    echo "📦 找到 $service_count 个服务，开始启动..."
-    echo ""
-    
-    # 启动每个服务
-    for file in $service_files; do
-        service_name=$(basename "$file" .js | sed 's/mini-service-//')
-        echo "▶️  启动服务: $service_name..."
-        
-        # 使用 bun 运行服务（后台运行）
-        bun "$file" &
-        pid=$!
-        if [ -z "$pids" ]; then
-            pids="$pid"
-        else
-            pids="$pids $pid"
-        fi
-        
-        # 等待一小段时间检查进程是否成功启动
-        sleep 0.5
-        if ! kill -0 "$pid" 2>/dev/null; then
-            echo "❌ $service_name 启动失败"
-            # 从字符串中移除失败的 PID
-            pids=$(echo "$pids" | sed "s/\b$pid\b//" | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-        else
-            echo "✅ $service_name 已启动 (PID: $pid)"
+    # 启动 Python 服务 (mini-service-*/start.py)
+    python_count=0
+    for dir in "$DIST_DIR"/mini-service-*/; do
+        if [ -d "$dir" ] && [ -f "$dir/start.py" ]; then
+            python_count=$((python_count + 1))
         fi
     done
+    
+    if [ $python_count -gt 0 ]; then
+        echo ""
+        echo "🐍 找到 $python_count 个 Python 服务，开始启动..."
+        echo ""
+        
+        for dir in "$DIST_DIR"/mini-service-*/; do
+            if [ ! -d "$dir" ] || [ ! -f "$dir/start.py" ]; then
+                continue
+            fi
+            
+            service_name=$(basename "$dir" | sed 's/mini-service-//')
+            echo "▶️  启动服务: $service_name (Python)..."
+            
+            # 设置 Python 路径（包含已安装的包）
+            export PYTHONPATH="$dir${dir:+:$dir/python-packages}${PYTHONPATH:+:$PYTHONPATH}"
+            
+            # 后台启动 Python 服务
+            cd "$dir" && python start.py &
+            pid=$!
+            cd - > /dev/null
+            
+            if [ -z "$pids" ]; then
+                pids="$pid"
+            else
+                pids="$pids $pid"
+            fi
+            
+            # 等待一小段时间检查进程是否成功启动
+            sleep 1
+            if ! kill -0 "$pid" 2>/dev/null; then
+                echo "❌ $service_name 启动失败"
+                # 从字符串中移除失败的 PID
+                pids=$(echo "$pids" | sed "s/\b$pid\b//" | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
+            else
+                echo "✅ $service_name 已启动 (PID: $pid)"
+            fi
+        done
+    fi
     
     # 计算运行中的服务数量
     running_count=0
@@ -108,6 +152,11 @@ main() {
             running_count=$((running_count + 1))
         fi
     done
+    
+    if [ $running_count -eq 0 ]; then
+        echo "ℹ️  未找到任何 mini service 文件"
+        return
+    fi
     
     echo ""
     echo "🎉 所有服务已启动！共 $running_count 个服务正在运行"
@@ -118,6 +167,9 @@ main() {
     # 等待所有后台进程
     wait
 }
+
+# 捕获退出信号
+trap cleanup EXIT INT TERM
 
 main
 

@@ -22,10 +22,14 @@ main() {
     
     # 遍历 mini-services 目录下的所有文件夹
     for dir in "$ROOT_DIR"/*; do
-        # 检查是否是目录且包含 package.json
-        if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
-            project_name=$(basename "$dir")
-            
+        if [ ! -d "$dir" ]; then
+            continue
+        fi
+        
+        project_name=$(basename "$dir")
+        
+        # Node.js services (package.json)
+        if [ -f "$dir/package.json" ]; then
             # 智能查找入口文件 (按优先级查找)
             entry_path=""
             for entry in "src/index.ts" "index.ts" "src/index.js" "index.js"; do
@@ -41,7 +45,7 @@ main() {
             fi
             
             echo ""
-            echo "📦 正在构建: $project_name..."
+            echo "📦 正在构建: $project_name (Node.js)..."
             
             # 使用 bun build CLI 构建
             output_file="$DIST_DIR/mini-service-$project_name.js"
@@ -56,6 +60,28 @@ main() {
                 echo "❌ $project_name 构建失败"
                 fail_count=$((fail_count + 1))
             fi
+        fi
+        
+        # Python services (requirements.txt)
+        if [ -f "$dir/requirements.txt" ]; then
+            echo ""
+            echo "🐍 正在构建: $project_name (Python)..."
+            
+            # 复制整个 Python 服务目录到 dist
+            output_dir="$DIST_DIR/mini-service-$project_name"
+            mkdir -p "$output_dir"
+            
+            # 复制 Python 源码（排除 python-packages 目录和 __pycache__）
+            rsync -av --exclude='python-packages' --exclude='__pycache__' --exclude='.venv' \
+                "$dir/" "$output_dir/"
+            
+            # 复制已安装的 Python 包
+            if [ -d "$dir/python-packages" ]; then
+                cp -r "$dir/python-packages" "$output_dir/python-packages"
+            fi
+            
+            echo "✅ $project_name Python 服务构建成功 -> $output_dir"
+            success_count=$((success_count + 1))
         fi
     done
     

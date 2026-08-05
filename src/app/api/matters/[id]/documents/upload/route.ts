@@ -132,7 +132,7 @@ export async function POST(
   // lawyer benefits from the document being immediately searchable. Errors
   // are logged but never break the upload — the document row is already saved.
   try {
-    const fileText = extractTextFromFile(fileBuffer, mimeType);
+    const fileText = await extractTextFromFile(fileBuffer, mimeType, file.name);
     const ingestText =
       fileText ||
       buildDocumentMetadataText({

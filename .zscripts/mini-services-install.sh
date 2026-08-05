@@ -19,11 +19,16 @@ main() {
     
     # 遍历 mini-services 目录下的所有文件夹
     for dir in "$ROOT_DIR"/*; do
-        # 检查是否是目录且包含 package.json
-        if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
-            project_name=$(basename "$dir")
+        if [ ! -d "$dir" ]; then
+            continue
+        fi
+        
+        project_name=$(basename "$dir")
+        
+        # Node.js services (package.json)
+        if [ -f "$dir/package.json" ]; then
             echo ""
-            echo "📦 正在安装依赖: $project_name..."
+            echo "📦 正在安装依赖: $project_name (Node.js)..."
             
             # 进入项目目录并执行 bun install
             if (cd "$dir" && bun install); then
@@ -37,6 +42,35 @@ main() {
                 else
                     failed_projects="$failed_projects $project_name"
                 fi
+            fi
+        fi
+        
+        # Python services (requirements.txt)
+        if [ -f "$dir/requirements.txt" ]; then
+            echo ""
+            echo "🐍 正在安装依赖: $project_name (Python)..."
+            
+            PYTHON_PACKAGES_DIR="$dir/python-packages"
+            mkdir -p "$PYTHON_PACKAGES_DIR"
+            
+            if command -v uv >/dev/null 2>&1; then
+                if uv pip install \
+                    --python 3.12 \
+                    --target "$PYTHON_PACKAGES_DIR" \
+                    --requirements "$dir/requirements.txt"; then
+                    echo "✅ $project_name Python 依赖安装成功"
+                    success_count=$((success_count + 1))
+                else
+                    echo "❌ $project_name Python 依赖安装失败"
+                    fail_count=$((fail_count + 1))
+                    if [ -z "$failed_projects" ]; then
+                        failed_projects="$project_name"
+                    else
+                        failed_projects="$failed_projects $project_name"
+                    fi
+                fi
+            else
+                echo "⚠️  uv 未安装，跳过 $project_name Python 依赖"
             fi
         fi
     done
@@ -56,7 +90,7 @@ main() {
             done
         fi
     else
-        echo "ℹ️  未找到任何包含 package.json 的项目"
+        echo "ℹ️  未找到任何包含 package.json 或 requirements.txt 的项目"
     fi
     echo "=================================================="
 }
