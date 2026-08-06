@@ -157,24 +157,24 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col gap-5">
+    <div className="bg-white border border-border rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col gap-5">
       
       {/* Module Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-800 shrink-0">
             <Quote className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 font-display">
+              <h3 className="text-base sm:text-lg font-extrabold text-foreground font-display">
                 {isRtl ? 'فهرس ومحلل تفريغ الشهادات القضائية' : 'Deposition Transcript Indexer & Admission Engine'}
               </h3>
               <span className="px-2.5 py-0.5 bg-teal-100/80 text-teal-900 border border-teal-300/80 text-[10px] font-bold rounded-full">
                 AI Gemini Indexing
               </span>
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">
               {isRtl 
                 ? 'فهرسة الاستجواب الشفهي، استخراج الاعترافات الحاكمة، وصياغة أسئلة المناقشة أمام المحكمة' 
                 : 'Semantic indexing of oral testimony, quote extraction, and AI cross-examination generator'}
@@ -195,19 +195,19 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         
         {/* Left: Deponent Witnesses List (4 cols) */}
-        <div className="lg:col-span-4 bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex flex-col gap-2">
-          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-1 flex items-center gap-1.5">
+        <div className="lg:col-span-4 bg-card border border-border/80 rounded-2xl p-3 flex flex-col gap-2">
+          <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-1 flex items-center gap-1.5">
             <User className="w-3.5 h-3.5 text-teal-700" />
             {isRtl ? 'فهرس جلسات الاستجواب المسجلة' : 'Indexed Deponent Transcripts'}
           </label>
 
           {loading ? (
-            <div className="py-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+            <div className="py-8 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
               <RefreshCw className="w-4 h-4 animate-spin text-teal-700" />
               {isRtl ? 'جاري تحميل الشهادات...' : 'Loading transcripts...'}
             </div>
           ) : transcripts.length === 0 ? (
-            <div className="p-4 bg-white rounded-xl border border-dashed border-slate-300 text-center text-xs text-slate-500 space-y-2">
+            <div className="p-4 bg-white rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground space-y-2">
               <p>{isRtl ? 'لا يوجد تفريغ شهادات مرفوع حالياً.' : 'No deposition transcripts indexed yet.'}</p>
               <button
                 onClick={() => setShowUploadModal(true)}
@@ -230,7 +230,7 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
                     className={`w-full text-left rtl:text-right rtl:text-left p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-1.5 ${
                       isActive
                         ? 'bg-teal-900 text-white border-teal-950 shadow-md'
-                        : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-800'
+                        : 'bg-white hover:bg-muted border-border text-foreground'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -244,12 +244,12 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
                       </span>
                     </div>
 
-                    <p className={`text-[11px] truncate ${isActive ? 'text-teal-200' : 'text-slate-500'}`}>
+                    <p className={`text-[11px] truncate ${isActive ? 'text-teal-200' : 'text-muted-foreground'}`}>
                       {t.witnessRole}
                     </p>
 
                     <div className={`flex items-center justify-between text-[10px] mt-1 pt-1.5 border-t ${
-                      isActive ? 'border-teal-800 text-teal-300' : 'border-slate-100 text-slate-400'
+                      isActive ? 'border-teal-800 text-teal-300' : 'border-border text-muted-foreground'
                     }`}>
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
@@ -282,7 +282,7 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
               )}
             </div>
 
-            <div className="flex items-center gap-2 bg-slate-950/80 border border-teal-700/80 rounded-xl p-1.5 focus-within:border-teal-400 transition-colors">
+            <div className="flex items-center gap-2 bg-foreground/80 border border-teal-700/80 rounded-xl p-1.5 focus-within:border-teal-400 transition-colors">
               <Search className="w-4 h-4 text-teal-400 ml-2 shrink-0" />
               <input
                 type="text"
@@ -321,7 +321,7 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
 
           {/* AI Search Results Panel */}
           {aiResults && (
-            <div className="bg-amber-50/90 border border-amber-200 rounded-2xl p-4 space-y-4 animate-in fade-in text-slate-800">
+            <div className="bg-amber-50/90 border border-amber-200 rounded-2xl p-4 space-y-4 animate-in fade-in text-foreground">
               <div className="flex items-center justify-between border-b border-amber-200/80 pb-2">
                 <div className="flex items-center gap-2 text-amber-900 font-extrabold text-xs">
                   <ShieldAlert className="w-4 h-4 text-amber-700" />
@@ -369,11 +369,11 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
                         )}
                       </div>
 
-                      <blockquote className="italic border-l-2 border-amber-500 pl-2 text-slate-800 font-serif bg-slate-50/80 p-1.5 rounded">
+                      <blockquote className="italic border-l-2 border-amber-500 pl-2 text-foreground font-serif bg-card/80 p-1.5 rounded">
                         "{m.quote}"
                       </blockquote>
 
-                      <p className="text-[11px] text-slate-600 font-medium">
+                      <p className="text-[11px] text-muted-foreground font-medium">
                         <strong>{isRtl ? 'الأهمية الإجرائية:' : 'Trial Significance:'}</strong> {m.relevanceExplanation}
                       </p>
                     </div>
@@ -407,15 +407,15 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
 
       {/* Transcript Page-by-Page View Container */}
       {activeTranscript ? (
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+          <div className="flex items-center justify-between border-b border-border pb-3">
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-teal-800" />
-              <h4 className="text-sm font-extrabold text-slate-900 font-display">
+              <h4 className="text-sm font-extrabold text-foreground font-display">
                 {isRtl ? `النص التفصيلي لاستجواب: ${activeTranscript.witnessName}` : `Full Transcript View: ${activeTranscript.witnessName}`}
               </h4>
             </div>
-            <span className="text-xs text-slate-500 font-mono">
+            <span className="text-xs text-muted-foreground font-mono">
               {activeTranscript.pages.length} {isRtl ? 'صفحات' : 'Pages'} • {isRtl ? 'مؤرخة:' : 'Dated:'} {activeTranscript.depositionDate}
             </span>
           </div>
@@ -428,21 +428,21 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
                 className={`p-4 rounded-2xl border transition-all ${
                   p.isKeyAdmission 
                     ? 'bg-amber-50/80 border-amber-300 shadow-sm' 
-                    : 'bg-white border-slate-200 hover:border-slate-300'
+                    : 'bg-white border-border hover:border-border'
                 }`}
               >
                 {/* Page Header Anchor */}
-                <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-200/60 text-xs">
-                  <div className="flex items-center gap-2 font-mono font-bold text-slate-700">
-                    <span className="px-2 py-0.5 bg-slate-200 text-slate-800 rounded text-[11px]">
+                <div className="flex items-center justify-between pb-2 mb-3 border-b border-border/60 text-xs">
+                  <div className="flex items-center gap-2 font-mono font-bold text-foreground">
+                    <span className="px-2 py-0.5 bg-muted text-foreground rounded text-[11px]">
                       {isRtl ? `صفحة ${p.pageNumber}` : `Page ${p.pageNumber}`}
                     </span>
-                    <span className="text-slate-400">•</span>
+                    <span className="text-muted-foreground">•</span>
                     <span>{isRtl ? `الأسطر: ${p.lineNumber}` : `Lines: ${p.lineNumber}`}</span>
                     {p.timestamp && (
                       <>
-                        <span className="text-slate-400">•</span>
-                        <span className="text-slate-500 text-[11px]">{p.timestamp}</span>
+                        <span className="text-muted-foreground">•</span>
+                        <span className="text-muted-foreground text-[11px]">{p.timestamp}</span>
                       </>
                     )}
                   </div>
@@ -461,16 +461,16 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
                 </div>
 
                 {/* Text Body */}
-                <pre className="text-xs text-slate-800 whitespace-pre-wrap font-sans leading-relaxed font-normal bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                <pre className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed font-normal bg-card/50 p-3 rounded-xl border border-border">
                   {p.text}
                 </pre>
 
                 {/* Tags */}
                 {p.tags && p.tags.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-2 border-t border-slate-100">
-                    <Tag className="w-3 h-3 text-slate-400" />
+                  <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-2 border-t border-border">
+                    <Tag className="w-3 h-3 text-muted-foreground" />
                     {p.tags.map((tg, i) => (
-                      <span key={i} className="text-[10px] font-semibold bg-slate-200/70 text-slate-700 px-2 py-0.5 rounded-full">
+                      <span key={i} className="text-[10px] font-semibold bg-muted/70 text-foreground px-2 py-0.5 rounded-full">
                         #{tg}
                       </span>
                     ))}
@@ -484,8 +484,8 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
 
       {/* Upload Deposition Modal */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-[120] bg-slate-950/80 backdrop-blur-sm flex justify-center items-center p-4 animate-in fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col">
+        <div className="fixed inset-0 z-[120] bg-foreground/80 backdrop-blur-sm flex justify-center items-center p-4 animate-in fade-in">
+          <div className="bg-white border border-border rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col">
             
             <div className="p-4 sm:p-5 border-b border-teal-100 bg-teal-50/80 flex justify-between items-center">
               <div className="flex items-center gap-2.5">
@@ -493,17 +493,17 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
                   <Upload className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-slate-900 font-display">
+                  <h3 className="text-base font-extrabold text-foreground font-display">
                     {isRtl ? 'إدخال تفريغ استجواب جديد' : 'Ingest Deposition Transcript'}
                   </h3>
-                  <p className="text-xs text-slate-600 font-medium">
+                  <p className="text-xs text-muted-foreground font-medium">
                     {isRtl ? 'أدخل بيانات الشاهد ونص محضر الاستجواب للفهرسة القضائية' : 'Input witness metadata and verbatim deposition text for AI analysis'}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowUploadModal(false)}
-                className="p-2 text-slate-400 hover:text-slate-700 rounded-xl cursor-pointer"
+                className="p-2 text-muted-foreground hover:text-foreground rounded-xl cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -513,7 +513,7 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-foreground block mb-1">
                     {isRtl ? 'اسم الشاهد المستجوب:' : 'Deponent Witness Name:'}
                   </label>
                   <input
@@ -522,12 +522,12 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
                     value={newWitnessName}
                     onChange={(e) => setNewWitnessName(e.target.value)}
                     placeholder={isRtl ? 'مثال: المهندس خالد أحمد' : 'e.g. Capt. Rashid Al-Nuaimi'}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-teal-600"
+                    className="w-full bg-card border border-border rounded-xl p-2.5 text-xs text-foreground focus:outline-none focus:border-teal-600"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-foreground block mb-1">
                     {isRtl ? 'المسمى الوظيفي / الدور:' : 'Witness Role / Title:'}
                   </label>
                   <input
@@ -535,20 +535,20 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
                     value={newWitnessRole}
                     onChange={(e) => setNewWitnessRole(e.target.value)}
                     placeholder={isRtl ? 'مثال: مدير العمليات الميدانية' : 'e.g. Chief Operating Officer'}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-teal-600"
+                    className="w-full bg-card border border-border rounded-xl p-2.5 text-xs text-foreground focus:outline-none focus:border-teal-600"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-foreground block mb-1">
                     {isRtl ? 'صفة الشاهد:' : 'Deponent Classification:'}
                   </label>
                   <select
                     value={newDeponentParty}
                     onChange={(e: any) => setNewDeponentParty(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-teal-600"
+                    className="w-full bg-card border border-border rounded-xl p-2.5 text-xs text-foreground focus:outline-none focus:border-teal-600"
                   >
                     <option value="Adverse Party">{isRtl ? 'الخصم المستجوب (Adverse Party)' : 'Adverse Party'}</option>
                     <option value="Fact Witness">{isRtl ? 'شاهد واقعة (Fact Witness)' : 'Fact Witness'}</option>
@@ -558,20 +558,20 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-foreground block mb-1">
                     {isRtl ? 'تاريخ جلسة الاستجواب:' : 'Deposition Date:'}
                   </label>
                   <input
                     type="date"
                     value={newDepoDate}
                     onChange={(e) => setNewDepoDate(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-teal-600"
+                    className="w-full bg-card border border-border rounded-xl p-2.5 text-xs text-foreground focus:outline-none focus:border-teal-600"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
+                <label className="text-xs font-bold text-foreground block mb-1">
                   {isRtl ? 'نص محضر الاستجواب الشفهي:' : 'Verbatim Transcript Text:'}
                 </label>
                 <textarea
@@ -582,15 +582,15 @@ export default function DepositionIndexerModule({ matterId }: DepositionIndexerM
                   placeholder={isRtl 
                     ? 'ألصق نص أسئلة وأجوبة الاستجواب هنا...\nس: هل تم إخطار الطرف الآخر بإغلاق البوابة؟\nج: لم يتم إرسال إخطار كتابي قبل الساعة الثانية ظهراً.' 
                     : 'Paste transcript Q&A text here...\nQ: Did you give advance notice?\nA: No written notice was sent prior to 2:00 PM.'}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 focus:outline-none focus:border-teal-600 font-mono leading-relaxed"
+                  className="w-full bg-card border border-border rounded-xl p-3 text-xs text-foreground focus:outline-none focus:border-teal-600 font-mono leading-relaxed"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex justify-end gap-2 pt-3 border-t border-border">
                 <button
                   type="button"
                   onClick={() => setShowUploadModal(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors"
+                  className="px-4 py-2 bg-muted text-foreground rounded-xl text-xs font-bold hover:bg-muted transition-colors"
                 >
                   {isRtl ? 'إلغاء' : 'Cancel'}
                 </button>

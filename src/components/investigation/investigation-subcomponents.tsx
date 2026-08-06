@@ -89,16 +89,16 @@ interface InvestigationDetail {
 
 export function PaywallView({ isAr, onUpgrade }: { isAr: boolean; onUpgrade: () => void }) {
   return (
-    <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-8 border border-slate-700 shadow-xl">
+    <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-8 border border-border shadow-xl">
       <div className="flex flex-col items-center text-center max-w-2xl mx-auto gap-4">
-        <div className="p-4 bg-amber-500 text-slate-950 rounded-2xl shadow-lg">
+        <div className="p-4 bg-amber-500 text-foreground rounded-2xl shadow-lg">
           <Lock className="w-8 h-8" />
         </div>
         <div>
           <h2 className="text-xl font-bold mb-2">
             {isAr ? 'وكيل تحقيق القضايا — إضافة مدفوعة' : 'Case Investigation Agent — Paid Add-on'}
           </h2>
-          <p className="text-sm text-slate-300 leading-relaxed">
+          <p className="text-sm text-muted-foreground leading-relaxed">
             {isAr
               ? 'خط أنابيب من سبعة وكلاء ذكاء اصطناعي ينتج حزمة تحقيق منظمة بالاستشهادات الموثقة من المدوّنة الأردنية، مع تحقق مستقل ومراجعة المحامي قبل الإخراج النهائي. متاح فقط للمكاتب المفعّل لديها هذه الإضافة.'
               : 'A seven-agent AI pipeline that produces a structured, citation-backed investigation package — with independent citation + fact verification and an attorney review gate before final output. Available only to organizations with this add-on enabled.'}
@@ -110,20 +110,20 @@ export function PaywallView({ isAr, onUpgrade }: { isAr: boolean; onUpgrade: () 
             { icon: Gavel, ar: 'بوابة مراجعة المحامي', en: 'Attorney review gate' },
             { icon: ScrollText, ar: 'استشهادات من المدوّنة فقط', en: 'Corpus-verified citations only' },
           ].map((f, i) => (
-            <div key={i} className="bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-center">
+            <div key={i} className="bg-foreground/50 border border-border rounded-xl p-3 text-center">
               <f.icon className="w-5 h-5 text-amber-400 mx-auto mb-2" />
-              <p className="text-[11px] text-slate-300 leading-tight">{isAr ? f.ar : f.en}</p>
+              <p className="text-[11px] text-muted-foreground leading-tight">{isAr ? f.ar : f.en}</p>
             </div>
           ))}
         </div>
         <button
           onClick={onUpgrade}
-          className="mt-4 px-6 py-3 bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-bold rounded-xl transition shadow-lg flex items-center gap-2"
+          className="mt-4 px-6 py-3 bg-amber-400 hover:bg-amber-500 text-foreground text-xs font-bold rounded-xl transition shadow-lg flex items-center gap-2"
         >
           <Lock className="w-4 h-4" />
           {isAr ? 'ترقية لتفعيل الإضافة' : 'Upgrade to Unlock'}
         </button>
-        <p className="text-[10px] text-slate-400 mt-1">
+        <p className="text-[10px] text-muted-foreground mt-1">
           {isAr
             ? 'الإضافة مفعّلة على مستوى المؤسسة. تواصل مع مدير حسابك لتفعيلها.'
             : 'Add-on is enabled at the organization level. Contact your account manager to enable.'}
@@ -646,7 +646,7 @@ function AttorneyReviewPanel({
                     ? 'bg-emerald-600 text-white border-emerald-600'
                     : d === 'reject'
                       ? 'bg-destructive text-white border-destructive'
-                      : 'bg-amber-500 text-slate-950 border-amber-500'
+                      : 'bg-amber-500 text-foreground border-amber-500'
                   : 'bg-background border-border hover:bg-accent'
               }`}
             >
@@ -703,8 +703,8 @@ function ReviewHistory({ reviews, isAr }: { reviews: InvestigationDetail['review
 
 export function StatusBadge({ status, isAr }: { status: string; isAr: boolean }) {
   const map: Record<string, { ar: string; en: string; cls: string }> = {
-    queued: { ar: 'في الانتظار', en: 'Queued', cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
-    running: { ar: 'قيد التشغيل', en: 'Running', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' },
+    queued: { ar: 'في الانتظار', en: 'Queued', cls: 'bg-muted text-foreground dark:bg-foreground dark:text-muted-foreground' },
+    running: { ar: 'قيد التشغيل', en: 'Running', cls: 'bg-primary/10 text-primary dark:bg-primary dark:text-primary-foreground' },
     awaiting_attorney_review: { ar: 'بانتظار المراجعة', en: 'Awaiting Review', cls: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' },
     completed: { ar: 'مكتمل', en: 'Completed', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
     failed: { ar: 'فشل', en: 'Failed', cls: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' },

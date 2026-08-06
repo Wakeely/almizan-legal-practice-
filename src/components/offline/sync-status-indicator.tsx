@@ -68,13 +68,13 @@ export default function SyncStatusIndicator() {
       }
     >
       {isSyncing ? (
-        <RefreshCw className="w-3 h-3 animate-spin text-indigo-500" />
+        <RefreshCw className="w-3 h-3 animate-spin text-primary" />
       ) : !isOnline ? (
         <CloudOff className="w-3 h-3 text-amber-500" />
       ) : lastError ? (
         <AlertTriangle className="w-3 h-3 text-red-500" />
       ) : pendingCount > 0 ? (
-        <RefreshCw className="w-3 h-3 text-indigo-500" />
+        <RefreshCw className="w-3 h-3 text-primary" />
       ) : (
         <CheckCircle2 className="w-3 h-3 text-emerald-500" />
       )}
@@ -97,7 +97,7 @@ export default function SyncStatusIndicator() {
         <button
           type="button"
           onClick={handleSyncNow}
-          className="ml-1 px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-bold transition-colors cursor-pointer"
+          className="ml-1 px-2 py-0.5 rounded-md bg-primary/5 hover:bg-primary/10 text-primary border border-primary/20 text-[10px] font-bold transition-colors cursor-pointer"
         >
           {t.offlineSyncNow}
         </button>

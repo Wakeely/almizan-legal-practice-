@@ -178,7 +178,7 @@ export default function DocumentRedactionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[110] bg-slate-950/85 backdrop-blur-md flex flex-col justify-between items-center p-2 sm:p-4 md:p-6 overflow-hidden no-print animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[110] bg-foreground/85 backdrop-blur-md flex flex-col justify-between items-center p-2 sm:p-4 md:p-6 overflow-hidden no-print animate-in fade-in duration-200">
       
       {/* Modal Control Bar (Header) */}
       <div className="w-full max-w-6xl bg-gradient-to-r from-teal-950 via-teal-900 to-teal-950 border border-teal-800 text-white rounded-2xl p-3 sm:p-4 shadow-2xl flex flex-wrap items-center justify-between gap-3 shrink-0">
@@ -205,15 +205,15 @@ export default function DocumentRedactionModal({
         {/* Action Controls & Preset AI Redact Buttons */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* AI Auto-Redact Button Group */}
-          <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-xl border border-slate-700 text-xs">
-            <span className="text-[10px] text-slate-400 font-bold px-1.5 uppercase hidden xl:inline">
+          <div className="flex items-center gap-1 bg-foreground p-1 rounded-xl border border-border text-xs">
+            <span className="text-[10px] text-muted-foreground font-bold px-1.5 uppercase hidden xl:inline">
               <Sparkles className="w-3 h-3 text-amber-400 inline me-1" />
               {isRtl ? 'تنقيح ذكي:' : 'AI Presets:'}
             </span>
             <button
               type="button"
               onClick={() => handleAutoRedactAI('PII')}
-              className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+              className="px-2 py-1 bg-foreground hover:bg-foreground/80 text-muted-foreground rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
               title={isRtl ? 'طمس أرقام الهويات والجوازات والهواتف' : 'Redact National IDs, Passports & Phone numbers'}
             >
               🛡️ {isRtl ? 'الهويات' : 'PII'}
@@ -221,7 +221,7 @@ export default function DocumentRedactionModal({
             <button
               type="button"
               onClick={() => handleAutoRedactAI('Financial')}
-              className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+              className="px-2 py-1 bg-foreground hover:bg-foreground/80 text-muted-foreground rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
               title={isRtl ? 'طمس المبالغ المالية وحسابات الأيبان' : 'Redact JOD/AED amounts & IBAN numbers'}
             >
               💰 {isRtl ? 'المبالغ' : 'Financial'}
@@ -229,7 +229,7 @@ export default function DocumentRedactionModal({
             <button
               type="button"
               onClick={() => handleAutoRedactAI('Privileged')}
-              className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+              className="px-2 py-1 bg-foreground hover:bg-foreground/80 text-muted-foreground rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
               title={isRtl ? 'طمس مراسلات واستشارات المحامي السري' : 'Redact Attorney-Client strategy notes'}
             >
               ⚖️ {isRtl ? 'سرية المحامي' : 'Privileged'}
@@ -244,12 +244,12 @@ export default function DocumentRedactionModal({
           </div>
 
           {/* Render Mode Toggle (Draft Review vs Solid Burn-In) */}
-          <div className="flex items-center bg-slate-800 border border-slate-700 rounded-xl p-1 text-xs">
+          <div className="flex items-center bg-foreground border border-border rounded-xl p-1 text-xs">
             <button
               type="button"
               onClick={() => setMode('draft')}
               className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                mode === 'draft' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
+                mode === 'draft' ? 'bg-primary text-white shadow-xs' : 'text-muted-foreground hover:text-muted-foreground'
               }`}
             >
               {isRtl ? 'معاينة المسودة' : 'Draft Mode'}
@@ -258,7 +258,7 @@ export default function DocumentRedactionModal({
               type="button"
               onClick={() => setMode('burn')}
               className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                mode === 'burn' ? 'bg-red-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
+                mode === 'burn' ? 'bg-red-600 text-white shadow-xs' : 'text-muted-foreground hover:text-muted-foreground'
               }`}
             >
               {isRtl ? 'طمس نهائي دائم' : 'Solid Burn-In'}
@@ -269,7 +269,7 @@ export default function DocumentRedactionModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+            className="p-2 text-muted-foreground hover:text-white hover:bg-foreground rounded-xl transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -291,16 +291,16 @@ export default function DocumentRedactionModal({
       <div className="w-full max-w-6xl flex-grow grid grid-cols-1 lg:grid-cols-3 gap-4 overflow-hidden my-2">
         
         {/* Left Hand Document Preview Canvas (2 Columns) */}
-        <div className="lg:col-span-2 bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between overflow-y-auto custom-scrollbar relative">
+        <div className="lg:col-span-2 bg-foreground/60 border border-border rounded-2xl p-4 flex flex-col justify-between overflow-y-auto custom-scrollbar relative">
           
           {/* Zoom & Quick Manual Add Toolbar */}
-          <div className="flex items-center justify-between bg-slate-800/90 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-300 mb-3 sticky top-0 z-20 backdrop-blur-md">
+          <div className="flex items-center justify-between bg-foreground/90 border border-border/80 rounded-xl px-3 py-2 text-xs text-muted-foreground mb-3 sticky top-0 z-20 backdrop-blur-md">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase text-slate-400">{isRtl ? 'سبب الطمس اليدوي:' : 'Manual Reason:'}</span>
+              <span className="text-[10px] font-bold uppercase text-muted-foreground">{isRtl ? 'سبب الطمس اليدوي:' : 'Manual Reason:'}</span>
               <select
                 value={selectedReason}
                 onChange={(e) => setSelectedReason(e.target.value as any)}
-                className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-2 py-1 font-bold focus:outline-none"
+                className="bg-foreground border border-border text-muted-foreground text-xs rounded-lg px-2 py-1 font-bold focus:outline-none"
               >
                 <option value="Privileged">{isRtl ? 'سرية المحامي والموكل' : 'Atty-Client Privilege'}</option>
                 <option value="PII">{isRtl ? 'بيانات شخصية (PII)' : 'PII & ID'}</option>
@@ -313,7 +313,7 @@ export default function DocumentRedactionModal({
               <button
                 type="button"
                 onClick={() => setZoomScale(prev => Math.max(80, prev - 10))}
-                className="p-1 hover:bg-slate-700 rounded transition-colors"
+                className="p-1 hover:bg-foreground rounded transition-colors"
               >
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
@@ -321,7 +321,7 @@ export default function DocumentRedactionModal({
               <button
                 type="button"
                 onClick={() => setZoomScale(prev => Math.min(130, prev + 10))}
-                className="p-1 hover:bg-slate-700 rounded transition-colors"
+                className="p-1 hover:bg-foreground rounded transition-colors"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
               </button>
@@ -331,14 +331,14 @@ export default function DocumentRedactionModal({
           {/* Paper Canvas Container */}
           <div className="flex-grow flex justify-center items-start overflow-auto p-2">
             <div
-              className="bg-white text-slate-900 shadow-2xl rounded-sm p-8 sm:p-10 w-full max-w-[210mm] border border-slate-300 relative transition-transform duration-200 origin-top font-serif select-text min-h-[500px]"
+              className="bg-white text-foreground shadow-2xl rounded-sm p-8 sm:p-10 w-full max-w-[210mm] border border-border relative transition-transform duration-200 origin-top font-serif select-text min-h-[500px]"
               style={{ transform: `scale(${zoomScale / 100})` }}
               dir={isRtl ? 'rtl' : 'ltr'}
             >
               {/* Document Header Line */}
               <div className="border-b-2 border-slate-900 pb-3 mb-6 flex justify-between items-center text-xs font-mono">
-                <span className="font-bold text-slate-800">{document.name}</span>
-                <span className="text-slate-500">{isRtl ? 'صفحة 1 من 2' : 'Page 1 of 2'}</span>
+                <span className="font-bold text-foreground">{document.name}</span>
+                <span className="text-muted-foreground">{isRtl ? 'صفحة 1 من 2' : 'Page 1 of 2'}</span>
               </div>
 
               {/* Render Document Lines with Overlay Redaction Rectangles */}
@@ -350,7 +350,7 @@ export default function DocumentRedactionModal({
                     className="group relative cursor-crosshair hover:bg-amber-50/60 p-1 rounded transition-colors"
                     title={isRtl ? 'انقر لطمس السطر المباشر' : 'Click to apply manual blackout overlay on this line'}
                   >
-                    <p className="text-slate-800 font-serif leading-relaxed">{line.text}</p>
+                    <p className="text-foreground font-serif leading-relaxed">{line.text}</p>
                   </div>
                 ))}
 
@@ -396,7 +396,7 @@ export default function DocumentRedactionModal({
               </div>
 
               {/* Watermark Notice */}
-              <div className="mt-12 pt-4 border-t border-slate-300 text-[9px] text-slate-400 text-center uppercase tracking-widest font-mono">
+              <div className="mt-12 pt-4 border-t border-border text-[9px] text-muted-foreground text-center uppercase tracking-widest font-mono">
                 {isRtl ? 'مستند مجهز للإفصاح القضائي • نظام وكيلي برو' : 'OFFICIAL COURT DISCOVERY REDACTION CANVAS • WAKEELY PRO LEGAL OS'}
               </div>
             </div>
@@ -404,10 +404,10 @@ export default function DocumentRedactionModal({
         </div>
 
         {/* Right Hand Sidebar: Active Redaction Inventory & Save Action Panel */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between text-white overflow-y-auto">
+        <div className="bg-foreground border border-border rounded-2xl p-4 flex flex-col justify-between text-white overflow-y-auto">
           <div>
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 font-display flex items-center gap-1.5">
+            <div className="flex justify-between items-center border-b border-border pb-3 mb-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground font-display flex items-center gap-1.5">
                 <Scissors className="w-4 h-4 text-red-400" />
                 {isRtl ? 'قائمة المناطق المطموسة' : 'Redacted Entities Log'}
               </h4>
@@ -419,10 +419,10 @@ export default function DocumentRedactionModal({
             {/* Redactions List */}
             <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
               {redactions.length === 0 ? (
-                <div className="text-center py-10 text-slate-500 space-y-2">
-                  <AlertTriangle className="w-8 h-8 text-slate-600 mx-auto" />
+                <div className="text-center py-10 text-muted-foreground space-y-2">
+                  <AlertTriangle className="w-8 h-8 text-muted-foreground mx-auto" />
                   <p className="text-xs font-bold">{isRtl ? 'لم يتم طمس أي بيانات بعد' : 'No redaction blocks applied yet'}</p>
-                  <p className="text-[10px] text-slate-400 max-w-[200px] mx-auto">
+                  <p className="text-[10px] text-muted-foreground max-w-[200px] mx-auto">
                     {isRtl
                       ? 'اضغط على أزرار التنقيح الذكي أعلاه أو انقر فوق أي سطر في المستند لإخفائه'
                       : 'Use AI auto-redact presets above or click any text line on the canvas to obscure'}
@@ -432,7 +432,7 @@ export default function DocumentRedactionModal({
                 redactions.map((red) => (
                   <div
                     key={red.id}
-                    className="p-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs flex items-center justify-between gap-2 shadow-xs"
+                    className="p-2.5 bg-foreground/80 border border-border/80 rounded-xl text-xs flex items-center justify-between gap-2 shadow-xs"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 mb-1">
@@ -443,9 +443,9 @@ export default function DocumentRedactionModal({
                         }`}>
                           {getReasonLabel(red.reason)}
                         </span>
-                        <span className="text-[9px] text-slate-400 font-mono">P.{red.pageNumber}</span>
+                        <span className="text-[9px] text-muted-foreground font-mono">P.{red.pageNumber}</span>
                       </div>
-                      <p className="text-[11px] text-slate-300 truncate font-serif italic">
+                      <p className="text-[11px] text-muted-foreground truncate font-serif italic">
                         "{red.textSnippet}"
                       </p>
                     </div>
@@ -453,7 +453,7 @@ export default function DocumentRedactionModal({
                     <button
                       type="button"
                       onClick={() => handleRemoveRedaction(red.id)}
-                      className="p-1 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer shrink-0"
+                      className="p-1 text-muted-foreground hover:text-red-400 hover:bg-foreground rounded-lg transition-colors cursor-pointer shrink-0"
                       title={isRtl ? 'إلغاء هذا الطمس' : 'Remove Redaction'}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -465,7 +465,7 @@ export default function DocumentRedactionModal({
           </div>
 
           {/* Action Buttons Panel */}
-          <div className="border-t border-slate-800 pt-3 mt-4 space-y-2">
+          <div className="border-t border-border pt-3 mt-4 space-y-2">
             <button
               type="button"
               onClick={handleSaveAndApply}
@@ -483,7 +483,7 @@ export default function DocumentRedactionModal({
             <button
               type="button"
               onClick={() => handleAutoRedactAI('All')}
-              className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="w-full py-2 bg-foreground hover:bg-foreground text-muted-foreground font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
               <span>{isRtl ? 'إعادة التنقيح التلقائي بالكامل' : 'Re-run AI Auto Redact'}</span>

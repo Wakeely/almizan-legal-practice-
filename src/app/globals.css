@@ -9,7 +9,6 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* Map shadcn/ui font vars to Tajawal + JetBrains Mono (faithful port of reference Design.md) */
   --font-sans: var(--font-tajawal), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-display: var(--font-tajawal), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
@@ -50,8 +49,8 @@
 }
 
 /* ----------------------------------------------------------------------- */
-/* PORTED MARKETING SECTIONS palette (from design-of-interests reference)  */
-/* Executive brass/teal/ivory tokens used by the ported landing sections   */
+/* LANDING MARKETING PALETTE — ink/teal/brass/ivory tokens                  */
+/* Used ONLY by landing page sections. Do NOT use in workspace.             */
 /* ----------------------------------------------------------------------- */
 @theme {
   --color-ink: #0E211E;
@@ -69,135 +68,181 @@
 }
 
 /* ----------------------------------------------------------------------- */
-/* LIGHT THEME — Al Mizan "Executive Legal" palette                     */
-/* Cream/teal background, slate-900 text, teal-700 accents                 */
+/* LIGHT THEME — Unified teal-based design system                          */
 /* ----------------------------------------------------------------------- */
 :root {
-  --radius: 0.625rem;
-  --background: #e6f2f6;            /* teal-50 cream */
-  --foreground: #0f172a;            /* slate-900 */
+  /* Spacing scale */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+
+  /* Border radius — consistent 0.75rem across the workspace */
+  --radius: 0.75rem;
+
+  /* Semantic color tokens — teal primary, warm neutral accents */
+  --background: #eaf4f8;              /* teal-25 — subtle branded tint */
+  --foreground: #0f172a;              /* slate-900 */
   --card: #ffffff;
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #006c8e;               /* brand teal-blue */
+  --primary: #006c8e;                 /* brand teal */
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;            /* slate-100 */
+  --secondary: #e8f4f0;              /* soft teal-green tint */
   --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #475569;     /* slate-600 */
-  --accent: #cce8f2;               /* teal-100 */
-  --accent-foreground: #005a75;     /* teal-800 */
-  --destructive: #e11d48;           /* rose-600 */
-  --border: #e2e8f0;               /* slate-200 */
-  --input: #e2e8f0;
-  --ring: #006c8e;                 /* primary teal */
-  --chart-1: #006c8e;
-  --chart-2: #f59e0b;
-  --chart-3: #6366f1;
-  --chart-4: #ec4899;
-  --chart-5: #008fc0;
+  --muted: #f1f5f9;                  /* slate-100 */
+  --muted-foreground: #475569;       /* slate-600 */
+  --accent: #cce8f2;                 /* teal-100 */
+  --accent-foreground: #005a75;      /* teal-800 */
+  --destructive: #e11d48;            /* rose-600 */
+  --border: #d4e6ed;                 /* teal-200 border */
+  --input: #d4e6ed;                  /* matches border for cohesion */
+  --ring: #006c8e;                   /* primary teal */
+
+  /* Form input text — always dark in light mode for readability */
+  --input-text: #0f172a;
+  --input-placeholder: #94a3b8;
+
+  /* Chart palette — teal family with warm accent, NO indigo */
+  --chart-1: #006c8e;                 /* brand teal */
+  --chart-2: #f59e0b;                 /* amber — brass family */
+  --chart-3: #059669;                 /* emerald — complementary green */
+  --chart-4: #e11d48;                 /* rose — alert/danger accent */
+  --chart-5: #008fc0;                 /* lighter teal */
+
+  /* Sidebar */
   --sidebar: #ffffff;
   --sidebar-foreground: #0f172a;
   --sidebar-primary: #006c8e;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #cce8f2;
   --sidebar-accent-foreground: #005a75;
-  --sidebar-border: #e2e8f0;
+  --sidebar-border: #d4e6ed;
   --sidebar-ring: #006c8e;
 }
 
 /* ----------------------------------------------------------------------- */
-/* DARK THEME — Al Mizan dark mode                                       */
-/* Deep teal-950 background, slate-50 text                                  */
+/* DARK THEME — Deep teal-navy, NO indigo                                  */
 /* ----------------------------------------------------------------------- */
 .dark {
-  --background: #062a36;            /* dark blue-teal */
-  --foreground: #f8fafc;            /* slate-50 */
-  --card: #0a3545;
-  --card-foreground: #f8fafc;
-  --popover: #0a3545;
-  --popover-foreground: #f8fafc;
-  --primary: #008fc0;               /* lighter teal-blue */
-  --primary-foreground: #062a36;
-  --secondary: #0a3545;
-  --secondary-foreground: #f8fafc;
-  --muted: #0a3545;
-  --muted-foreground: #94a3b8;
-  --accent: #0f4054;
-  --accent-foreground: #9cd8f0;
+  --background: #041e28;              /* deep teal-navy */
+  --foreground: #e8f0f2;              /* soft white with teal tint */
+  --card: #0a3240;                    /* elevated teal-dark surface */
+  --card-foreground: #e8f0f2;
+  --popover: #0a3240;
+  --popover-foreground: #e8f0f2;
+  --primary: #008fc0;                 /* lighter teal-blue for contrast */
+  --primary-foreground: #041e28;
+  --secondary: #0c3a4a;
+  --secondary-foreground: #e8f0f2;
+  --muted: #0c3a4a;
+  --muted-foreground: #8fb8c8;       /* sage-muted for readability */
+  --accent: #0f4558;
+  --accent-foreground: #7ccde4;
   --destructive: #fb7185;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: rgba(255, 255, 255, 0.12);
+  --border: rgba(0, 140, 192, 0.12); /* teal-tinted border */
+  --input: rgba(0, 140, 192, 0.15);  /* teal-tinted input bg */
   --ring: #008fc0;
+
+  /* Form input text — light on dark in dark mode */
+  --input-text: #e8f0f2;
+  --input-placeholder: #5a8a9a;
+
+  /* Chart palette — lightened for dark backgrounds, NO indigo */
   --chart-1: #008fc0;
   --chart-2: #fbbf24;
-  --chart-3: #818cf8;
-  --chart-4: #f472b6;
-  --chart-5: #38bdf8;
-  --sidebar: #0a3545;
-  --sidebar-foreground: #f8fafc;
+  --chart-3: #34d399;                 /* emerald-400 */
+  --chart-4: #fb7185;
+  --chart-5: #38bdf8;                 /* sky-400 */
+
+  /* Sidebar */
+  --sidebar: #0a3240;
+  --sidebar-foreground: #e8f0f2;
   --sidebar-primary: #008fc0;
-  --sidebar-primary-foreground: #062a36;
-  --sidebar-accent: #0f4054;
-  --sidebar-accent-foreground: #9cd8f0;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-primary-foreground: #041e28;
+  --sidebar-accent: #0f4558;
+  --sidebar-accent-foreground: #7ccde4;
+  --sidebar-border: rgba(0, 140, 192, 0.12);
   --sidebar-ring: #008fc0;
 }
 
 /* ----------------------------------------------------------------------- */
-/* FONT APPLICATION — Tajawal everywhere (faithful port of reference)      */
-/* Body / UI weight 600, Headings weight 800, Mono JetBrains                */
+/* BASE LAYER — borders, body, and form input theming                      */
 /* ----------------------------------------------------------------------- */
-html, body, button, input, select, textarea {
-  font-family: var(--font-tajawal), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Form controls — themed via CSS variables, no !important needed */
+  input,
+  textarea,
+  select {
+    color: var(--input-text);
+    background-color: transparent;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--input-placeholder);
+    opacity: 1;
+  }
+  /* OS select picker — always light background, dark text for readability */
+  option {
+    color: #0f172a;
+    background: #ffffff;
+  }
+}
+
+/* ----------------------------------------------------------------------- */
+/* TYPOGRAPHY — Tajawal for all UI, JetBrains Mono for code               */
+/* ----------------------------------------------------------------------- */
+html,
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-tajawal), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-weight: 600;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* -----------------------------------------------------------------------------
-   FORM INPUT TEXT COLOR — fix for invisible text in dark theme
-   -----------------------------------------------------------------------------
-   The reference UI uses Tailwind utility classes (bg-slate-50, bg-white) on
-   inputs, but inherits the body's foreground color. In dark theme the body
-   foreground is light (#f8fafc), making typed text invisible against the
-   light input background. Force all form inputs to dark slate text + medium
-   gray placeholder, regardless of theme. This matches the reference design
-   intent: forms always have white backgrounds with dark text.
------------------------------------------------------------------------------ */
-input, textarea, select {
-  color: #0f172a !important; /* slate-900 — always dark for readability */
-}
-input::placeholder, textarea::placeholder {
-  color: #94a3b8 !important; /* slate-400 — visible against white bg */
-  opacity: 1;
-}
-input:focus, textarea:focus, select:focus {
-  color: #0f172a !important;
-}
-/* Select dropdown options inherit the OS picker — ensure dark text there too */
-option {
-  color: #0f172a;
-  background: #ffffff;
-}
-
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-tajawal), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-family: var(--font-tajawal), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-weight: 800;
 }
 
 code, pre, .font-mono {
-  font-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace !important;
+  font-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
 /* RTL letter-spacing fix — prevents broken character gaps in Arabic */
-[dir="rtl"], [dir="rtl"] *, .rtl-text {
-  letter-spacing: 0px !important;
+[dir="rtl"],
+[dir="rtl"] *,
+.rtl-text {
+  letter-spacing: 0px;
 }
 
 /* ----------------------------------------------------------------------- */
-/* CUSTOM SCROLLBARS — clean legal workspace                                */
+/* LANDING MARKETING — serif display font override                         */
+/* Only used on landing page sections, not in workspace.                  */
+/* ----------------------------------------------------------------------- */
+.font-serif {
+  font-family: var(--font-markazi), var(--font-fraunces), "Markazi Text", "Fraunces", serif;
+}
+html[lang="en"] .font-serif {
+  font-family: var(--font-fraunces), var(--font-markazi), "Fraunces", "Markazi Text", serif;
+}
+
+/* ----------------------------------------------------------------------- */
+/* SCROLLBARS — subtle teal, workspace-appropriate                        */
 /* ----------------------------------------------------------------------- */
 ::-webkit-scrollbar {
   width: 6px;
@@ -207,34 +252,49 @@ code, pre, .font-mono {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #006c8e;
+  background: rgba(0, 108, 142, 0.25);   /* subtle teal — was solid #006c8e */
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #005a75;
+  background: rgba(0, 108, 142, 0.45);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(0, 143, 192, 0.3);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 143, 192, 0.5);
 }
 
-/* App background wrapper — light silver/slate gradient (was teal) */
+/* ----------------------------------------------------------------------- */
+/* APP BACKGROUND — subtle branded gradient                                */
+/* ----------------------------------------------------------------------- */
 .app-theme-wrapper {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+  background: linear-gradient(160deg, #eaf4f8 0%, #f0f6f8 40%, #edf2f4 100%);
   min-height: 100vh;
 }
 .dark .app-theme-wrapper {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e293b 100%);
+  background: linear-gradient(160deg, #041e28 0%, #062a36 40%, #072e3b 100%);
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
+/* ----------------------------------------------------------------------- */
+/* PAGE TRANSITIONS — smooth enter animation                               */
+/* ----------------------------------------------------------------------- */
+.page-enter {
+  animation: pageEnter 0.2s ease-out;
+}
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
-  body {
-    @apply bg-background text-foreground;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
 /* ----------------------------------------------------------------------- */
-/* PRINT MEDIA — physical courtroom docket summary                          */
-/* Hidden on screen, visible only in print preview                         */
+/* PRINT MEDIA — physical courtroom docket summary                         */
 /* ----------------------------------------------------------------------- */
 @page {
   size: A4 portrait;
@@ -266,16 +326,4 @@ code, pre, .font-mono {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-}
-
-/* ----------------------------------------------------------------------- */
-/* PORTED MARKETING SECTIONS — serif display font override                 */
-/* The ported sections use font-serif headings (Markazi Text / Fraunces).  */
-/* Must beat the global Tajawal heading rule above.                        */
-/* ----------------------------------------------------------------------- */
-.font-serif {
-  font-family: var(--font-markazi), var(--font-fraunces), 'Markazi Text', 'Fraunces', serif !important;
-}
-html[lang="en"] .font-serif {
-  font-family: var(--font-fraunces), var(--font-markazi), 'Fraunces', 'Markazi Text', serif !important;
 }

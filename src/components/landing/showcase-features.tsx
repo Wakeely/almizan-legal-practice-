@@ -180,12 +180,12 @@ export default function ShowcaseFeatures() {
                         className="space-y-4"
                         dir={language === "ar" ? "rtl" : "ltr"}
                       >
-                        <div className="h-3 w-1/3 bg-gray-200 rounded mb-6"></div>
+                        <div className="h-3 w-1/3 bg-muted rounded mb-6"></div>
 
                         <div className="space-y-2.5">
-                          <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 1, ease: "easeOut" }} className="h-2 bg-gray-100 rounded"></motion.div>
-                          <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 1, delay: 0.1, ease: "easeOut" }} className="h-2 bg-gray-100 rounded"></motion.div>
-                          <motion.div initial={{ width: 0 }} animate={{ width: "85%" }} transition={{ duration: 1, delay: 0.2, ease: "easeOut" }} className="h-2 bg-gray-100 rounded"></motion.div>
+                          <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 1, ease: "easeOut" }} className="h-2 bg-muted rounded"></motion.div>
+                          <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 1, delay: 0.1, ease: "easeOut" }} className="h-2 bg-muted rounded"></motion.div>
+                          <motion.div initial={{ width: 0 }} animate={{ width: "85%" }} transition={{ duration: 1, delay: 0.2, ease: "easeOut" }} className="h-2 bg-muted rounded"></motion.div>
                         </div>
 
                         <div className="py-2"></div>
@@ -225,9 +225,9 @@ export default function ShowcaseFeatures() {
                     </div>
 
                     <div className="space-y-4 relative z-0" dir={language === "ar" ? "rtl" : "ltr"}>
-                      <div className="h-2 w-full bg-gray-200 rounded"></div>
-                      <div className="h-2 w-full bg-gray-200 rounded"></div>
-                      <div className="h-2 w-3/4 bg-gray-200 rounded"></div>
+                      <div className="h-2 w-full bg-muted rounded"></div>
+                      <div className="h-2 w-full bg-muted rounded"></div>
+                      <div className="h-2 w-3/4 bg-muted rounded"></div>
 
                       <motion.div
                         initial={{ backgroundColor: "rgba(254, 242, 242, 0)", borderColor: "rgba(254, 226, 226, 0)" }}
@@ -239,8 +239,8 @@ export default function ShowcaseFeatures() {
                         <div className="h-2 w-5/6 bg-red-200/50 rounded"></div>
                       </motion.div>
 
-                      <div className="h-2 w-full bg-gray-200 rounded mt-4"></div>
-                      <div className="h-2 w-4/5 bg-gray-200 rounded"></div>
+                      <div className="h-2 w-full bg-muted rounded mt-4"></div>
+                      <div className="h-2 w-4/5 bg-muted rounded"></div>
                     </div>
 
                     <motion.div
@@ -288,7 +288,7 @@ export default function ShowcaseFeatures() {
                           )}
                           <div className={cn(
                             "w-16 md:w-20 p-3 md:p-4 flex flex-col items-center justify-center shrink-0 border-l border-line",
-                            d.urgent ? "bg-red-50/50" : "bg-gray-50/50"
+                            d.urgent ? "bg-red-50/50" : "bg-muted/50"
                           )}>
                             <span className={cn("text-xl font-bold leading-none mb-1", d.urgent ? "text-red-600" : "text-ink/60")}>
                               {d.days}
@@ -301,9 +301,9 @@ export default function ShowcaseFeatures() {
                           <div className="flex-1 p-4 flex flex-col justify-center">
                             <div className="flex justify-between items-center mb-2">
                               <div className={cn("font-bold text-sm", d.urgent ? "text-red-600" : "text-ink")}>{d.label}</div>
-                              <div className="text-[10px] font-mono text-ink/40 bg-gray-100 px-2 py-0.5 rounded">{d.date}</div>
+                              <div className="text-[10px] font-mono text-ink/40 bg-muted px-2 py-0.5 rounded">{d.date}</div>
                             </div>
-                            <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                               <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: d.urgent ? "85%" : "25%" }}
@@ -419,7 +419,7 @@ export default function ShowcaseFeatures() {
                       </div>
 
                       <div className="p-4 border-t border-line bg-white">
-                        <div className="h-10 bg-gray-100 rounded-full flex items-center px-4 justify-between">
+                        <div className="h-10 bg-muted rounded-full flex items-center px-4 justify-between">
                           <div className="text-xs text-ink/40 font-medium">
                             {isRtl ? "اكتب رسالة..." : "Type a message..."}
                           </div>

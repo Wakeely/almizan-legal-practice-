@@ -1,18 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Shield, ShieldCheck, User, Landmark, Plus, RefreshCw, Folder, Languages, Bell, Inbox, Check, FileCheck, Calendar, MessageSquare, Search, Sparkles, Fingerprint, Scan, Sun, Moon, Printer, LogOut, Award, Zap, Key } from 'lucide-react';
+import { Bell, Inbox, FileCheck, Calendar, MessageSquare, Search, Sun, Moon, Plus, ShieldCheck, Languages } from 'lucide-react';
 import { Matter } from '@/lib/types';
 import { useLanguage } from '@/components/providers/language-provider';
 import { useTheme } from '@/components/providers/theme-provider';
 import { useAuth } from '@/components/providers/auth-provider';
 import { translateStaticText } from '@/lib/i18n';
-import MobileBottomNav from '@/components/mobile/mobile-bottom-nav';
 import GlobalSearchModal from '@/components/search/global-search-modal';
 import ConflictCheckModal from '@/components/conflict/conflict-check-modal';
 import AuthModal from '@/components/auth/auth-modal';
-import SubscriptionPaywallModal from '@/components/subscription/subscription-paywall-modal';
 import ThemeAwareLogo from '@/components/branding/theme-aware-logo';
+import { cn } from '@/lib/utils';
 
 interface HeaderProps {
   currentMode: 'Lawyer' | 'Client';
@@ -25,907 +24,181 @@ interface HeaderProps {
 }
 
 export default function Header({
-  currentMode,
-  onModeChange,
-  matters,
-  activeMatterId,
-  onActiveMatterChange,
-  onNewMatterCreated,
-  onShowLandingPage
+  currentMode, onModeChange, matters, activeMatterId,
+  onActiveMatterChange, onNewMatterCreated, onShowLandingPage,
 }: HeaderProps) {
   const { language, setLanguage, t, isRtl } = useLanguage();
   const { theme, setTheme } = useTheme();
-  const isDark = theme === "dark";
-  const toggleTheme = () => setTheme(isDark ? "light" : "dark");
-  const { user, isAuthenticated, logout } = useAuth();
+  const isDark = theme === 'dark';
+  const { isAuthenticated } = useAuth();
 
-  const [showModal, setShowModal] = useState(false);
-  const [showSearchModal, setShowSearchModal] = useState(false);
-  const [showConflictModal, setShowConflictModal] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [showPaywallModal, setShowPaywallModal] = useState(false);
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [showConflict, setShowConflict] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [showNotif, setShowNotif] = useState(false);
 
-  const [title, setTitle] = useState('');
-  const [clientName, setClientName] = useState('');
-  const [clientEmail, setClientEmail] = useState('');
-  const [jurisdiction, setJurisdiction] = useState('Dubai Commercial Court');
-  const [opposingParty, setOpposingParty] = useState('');
-  const [opposingCounsel, setOpposingCounsel] = useState('');
-  const [budget, setBudget] = useState(15000);
-  const [submitting, setSubmitting] = useState(false);
+  // Notification persistence
+  const loadPersisted = (key: string) => { try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : []; } catch { return []; } };
+  const [readIds, setReadIds] = useState<string[]>(() => loadPersisted('almizan_read_notifications'));
+  const [dismissedIds, setDismissedIds] = useState<string[]>(() => loadPersisted('almizan_dismissed_notifications'));
+  const persist = (key: string, ids: string[]) => localStorage.setItem(key, JSON.stringify(ids));
 
-  // Global search keyboard shortcut listener (Ctrl+K or Cmd+K)
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const activeNotifs = notifications.filter(n => !dismissedIds.includes(n.id));
+  const unreadCount = activeNotifs.filter(n => !readIds.includes(n.id)).length;
+
+  // ── Keyboard shortcuts & events ──────────────────────────
   useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setShowSearchModal(prev => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    const onKey = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setShowSearch(p => !p); } };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // Notifications state
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [isFetchingNotifications, setIsFetchingNotifications] = useState(false);
-  const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
-
-  const [readIds, setReadIds] = useState<string[]>(() => {
+  // ── Notifications ────────────────────────────────────────
+  const buildNotifications = async () => {
     try {
-      const saved = localStorage.getItem('almizan_read_notifications');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const [dismissedIds, setDismissedIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('almizan_dismissed_notifications');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  // Mobile Native Nav tab filter state
-  const [activeMobileTab, setActiveMobileTab] = useState<'all' | 'analytics' | 'tasks' | 'docs' | 'ai'>('all');
-
-  const activeMatter = matters.find(m => m.id === activeMatterId);
-
-  const loadNotificationsData = async () => {
-    setIsFetchingNotifications(true);
-    try {
-      const allTasks: any[] = [];
-      const allDocs: any[] = [];
-      const allMessages: any[] = [];
-
-      await Promise.all(matters.map(async (m) => {
+      const allT: any[] = [], allD: any[] = [], allM: any[] = [];
+      await Promise.all(matters.map(async m => {
         try {
-          const tasksRes = await fetch(`/api/matters/${m.id}/tasks`);
-          if (tasksRes.ok) {
-            const tData = await tasksRes.json();
-            allTasks.push(...tData);
-          }
-
-          const docsRes = await fetch(`/api/matters/${m.id}/documents`);
-          if (docsRes.ok) {
-            const dData = await docsRes.json();
-            allDocs.push(...dData);
-          }
-
-          const msgsRes = await fetch(`/api/matters/${m.id}/messages`);
-          if (msgsRes.ok) {
-            const mData = await msgsRes.json();
-            allMessages.push(...mData);
-          }
-        } catch (e) {
-          console.error(`Failed to load data for matter ${m.id}:`, e);
-        }
+          const [tR, dR, mR] = await Promise.all([
+            fetch(`/api/matters/${m.id}/tasks`), fetch(`/api/matters/${m.id}/documents`), fetch(`/api/matters/${m.id}/messages`)
+          ]);
+          if (tR.ok) allT.push(...await tR.json());
+          if (dR.ok) allD.push(...await dR.json());
+          if (mR.ok) allM.push(...await mR.json());
+        } catch { /* skip */ }
       }));
-
       const list: any[] = [];
-
-      // 1. High priority uncompleted tasks
-      allTasks.forEach(t => {
-        if (t.priority === 'High' && t.status !== 'Completed') {
-          list.push({
-            id: `task-${t.id}`,
-            type: 'deadline',
-            title: t.title,
-            description: t.description || '',
-            date: t.dueDate,
-            matterId: t.matterId,
-            matterTitle: matters.find(m => m.id === t.matterId)?.title || '',
-            isUrgent: true,
-            refId: t.id
-          });
-        }
-      });
-
-      // 2. Draft documents waiting to be approved (visibleToClient === false)
-      allDocs.forEach(d => {
-        if (!d.visibleToClient) {
-          list.push({
-            id: `doc-${d.id}`,
-            type: 'document',
-            title: d.name,
-            description: d.uploadedBy,
-            date: new Date(d.uploadedAt).toLocaleDateString(),
-            matterId: d.matterId,
-            matterTitle: matters.find(m => m.id === d.matterId)?.title || '',
-            isUrgent: false,
-            refId: d.id
-          });
-        }
-      });
-
-      // 3. Client messages
-      allMessages.forEach(msg => {
-        if (msg.sender === 'Client') {
-          list.push({
-            id: `msg-${msg.id}`,
-            type: 'message',
-            title: msg.text,
-            description: matters.find(m => m.id === msg.matterId)?.clientName || '',
-            date: new Date(msg.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' }),
-            matterId: msg.matterId,
-            matterTitle: matters.find(m => m.id === msg.matterId)?.title || '',
-            isUrgent: false,
-            refId: msg.id
-          });
-        }
-      });
-
-      list.sort((a, b) => {
-        if (a.isUrgent && !b.isUrgent) return -1;
-        if (!a.isUrgent && b.isUrgent) return 1;
-        return b.id.localeCompare(a.id);
-      });
-
+      allT.filter(t => t.priority === 'High' && t.status !== 'Completed').forEach(t => list.push({ id: `task-${t.id}`, type: 'deadline', title: t.title, description: t.description || '', date: t.dueDate, matterTitle: matters.find(m => m.id === t.matterId)?.title || '', isUrgent: true, refId: t.id }));
+      allD.filter(d => !d.visibleToClient).forEach(d => list.push({ id: `doc-${d.id}`, type: 'document', title: d.name, description: d.uploadedBy, date: new Date(d.uploadedAt).toLocaleDateString(), matterTitle: matters.find(m => m.id === d.matterId)?.title || '', isUrgent: false, refId: d.id }));
+      allM.filter(m => m.sender === 'Client').forEach(m => list.push({ id: `msg-${m.id}`, type: 'message', title: m.text, description: matters.find(mt => mt.id === m.matterId)?.clientName || '', date: new Date(m.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' }), matterTitle: matters.find(mt => mt.id === m.matterId)?.title || '', isUrgent: false, refId: m.id }));
+      list.sort((a, b) => (a.isUrgent && !b.isUrgent) ? -1 : (!a.isUrgent && b.isUrgent) ? 1 : b.id.localeCompare(a.id));
       setNotifications(list);
-    } catch (err) {
-      console.error("Error building notifications:", err);
-    } finally {
-      setIsFetchingNotifications(false);
-    }
+    } catch (err) { console.error(err); }
   };
 
   useEffect(() => {
-    if (matters.length > 0) {
-      loadNotificationsData();
-    }
-
-    const handleTasksUpdate = () => loadNotificationsData();
-    const handleDocsUpdate = () => loadNotificationsData();
-    const handleMessagesUpdate = () => loadNotificationsData();
-    const handlePortalUpdate = () => loadNotificationsData();
-
-    window.addEventListener('tasks-updated', handleTasksUpdate);
-    window.addEventListener('docs-updated', handleDocsUpdate);
-    window.addEventListener('messages-updated', handleMessagesUpdate);
-    window.addEventListener('portal-updated', handlePortalUpdate);
-
-    return () => {
-      window.removeEventListener('tasks-updated', handleTasksUpdate);
-      window.removeEventListener('docs-updated', handleDocsUpdate);
-      window.removeEventListener('messages-updated', handleMessagesUpdate);
-      window.removeEventListener('portal-updated', handlePortalUpdate);
-    };
+    if (matters.length > 0) buildNotifications();
+    const refresh = () => buildNotifications();
+    ['tasks-updated', 'docs-updated', 'messages-updated'].forEach(ev => window.addEventListener(ev, refresh));
+    return () => ['tasks-updated', 'docs-updated', 'messages-updated'].forEach(ev => window.removeEventListener(ev, refresh));
   }, [matters, activeMatterId]);
 
-  const markAsRead = (id: string) => {
-    setReadIds(prev => {
-      const next = prev.includes(id) ? prev : [...prev, id];
-      localStorage.setItem('almizan_read_notifications', JSON.stringify(next));
-      return next;
-    });
-  };
+  const markRead = (id: string) => setReadIds(p => { const n = p.includes(id) ? p : [...p, id]; persist('almizan_read_notifications', n); return n; });
+  const markAllRead = () => { const ids = notifications.map(n => n.id); setReadIds(p => { const n = [...new Set([...p, ...ids])]; persist('almizan_read_notifications', n); return n; }); };
+  const dismiss = (id: string) => setDismissedIds(p => { const n = p.includes(id) ? p : [...p, id]; persist('almizan_dismissed_notifications', n); return n; });
 
-  const markAllAsRead = () => {
-    const allIds = notifications.map(n => n.id);
-    setReadIds(prev => {
-      const next = Array.from(new Set([...prev, ...allIds]));
-      localStorage.setItem('almizan_read_notifications', JSON.stringify(next));
-      return next;
-    });
-  };
-
-  const dismissNotification = (id: string) => {
-    setDismissedIds(prev => {
-      const next = prev.includes(id) ? prev : [...prev, id];
-      localStorage.setItem('almizan_dismissed_notifications', JSON.stringify(next));
-      return next;
-    });
-  };
-
-  const handleApproveDocument = async (docId: string) => {
-    try {
-      const res = await fetch(`/api/documents/${docId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visibleToClient: true })
-      });
-      if (res.ok) {
-        window.dispatchEvent(new Event('docs-updated'));
-        window.dispatchEvent(new Event('portal-updated'));
-        markAsRead(`doc-${docId}`);
-        dismissNotification(`doc-${docId}`);
-      }
-    } catch (e) {
-      console.error("Failed to approve document:", e);
-    }
-  };
-
-  const handleCompleteTask = async (taskId: string) => {
-    try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Completed' })
-      });
-      if (res.ok) {
-        window.dispatchEvent(new Event('tasks-updated'));
-        markAsRead(`task-${taskId}`);
-        dismissNotification(`task-${taskId}`);
-      }
-    } catch (e) {
-      console.error("Failed to complete task:", e);
-    }
-  };
-
-  const handleMarkMessageRead = (msgId: string) => {
-    markAsRead(`msg-${msgId}`);
-    dismissNotification(`msg-${msgId}`);
-  };
-
-  const activeNotifications = notifications.filter(n => !dismissedIds.includes(n.id));
-  const unreadCount = activeNotifications.filter(n => !readIds.includes(n.id)).length;
-
-  const handleCreateMatter = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title || !clientName) return;
-
-    setSubmitting(true);
-    try {
-      const response = await fetch('/api/matters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          clientName,
-          clientEmail,
-          jurisdiction,
-          opposingParty,
-          opposingCounsel,
-          budget,
-          riskLevel: 'Medium'
-        })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        onNewMatterCreated(data);
-        setShowModal(false);
-        // Reset
-        setTitle('');
-        setClientName('');
-        setClientEmail('');
-        setOpposingParty('');
-        setOpposingCounsel('');
-        setBudget(15000);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleLanguageToggle = () => {
-    setLanguage(language === 'ar' ? 'en' : 'ar');
-  };
-
-  const handleSelectSearchResult = (matterId: string, section?: 'documents' | 'tasks') => {
+  const handleSearchResult = (matterId: string, section?: 'documents' | 'tasks') => {
     onActiveMatterChange(matterId);
     if (section) {
       window.dispatchEvent(new CustomEvent('mobile-tab-changed', { detail: section === 'documents' ? 'docs' : 'tasks' }));
-
-      setTimeout(() => {
-        const elId = section === 'documents' ? 'documents-module' : 'tasks-module';
-        const el = document.getElementById(elId);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 150);
+      setTimeout(() => { document.getElementById(section === 'documents' ? 'documents-module' : 'tasks-module')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 150);
     }
   };
 
+  const notifIcon = (type: string) => type === 'deadline' ? <Calendar className="w-4 h-4" /> : type === 'document' ? <FileCheck className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />;
+  const notifBg = (type: string) => type === 'deadline' ? 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/30 dark:border-rose-800/30 dark:text-rose-400' : type === 'document' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/30 dark:border-amber-800/30 dark:text-amber-400' : 'bg-secondary text-muted-foreground border-border';
+  const notifLabel = (type: string) => type === 'deadline' ? t.urgentDeadline : type === 'document' ? t.pendingApproval : t.clientMessage;
+  const iconBtnCls = 'h-8 w-8 rounded-lg bg-accent hover:bg-accent/80 flex items-center justify-center transition-colors';
+
   return (
     <>
-      {/* Native Mobile Top & Bottom Navigation Bar */}
-      <MobileBottomNav
-        currentMode={currentMode}
-        onModeChange={onModeChange}
-        activeMobileTab={activeMobileTab}
-        onSelectMobileTab={(tab) => {
-          setActiveMobileTab(tab);
-          window.dispatchEvent(new CustomEvent('mobile-tab-changed', { detail: tab }));
-        }}
-        unreadNotificationsCount={unreadCount}
-        onOpenNotifications={() => setShowNotificationDropdown(true)}
-        onOpenSearch={() => setShowSearchModal(true)}
-        onOpenNewMatterModal={() => setShowModal(true)}
-        matters={matters}
-        activeMatterId={activeMatterId}
-        onActiveMatterChange={onActiveMatterChange}
-      />
-
-      {/* Desktop Header Bar (Hidden on Mobile) */}
-      <header className="hidden lg:flex items-center justify-between gap-2 mb-6" id="app-header">
-      {/* === ZONE 1: Brand === */}
-      <div className="flex items-center gap-2 shrink-0 min-w-0">
-        <ThemeAwareLogo className="h-12 w-auto shrink-0" alt="Al Mizan Legal Practice" />
-        {activeMatter && (
-          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-700/50 rounded-lg">
-            <Folder className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 shrink-0" />
-            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[180px]">
-              {translateStaticText(activeMatter.title, isRtl)}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* === ZONE 2: Search + Matter Selector === */}
-      <div className="flex items-center gap-2 flex-1 min-w-0 max-w-md">
-        {/* Global Legal Search Input Trigger */}
-        <button
-          onClick={() => setShowSearchModal(true)}
-          className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 px-3 py-2 h-8 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer group flex-1 min-w-0"
-          title={t.globalSearchTitle}
-        >
-          <Search className="w-4 h-4 text-slate-700 dark:text-slate-400 group-hover:scale-110 transition-transform shrink-0 stroke-[2.2]" />
-          <span className="truncate flex-grow text-left rtl:text-right font-sans text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300">{t.globalSearchPlaceholder}</span>
-          <kbd className="hidden sm:inline-block bg-slate-50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 text-slate-800 dark:text-slate-300 px-1.5 py-0.5 rounded text-[10px] font-mono shadow-2xs font-bold shrink-0">
-            ⌘K
-          </kbd>
-        </button>
-
-        {/* Matter Dropdown selector */}
-        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-500 rounded-lg px-2.5 h-8 shadow-sm shrink-0">
-          <Landmark className="w-3.5 h-3.5 text-slate-700 dark:text-slate-400 shrink-0" />
-          <select
-            value={activeMatterId}
-            onChange={(e) => onActiveMatterChange(e.target.value)}
-            className="text-xs font-bold text-slate-950 dark:text-slate-200 bg-transparent focus:outline-none border-none cursor-pointer max-w-[120px]"
-          >
-            {matters.map(m => {
-              const localizedTitle = translateStaticText(m.title, isRtl);
-              return (
-                <option key={m.id} value={m.id}>
-                  {localizedTitle.length > 30 ? `${localizedTitle.substring(0, 30)}...` : localizedTitle}
-                </option>
-              );
-            })}
-          </select>
+      {/* ── Mobile Header ──────────────────────────────── */}
+      <header className="lg:hidden flex items-center justify-between gap-2 bg-card border-b border-border h-14 px-4 sticky top-0 z-30" id="app-header-mobile">
+        <ThemeAwareLogo className="h-8 w-auto shrink-0" alt="Al Mizan" />
+        <div className="flex items-center gap-1">
+          <button onClick={() => setShowSearch(true)} className={iconBtnCls} title={t.globalSearchTitle}><Search className="w-4 h-4" /></button>
+          <button onClick={() => setShowNotif(p => !p)} className={cn(iconBtnCls, 'relative')} title={t.notificationsTitle}>
+            <Bell className={cn('w-4 h-4', unreadCount > 0 && 'text-primary')} />
+            {unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-rose-500 text-[9px] text-white font-extrabold w-4 h-4 rounded-full flex items-center justify-center border border-card">{unreadCount}</span>}
+          </button>
+          <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className={iconBtnCls}>{isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}</button>
+          <button onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')} className={iconBtnCls} title={t.languageToggle}><Languages className="w-4 h-4" /></button>
         </div>
-      </div>
+      </header>
 
-      {/* === ZONE 3: Grouped Action Buttons === */}
-      <div className="flex items-center gap-1.5 shrink-0">
+      {/* ── Desktop Header ─────────────────────────────── */}
+      <header className="hidden lg:flex items-center justify-between gap-4 bg-card border-b border-border h-14 px-4" id="app-header">
+        <div className="shrink-0"><ThemeAwareLogo className="h-9 w-auto" alt="Al Mizan Legal Practice" /></div>
 
-      {/* Group A: Primary Actions */}
-      <div className="flex items-center gap-1">
-        {/* Create Matter Trigger (Lawyer Only) */}
-        {currentMode === 'Lawyer' && (
-          <button
-            onClick={() => setShowModal(true)}
-            className="h-8 w-8 bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 rounded-lg text-white shadow-sm flex items-center justify-center transition-colors cursor-pointer shrink-0"
-            title={t.newIntake}
-          >
-            <Plus className="w-4 h-4" />
+        {/* Centered search trigger */}
+        <div className="flex-1 max-w-md mx-auto">
+          <button onClick={() => setShowSearch(true)} className="w-full flex items-center gap-2 bg-background border border-border hover:border-primary/50 rounded-lg px-3 h-8 text-sm transition-colors cursor-pointer group" title={t.globalSearchTitle}>
+            <Search className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0 stroke-[2.2]" />
+            <span className="truncate text-muted-foreground text-xs">{t.globalSearchPlaceholder}</span>
+            <kbd className="ml-auto bg-secondary border border-border text-foreground px-1.5 py-0.5 rounded text-[10px] font-mono shrink-0">⌘K</kbd>
           </button>
-        )}
+        </div>
 
-        {/* Conflict Check Trigger */}
-        {currentMode === 'Lawyer' && (
-          <button
-            onClick={() => setShowConflictModal(true)}
-            className="h-8 w-8 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-700/50 rounded-lg text-indigo-700 dark:text-indigo-300 shadow-xs flex items-center justify-center transition-all cursor-pointer shrink-0"
-            title={isRtl ? 'فحص تعارض المصالح الأخلاقي' : 'Ethics & Conflict Check'}
-          >
-            <ShieldCheck className="w-4 h-4" />
-          </button>
-        )}
+        {/* Right actions */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {currentMode === 'Lawyer' && (
+            <button onClick={() => window.dispatchEvent(new CustomEvent('open-new-matter-modal'))} className="h-8 w-8 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center transition-colors" title={t.newIntake}><Plus className="w-4 h-4" /></button>
+          )}
+          {currentMode === 'Lawyer' && (
+            <button onClick={() => setShowConflict(true)} className={cn(iconBtnCls, 'text-primary')} title={isRtl ? 'فحص تعارض المصالح' : 'Conflict Check'}><ShieldCheck className="w-4 h-4" /></button>
+          )}
 
-        {/* Dedicated Case Summary Print Button */}
-        <button
-          type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent('open-print-preview'))}
-          className="h-8 w-8 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 flex items-center justify-center shadow-xs transition-all cursor-pointer shrink-0 no-print"
-          title={isRtl ? 'معاينة وطباعة تقرير ملخص القضية للمحكمة' : 'Preview & Print Case Summary Report for Court'}
-        >
-          <Printer className="w-4 h-4" />
-        </button>
-      </div>
+          <div className="w-px h-6 bg-border" />
 
-      {/* Visual Separator */}
-      <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 shrink-0" />
-
-      {/* Group B: Notifications */}
-        {/* Notification Bell Icon */}
-        <div className="relative">
-          <button
-            onClick={() => setShowNotificationDropdown(!showNotificationDropdown)}
-            className="h-8 w-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg shadow-sm transition-all relative flex items-center justify-center cursor-pointer shrink-0"
-            title={t.notificationsTitle}
-          >
-            <Bell className={`w-4 h-4 text-slate-500 ${unreadCount > 0 ? 'animate-bounce text-indigo-600' : ''}`} />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-rose-500 text-[9px] text-white font-extrabold w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-sm">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-
-          {showNotificationDropdown && (
-            <>
-              {/* Backing backdrop to close on clicking away */}
-              <div className="fixed inset-0 z-40" onClick={() => setShowNotificationDropdown(false)} />
-              
-              <div className={`absolute top-full ${isRtl ? 'left-0' : 'right-0'} mt-3 w-80 md:w-96 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 p-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-150`}>
-                <div className="flex justify-between items-center border-b border-slate-100 pb-2.5">
+          {/* Notifications */}
+          <div className="relative">
+            <button onClick={() => setShowNotif(p => !p)} className={cn(iconBtnCls, 'relative')} title={t.notificationsTitle}>
+              <Bell className={cn('w-4 h-4', unreadCount > 0 && 'text-primary')} />
+              {unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-rose-500 text-[9px] text-white font-extrabold w-4 h-4 rounded-full flex items-center justify-center border border-card">{unreadCount}</span>}
+            </button>
+            {showNotif && (<>
+              <div className="fixed inset-0 z-40" onClick={() => setShowNotif(false)} />
+              <div className={cn('absolute top-full', isRtl ? 'left-0' : 'right-0', 'mt-2 w-80 bg-card border border-border rounded-xl shadow-xl z-50 p-3 flex flex-col gap-2.5 animate-in fade-in slide-in-from-top-2 duration-150')}>
+                <div className="flex justify-between items-center border-b border-border pb-2">
                   <div className="flex items-center gap-1.5">
-                    <Bell className="w-4 h-4 text-indigo-600" />
-                    <span className="text-xs font-bold text-slate-800 font-display">{t.notificationsTitle}</span>
-                    {unreadCount > 0 && (
-                      <span className="bg-indigo-50 text-indigo-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
-                        {unreadCount} {t.unreadNotifications}
-                      </span>
-                    )}
+                    <Bell className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-bold text-foreground">{t.notificationsTitle}</span>
+                    {unreadCount > 0 && <span className="bg-primary/10 text-primary text-[10px] px-1.5 py-0.5 rounded-full font-bold">{unreadCount} {t.unreadNotifications}</span>}
                   </div>
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={markAllAsRead}
-                      className="text-[10px] text-indigo-600 hover:text-indigo-700 font-bold transition-colors cursor-pointer"
-                    >
-                      {t.markAllRead}
-                    </button>
-                  )}
+                  {unreadCount > 0 && <button onClick={markAllRead} className="text-[10px] text-primary hover:text-primary/80 font-bold">{t.markAllRead}</button>}
                 </div>
-
-                <div className="flex flex-col gap-2.5 max-h-[280px] overflow-y-auto pr-0.5">
-                  {activeNotifications.length === 0 ? (
-                    <div className="py-8 text-center text-slate-400 flex flex-col items-center justify-center gap-2">
-                      <Inbox className="w-8 h-8 text-slate-300" />
-                      <p className="text-xs font-semibold">{t.emptyNotifications}</p>
-                    </div>
-                  ) : (
-                    activeNotifications.map(n => {
-                      const isUnread = !readIds.includes(n.id);
-                      return (
-                        <div
-                          key={n.id}
-                          onClick={() => markAsRead(n.id)}
-                          className={`p-3 rounded-xl border transition-all flex gap-3 relative overflow-hidden group ${
-                            isUnread
-                              ? 'bg-indigo-50/40 border-indigo-100/80 shadow-sm'
-                              : 'bg-slate-50/40 border-slate-100 hover:bg-slate-50'
-                          }`}
-                        >
-                          {/* Indicator line for unread */}
-                          {isUnread && (
-                            <span className={`absolute top-0 bottom-0 ${isRtl ? 'right-0' : 'left-0'} w-1 bg-indigo-500`} />
-                          )}
-
-                          {/* Icon depending on type */}
-                          <div className="shrink-0 mt-0.5">
-                            {n.type === 'deadline' && (
-                              <div className="w-7 h-7 bg-rose-50 border border-rose-100 text-rose-600 rounded-lg flex items-center justify-center">
-                                <Calendar className="w-4 h-4" />
-                              </div>
-                            )}
-                            {n.type === 'document' && (
-                              <div className="w-7 h-7 bg-amber-50 border border-amber-100 text-amber-600 rounded-lg flex items-center justify-center">
-                                <FileCheck className="w-4 h-4" />
-                              </div>
-                            )}
-                            {n.type === 'message' && (
-                              <div className="w-7 h-7 bg-slate-50 border border-slate-100 text-slate-600 rounded-lg flex items-center justify-center">
-                                <MessageSquare className="w-4 h-4" />
-                              </div>
-                            )}
+                <div className="flex flex-col gap-2 max-h-72 overflow-y-auto">
+                  {activeNotifs.length === 0 ? (
+                    <div className="py-8 text-center text-muted-foreground flex flex-col items-center gap-2"><Inbox className="w-8 h-8" /><p className="text-xs font-semibold">{t.emptyNotifications}</p></div>
+                  ) : activeNotifs.map(n => {
+                    const unread = !readIds.includes(n.id);
+                    return (
+                      <div key={n.id} onClick={() => markRead(n.id)} className={cn('p-2.5 rounded-lg border transition-all flex gap-2.5 cursor-pointer relative', unread ? 'bg-primary/5 border-primary/20' : 'bg-accent/50 border-border hover:bg-accent')}>
+                        {unread && <span className={cn('absolute top-0 bottom-0 w-0.5 bg-primary rounded-full', isRtl ? 'right-0' : 'left-0')} />}
+                        <div className={cn('w-7 h-7 rounded-lg border flex items-center justify-center shrink-0', notifBg(n.type))}>{notifIcon(n.type)}</div>
+                        <div className="flex-grow min-w-0">
+                          <div className="flex justify-between items-start gap-1">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">{notifLabel(n.type)}</span>
+                            <span className="text-[9px] font-mono text-muted-foreground whitespace-nowrap">{n.date}</span>
                           </div>
-
-                          {/* Content */}
-                          <div className="flex-grow min-w-0">
-                            <div className="flex justify-between items-start gap-1">
-                              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
-                                {n.type === 'deadline' && t.urgentDeadline}
-                                {n.type === 'document' && t.pendingApproval}
-                                {n.type === 'message' && t.clientMessage}
-                              </span>
-                              <span className="text-[9px] font-mono text-slate-400 whitespace-nowrap">{n.date}</span>
-                            </div>
-
-                            <h5 className="text-xs font-bold text-slate-700 leading-snug mt-0.5 truncate" title={translateStaticText(n.title, isRtl)}>
-                              {translateStaticText(n.title, isRtl)}
-                            </h5>
-
-                            <p className="text-[10px] text-slate-500 leading-relaxed mt-1 line-clamp-2" title={translateStaticText(n.description, isRtl)}>
-                              {translateStaticText(n.description, isRtl)}
-                            </p>
-
-                            <p className="text-[8px] text-indigo-500 font-bold mt-1.5 font-mono uppercase tracking-wider">
-                              {translateStaticText(n.matterTitle, isRtl)}
-                            </p>
-
-                            {/* Quick Actions */}
-                            <div className="flex gap-1.5 mt-2.5">
-                              {n.type === 'deadline' && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCompleteTask(n.refId);
-                                  }}
-                                  className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[9px] font-bold hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-1 cursor-pointer"
-                                >
-                                  <Check className="w-3 h-3" />
-                                  {t.completeTaskBtn}
-                                </button>
-                              )}
-                              {n.type === 'document' && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleApproveDocument(n.refId);
-                                  }}
-                                  className="px-2.5 py-1 bg-amber-500 text-white rounded-lg text-[9px] font-bold hover:bg-amber-600 transition-colors shadow-sm flex items-center gap-1 cursor-pointer"
-                                >
-                                  <FileCheck className="w-3 h-3" />
-                                  {t.approveDocBtn}
-                                </button>
-                              )}
-                              {n.type === 'message' && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleMarkMessageRead(n.refId);
-                                  }}
-                                  className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[9px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
-                                >
-                                  <Check className="w-3 h-3" />
-                                  {isRtl ? 'مقروء' : 'Mark Read'}
-                                </button>
-                              )}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  dismissNotification(n.id);
-                                }}
-                                className="px-2 py-1 bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded-lg text-[9px] font-bold transition-colors cursor-pointer"
-                              >
-                                {isRtl ? 'إخفاء' : 'Dismiss'}
-                              </button>
-                            </div>
+                          <h5 className="text-xs font-bold text-foreground leading-snug mt-0.5 truncate">{translateStaticText(n.title, isRtl)}</h5>
+                          <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{translateStaticText(n.matterTitle, isRtl)}</p>
+                          <div className="flex justify-end mt-1.5">
+                            <button onClick={e => { e.stopPropagation(); dismiss(n.id); }} className="px-1.5 py-0.5 bg-secondary hover:bg-secondary/80 text-muted-foreground rounded-md text-[9px] font-bold transition-colors">{isRtl ? 'إخفاء' : 'Dismiss'}</button>
                           </div>
                         </div>
-                      );
-                    })
-                  )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            </>
-          )}
-        </div>
-
-        {/* Visual Separator */}
-        <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 shrink-0" />
-
-        {/* Group C: Utility Toggles */}
-        <div className="flex items-center gap-1">
-          {/* Language Switcher */}
-          <button
-            onClick={handleLanguageToggle}
-            className="h-8 w-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/20 hover:border-slate-300 dark:hover:border-slate-500 rounded-lg shadow-xs flex items-center justify-center transition-all cursor-pointer shrink-0"
-            title="Toggle Language / تغيير اللغة"
-          >
-            <Languages className="w-4 h-4 text-slate-700 dark:text-slate-400" />
-          </button>
-
-          {/* Global Dark / Light Theme Toggle Button */}
-          <button
-            onClick={toggleTheme}
-            className={`h-8 w-8 flex items-center justify-center rounded-lg border transition-all cursor-pointer shrink-0 ${
-              isDark
-                ? 'bg-slate-800 text-amber-400 border-slate-700 hover:bg-slate-700'
-                : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50 shadow-xs'
-            }`}
-            title={
-              isDark
-                ? isRtl
-                  ? 'التبديل إلى الوضع المضيء (نهار)'
-                  : 'Switch to Light Mode'
-                : isRtl
-                ? 'التبديل إلى الوضع الليلي (داكن)'
-                : 'Switch to Dark Mode'
-            }
-          >
-            {isDark ? (
-              <Sun className="w-4 h-4" />
-            ) : (
-              <Moon className="w-4 h-4" />
-            )}
-          </button>
-
-          {/* Landing Page Showcase Button */}
-          {onShowLandingPage && (
-            <button
-              onClick={onShowLandingPage}
-              className="h-8 w-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 rounded-lg shadow-xs transition-all cursor-pointer shrink-0"
-              title={isRtl ? 'الصفحة التعريفية للموقع' : 'View Landing Showcase'}
-            >
-              <Sparkles className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Visual Separator */}
-        <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 shrink-0" />
-
-        {/* Group D: Identity (Mode + User) */}
-        {/* Dual-Sided Mode Selector Toggle */}
-        <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg shadow-inner border border-slate-200 dark:border-slate-700 shrink-0">
-          <button
-            onClick={() => onModeChange('Lawyer')}
-            className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer ${
-              currentMode === 'Lawyer'
-                ? 'bg-white text-indigo-600 shadow-sm font-extrabold'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Shield className="w-3 h-3" />
-            {t.lawyerMode}
-          </button>
-          <button
-            onClick={() => onModeChange('Client')}
-            className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer ${
-              currentMode === 'Client'
-                ? 'bg-white text-amber-600 shadow-sm font-extrabold'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <User className="w-3 h-3" />
-            {t.clientMode}
-          </button>
-        </div>
-
-        {/* User Account & Subscription Badge Dropdown */}
-        <div className="relative shrink-0">
-          {user ? (
-            <button
-              onClick={() => setShowUserDropdown(!showUserDropdown)}
-              className="h-8 px-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg border border-slate-800 flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0"
-            >
-              <div className="w-5 h-5 rounded bg-amber-500 text-slate-950 flex items-center justify-center font-extrabold text-[10px]">
-                {user.name.charAt(0)}
-              </div>
-              <span className="hidden 2xl:block text-[10px] font-bold text-white truncate max-w-[80px]">
-                {user.name}
-              </span>
-              <span className="hidden 2xl:block text-[8px] font-mono text-amber-400 font-bold uppercase">
-                {user.subscriptionTier}
-              </span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
-            >
-              <User className="w-3.5 h-3.5" />
-              <span>{isRtl ? 'تسجيل الدخول' : 'Sign In'}</span>
-            </button>
-          )}
-
-          {/* Account Profile Dropdown Menu */}
-          {showUserDropdown && user && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowUserDropdown(false)} />
-              <div className="absolute right-0 rtl:right-auto rtl:left-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-4 space-y-3 animate-in fade-in duration-150">
-                <div className="border-b border-slate-100 pb-3">
-                  <h4 className="text-xs font-bold text-slate-900 font-display truncate">{user.name}</h4>
-                  <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
-                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">{user.firmName} • {user.barAssociationId}</p>
-                </div>
-
-                {/* Subscription Badge Card */}
-                <div className="bg-slate-900 text-white rounded-xl p-3 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{isRtl ? 'خطة الاشتراك:' : 'Plan Tier:'}</span>
-                    <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-mono text-[10px] font-extrabold rounded-md uppercase">
-                      {user.subscriptionTier}
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-slate-300 flex justify-between">
-                    <span>{isRtl ? 'حالة الحساب:' : 'Status:'} {user.planStatus}</span>
-                    <span>{isRtl ? 'التجديد:' : 'Renews:'} {user.renewalDate}</span>
-                  </div>
-                  <button
-                    onClick={() => { setShowUserDropdown(false); setShowPaywallModal(true); }}
-                    className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1"
-                  >
-                    <Zap className="w-3.5 h-3.5 text-amber-300" />
-                    <span>{isRtl ? 'ترقية / إدارة الاشتراك' : 'Manage Subscription'}</span>
-                  </button>
-                </div>
-
-                {/* Quick Menu Options */}
-                <div className="space-y-1 text-xs font-medium text-slate-700 pt-1">
-                  <button
-                    onClick={() => { setShowUserDropdown(false); setShowConflictModal(true); }}
-                    className="w-full text-left rtl:text-right rtl:text-left px-2.5 py-1.5 hover:bg-slate-50 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <ShieldCheck className="w-4 h-4 text-indigo-600" />
-                    <span>{isRtl ? 'فحص تعارض المصالح الأخلاقي' : 'Ethics & Conflict Check'}</span>
-                  </button>
-                  <button
-                    onClick={() => { setShowUserDropdown(false); logout(); }}
-                    className="w-full text-left rtl:text-right rtl:text-left px-2.5 py-1.5 hover:bg-rose-50 text-rose-600 rounded-lg flex items-center gap-2 transition-colors cursor-pointer pt-2 border-t border-slate-100"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>{isRtl ? 'تسجيل الخروج' : 'Sign Out'}</span>
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* NEW MATTER MODAL */}
-      {showModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-6 max-w-lg w-full border border-slate-200 shadow-2xl flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
-            <div>
-              <h3 className="text-xl font-bold text-slate-800 font-display">{t.intakeTitle}</h3>
-              <p className="text-xs text-slate-500">{t.intakeSub}</p>
-            </div>
-
-            <form onSubmit={handleCreateMatter} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t.matterTitle}</label>
-                <input
-                  type="text"
-                  required
-                  placeholder={isRtl ? "مثال: تحكيم إنشاءات برج الحمراء" : "e.g. Al-Hamra Tower Construction Arbitration"}
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t.clientName}</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder={isRtl ? "مثال: طارق السويدي" : "e.g. Tariq Al-Suwaidi"}
-                    value={clientName}
-                    onChange={e => setClientName(e.target.value)}
-                    className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t.clientEmail}</label>
-                  <input
-                    type="email"
-                    placeholder="tariq@al-suwaidi.com"
-                    value={clientEmail}
-                    onChange={e => setClientEmail(e.target.value)}
-                    className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t.jurisdiction}</label>
-                  <select
-                    value={jurisdiction}
-                    onChange={e => setJurisdiction(e.target.value)}
-                    className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none bg-white"
-                  >
-                    <option value="Dubai Commercial Court">{isRtl ? 'محكمة دبي التجارية' : 'Dubai Commercial Court'}</option>
-                    <option value="SCCA Arbitration Center, Riyadh">{isRtl ? 'مركز التحكيم التجاري السعودي، الرياض' : 'SCCA Riyadh'}</option>
-                    <option value="Kuwait Family & Estate Court">{isRtl ? 'محكمة الأسرة والتركات الكويتية' : 'Kuwait Corporate Court'}</option>
-                    <option value="Abu Dhabi Global Market (ADGM)">{isRtl ? 'سوق أبوظبي العالمي (ADGM)' : 'ADGM Court'}</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t.initialBudget}</label>
-                  <input
-                    type="number"
-                    value={budget}
-                    onChange={e => setBudget(Number(e.target.value))}
-                    className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t.opposingParty}</label>
-                  <input
-                    type="text"
-                    placeholder={isRtl ? "مثال: الفطيم للمقاولات" : "e.g. Al-Futtaim Builders"}
-                    value={opposingParty}
-                    onChange={e => setOpposingParty(e.target.value)}
-                    className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t.opposingCounsel}</label>
-                  <input
-                    type="text"
-                    placeholder={isRtl ? "مثال: فريش فيلدز الرياض" : "e.g. Freshfields Riyadh"}
-                    value={opposingCounsel}
-                    onChange={e => setOpposingCounsel(e.target.value)}
-                    className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50"
-                >
-                  {t.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-5 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-md shadow-indigo-100 flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  {t.registerIntake}
-                </button>
-              </div>
-            </form>
+            </>)}
           </div>
+
+          <div className="w-px h-6 bg-border" />
+          <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className={cn(iconBtnCls, isDark && 'bg-secondary text-amber-400 hover:bg-secondary/80')}>{isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}</button>
+          <button onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')} className={iconBtnCls} title={t.languageToggle}><Languages className="w-4 h-4" /></button>
+          {!isAuthenticated && (
+            <button onClick={() => setShowAuth(true)} className="h-8 px-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold flex items-center gap-1.5 transition-colors">{isRtl ? 'تسجيل الدخول' : 'Sign In'}</button>
+          )}
         </div>
-      )}
-    </header>
+      </header>
 
-    {/* Global Search Modal - Rendered outside hidden header for full responsiveness */}
-    <GlobalSearchModal
-      isOpen={showSearchModal}
-      onClose={() => setShowSearchModal(false)}
-      matters={matters}
-      onSelectResult={handleSelectSearchResult}
-    />
-
-    {/* Ethics Conflict Check Modal */}
-    <ConflictCheckModal
-      isOpen={showConflictModal}
-      onClose={() => setShowConflictModal(false)}
-      matters={matters}
-    />
-
-    {/* Authentication Modal (Sign In / Sign Up / Forgot Password) */}
-    <AuthModal
-      isOpen={showAuthModal}
-      onClose={() => setShowAuthModal(false)}
-    />
-
-    {/* Subscription Tier Models & Paywall Modal */}
-    <SubscriptionPaywallModal
-      isOpen={showPaywallModal}
-      onClose={() => setShowPaywallModal(false)}
-    />
+      {/* ── Modals (external components, only trigger buttons in header) ── */}
+      <GlobalSearchModal isOpen={showSearch} onClose={() => setShowSearch(false)} matters={matters} onSelectResult={handleSearchResult} />
+      <ConflictCheckModal isOpen={showConflict} onClose={() => setShowConflict(false)} matters={matters} />
+      <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
     </>
   );
 }

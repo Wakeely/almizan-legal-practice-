@@ -79,27 +79,27 @@ export default function ConflictCheckModal({ isOpen, onClose, matters }: Conflic
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 bg-foreground/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl border border-border w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* Modal Header */}
-        <div className="bg-slate-900 text-white p-5 sm:p-6 flex justify-between items-center relative">
+        <div className="bg-foreground text-white p-5 sm:p-6 flex justify-between items-center relative">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-600/30 border border-indigo-400/30 rounded-2xl">
-              <ShieldCheck className="w-6 h-6 text-indigo-400" />
+            <div className="p-2.5 bg-primary/30 border border-primary/30 rounded-2xl">
+              <ShieldCheck className="w-6 h-6 text-primary" />
             </div>
             <div>
               <h3 className="text-lg font-bold font-display leading-tight">
                 {isRtl ? 'فحص تعارض المصالح الأخلاقي (Ethics Conflict Engine)' : 'Ethics & Conflicts of Interest Check'}
               </h3>
-              <p className="text-xs text-slate-400 font-sans mt-0.5">
+              <p className="text-xs text-muted-foreground font-sans mt-0.5">
                 {isRtl ? 'فحص فوري لقواعد البيانات وقوائم الأطراف الممثلة والخصوم' : 'Instant cross-database verification across active/historical parties'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-full transition-colors cursor-pointer"
+            className="p-2 hover:bg-foreground text-muted-foreground hover:text-white rounded-full transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -109,12 +109,12 @@ export default function ConflictCheckModal({ isOpen, onClose, matters }: Conflic
         <div className="p-5 sm:p-6 space-y-5">
           {/* Search Form */}
           <form onSubmit={handleRunCheck} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200 text-xs font-medium">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1 bg-muted rounded-2xl border border-border text-xs font-medium">
               <button
                 type="button"
                 onClick={() => setEntityType('Corporate')}
                 className={`py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  entityType === 'Corporate' ? 'bg-white text-indigo-600 font-bold shadow-xs' : 'text-slate-600'
+                  entityType === 'Corporate' ? 'bg-white text-primary font-bold shadow-xs' : 'text-muted-foreground'
                 }`}
               >
                 <Building2 className="w-3.5 h-3.5" />
@@ -124,7 +124,7 @@ export default function ConflictCheckModal({ isOpen, onClose, matters }: Conflic
                 type="button"
                 onClick={() => setEntityType('Individual')}
                 className={`py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  entityType === 'Individual' ? 'bg-white text-indigo-600 font-bold shadow-xs' : 'text-slate-600'
+                  entityType === 'Individual' ? 'bg-white text-primary font-bold shadow-xs' : 'text-muted-foreground'
                 }`}
               >
                 <User className="w-3.5 h-3.5" />
@@ -134,7 +134,7 @@ export default function ConflictCheckModal({ isOpen, onClose, matters }: Conflic
                 type="button"
                 onClick={() => setEntityType('Subsidiary')}
                 className={`py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  entityType === 'Subsidiary' ? 'bg-white text-indigo-600 font-bold shadow-xs' : 'text-slate-600'
+                  entityType === 'Subsidiary' ? 'bg-white text-primary font-bold shadow-xs' : 'text-muted-foreground'
                 }`}
               >
                 <Landmark className="w-3.5 h-3.5" />
@@ -143,19 +143,19 @@ export default function ConflictCheckModal({ isOpen, onClose, matters }: Conflic
             </div>
 
             <div className="relative">
-              <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 rtl:left-auto rtl:right-3.5" />
+              <Search className="w-5 h-5 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 rtl:left-auto rtl:right-3.5" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 placeholder={isRtl ? 'أدخل اسم الشركة، العميل، الخصم، أو السجل التجاري...' : 'Enter company name, client, adverse party, or CR number...'}
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-24 py-3 rtl:pl-24 rtl:pr-10 text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                className="w-full bg-card border border-border rounded-2xl pl-10 pr-24 py-3 rtl:pl-24 rtl:pr-10 text-sm font-medium text-foreground placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white"
                 required
               />
               <button
                 type="submit"
                 disabled={isSearching || !searchTerm.trim()}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rtl:right-auto rtl:left-2 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rtl:right-auto rtl:left-2 px-4 py-1.5 bg-primary hover:bg-primary disabled:bg-muted text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
               >
                 {isSearching ? (
                   <>
@@ -199,12 +199,12 @@ export default function ConflictCheckModal({ isOpen, onClose, matters }: Conflic
                     {result.matchedMatters.map((m, idx) => (
                       <div key={idx} className="bg-white border border-rose-100 rounded-xl p-3 flex justify-between items-center text-xs">
                         <div>
-                          <div className="font-bold text-slate-800">{m.matter.title}</div>
-                          <div className="text-[11px] text-slate-500 mt-0.5">
+                          <div className="font-bold text-foreground">{m.matter.title}</div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5">
                             {isRtl ? 'الجهة المطبقة:' : 'Matched Field:'} <span className="font-semibold text-rose-600">{m.matchedField}</span> ({m.relationship})
                           </div>
                         </div>
-                        <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md font-mono text-[10px] shrink-0">
+                        <span className="px-2 py-0.5 bg-muted text-foreground rounded-md font-mono text-[10px] shrink-0">
                           {m.matter.jurisdiction}
                         </span>
                       </div>
@@ -222,7 +222,7 @@ export default function ConflictCheckModal({ isOpen, onClose, matters }: Conflic
                       disabled={ethicalWallCreated}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                         ethicalWallCreated
-                          ? 'bg-slate-800 text-emerald-400'
+                          ? 'bg-foreground text-emerald-400'
                           : 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs'
                       }`}
                     >
@@ -262,17 +262,17 @@ export default function ConflictCheckModal({ isOpen, onClose, matters }: Conflic
                   </div>
 
                   {/* Certificate Preview Card */}
-                  <div className="bg-white border border-emerald-100 rounded-xl p-4 text-xs space-y-2 font-mono text-slate-700">
-                    <div className="flex justify-between border-b border-slate-100 pb-2">
-                      <span className="text-slate-400">{isRtl ? 'رقم الشهادة:' : 'Certificate Ref:'}</span>
-                      <span className="font-bold text-slate-900">{result.certificateId}</span>
+                  <div className="bg-white border border-emerald-100 rounded-xl p-4 text-xs space-y-2 font-mono text-foreground">
+                    <div className="flex justify-between border-b border-border pb-2">
+                      <span className="text-muted-foreground">{isRtl ? 'رقم الشهادة:' : 'Certificate Ref:'}</span>
+                      <span className="font-bold text-foreground">{result.certificateId}</span>
                     </div>
-                    <div className="flex justify-between border-b border-slate-100 pb-2">
-                      <span className="text-slate-400">{isRtl ? 'تاريخ الفحص:' : 'Search Timestamp:'}</span>
+                    <div className="flex justify-between border-b border-border pb-2">
+                      <span className="text-muted-foreground">{isRtl ? 'تاريخ الفحص:' : 'Search Timestamp:'}</span>
                       <span>{result.timestamp}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400">{isRtl ? 'حالة الاعتماد:' : 'Approval Status:'}</span>
+                      <span className="text-muted-foreground">{isRtl ? 'حالة الاعتماد:' : 'Approval Status:'}</span>
                       <span className="text-emerald-600 font-bold">{isRtl ? 'مستوفي للقواعد الأخلاقية' : 'SRA / ABA Compliance Verified'}</span>
                     </div>
                   </div>
@@ -284,8 +284,8 @@ export default function ConflictCheckModal({ isOpen, onClose, matters }: Conflic
         </div>
 
         {/* Modal Footer */}
-        <div className="bg-slate-50 border-t border-slate-100 p-4 text-center">
-          <p className="text-[11px] text-slate-400">
+        <div className="bg-card border-t border-border p-4 text-center">
+          <p className="text-[11px] text-muted-foreground">
             {isRtl
               ? 'تلتزم الميزان بقواعد سلوك المهنة والسرية القانونية المعتمدة محلياً ودولياً.'
               : 'Al Mizan Ethics Engine satisfies SRA, ABA & GCC Bar Council conflict verification standards.'}

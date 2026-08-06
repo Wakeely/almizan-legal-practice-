@@ -323,28 +323,28 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col h-full gap-3.5 sm:gap-5" id="documents-module">
+    <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-sm flex flex-col h-full gap-3.5 sm:gap-5" id="documents-module">
       
       {/* Module Title & Discovery Sub-Tabs Bar */}
-      <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-2.5 sm:pb-4 gap-3">
+      <div className="flex flex-wrap items-center justify-between border-b border-border pb-2.5 sm:pb-4 gap-3">
         <div className="flex items-center gap-2">
-          <Folder className="w-5 h-5 text-teal-800 shrink-0" />
-          <h3 className="text-base sm:text-lg font-extrabold text-slate-900 font-display">{t.docManagement}</h3>
+          <Folder className="w-5 h-5 text-primary shrink-0" />
+          <h3 className="text-base sm:text-lg font-extrabold text-foreground font-display">{t.docManagement}</h3>
         </div>
 
         {/* Navigation Sub-Tabs */}
-        <div className="flex items-center p-1 bg-slate-100/90 rounded-2xl border border-slate-200 text-xs font-bold font-display">
+        <div className="flex items-center p-1 bg-muted rounded-xl border border-border text-xs font-bold font-display">
           <button
             onClick={() => setActiveTab('documents')}
             className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'documents'
-                ? 'bg-teal-800 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-primary text-primary-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Folder className="w-3.5 h-3.5" />
             {isRtl ? 'المستندات والقضايا' : 'Case Documents'}
-            <span className="ml-1 px-1.5 py-0.2 bg-teal-900 text-teal-100 rounded-full text-[10px] font-mono font-bold">
+            <span className="ml-1 px-1.5 py-0.2 bg-primary text-primary-foreground rounded-full text-[10px] font-mono font-bold">
               {docs.length}
             </span>
           </button>
@@ -353,8 +353,8 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
             onClick={() => setActiveTab('depositions')}
             className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'depositions'
-                ? 'bg-teal-800 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-primary text-primary-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Quote className="w-3.5 h-3.5" />
@@ -365,8 +365,8 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
             onClick={() => setActiveTab('privilege')}
             className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'privilege'
-                ? 'bg-teal-800 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-primary text-primary-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Lock className="w-3.5 h-3.5" />
@@ -402,8 +402,8 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
               onDragLeave={handleDrag}
               onDrop={handleDrop}
               onClick={() => document.getElementById('file-input-' + matterId)?.click()}
-              className={`border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 ${
-                dragActive ? 'border-indigo-500 bg-indigo-50/40' : 'border-slate-200 bg-slate-50 hover:bg-slate-50/80'
+              className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 ${
+                dragActive ? 'border-primary bg-accent/40' : 'border-border bg-background hover:bg-background/80'
               } ${selectedFile ? 'border-emerald-400 bg-emerald-50/40' : ''}`}
             >
               <input
@@ -413,16 +413,16 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
                 onChange={handleFileSelect}
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.gif,.webp,.zip"
               />
-              <UploadCloud className={`w-7 h-7 ${selectedFile ? 'text-emerald-500' : 'text-slate-400'}`} />
+              <UploadCloud className={`w-7 h-7 ${selectedFile ? 'text-emerald-500' : 'text-muted-foreground'}`} />
               {selectedFile ? (
                 <>
                   <p className="text-xs font-semibold text-emerald-700">{selectedFile.name}</p>
-                  <p className="text-[10px] text-slate-400">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB — {isRtl ? 'اضغط للتغيير' : 'Click to change'}</p>
+                  <p className="text-[10px] text-muted-foreground">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB — {isRtl ? 'اضغط للتغيير' : 'Click to change'}</p>
                 </>
               ) : (
                 <>
-                  <p className="text-xs font-semibold text-slate-600">{t.dragDrop}</p>
-                  <p className="text-[10px] text-slate-400">{t.fileLimits}</p>
+                  <p className="text-xs font-semibold text-muted-foreground">{t.dragDrop}</p>
+                  <p className="text-[10px] text-muted-foreground">{t.fileLimits}</p>
                 </>
               )}
             </div>
@@ -433,12 +433,12 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
                 placeholder={t.fileNamePlaceholder}
                 value={newDocName}
                 onChange={e => setNewDocName(e.target.value)}
-                className="flex-grow text-xs border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                className="flex-grow text-xs border border-border rounded-lg px-3 py-2.5 bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 transition-colors"
               />
               <select
                 value={newDocCat}
                 onChange={e => setNewDocCat(e.target.value)}
-                className="text-xs border border-slate-200 rounded-xl px-2.5 py-2.5 bg-white text-slate-600 focus:outline-none"
+                className="text-xs border border-border rounded-lg px-2.5 py-2.5 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 transition-colors"
               >
                 <option value="Pleading">{isRtl ? 'لائحة دعوى' : 'Pleading'}</option>
                 <option value="Discovery">{isRtl ? 'إفصاح' : 'Discovery'}</option>
@@ -449,7 +449,7 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
               <button
                 type="submit"
                 disabled={uploading || !newDocName}
-                className="px-3.5 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 transition-colors flex items-center gap-1 disabled:opacity-50 whitespace-nowrap cursor-pointer"
+                className="px-3.5 bg-primary text-primary-foreground text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50 whitespace-nowrap cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 {t.addFile}
@@ -461,29 +461,29 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
           <div className="space-y-2">
             {loading ? (
               <div className="flex justify-center items-center py-10">
-                <RefreshCw className="w-6 h-6 animate-spin text-indigo-500" />
+                <RefreshCw className="w-6 h-6 animate-spin text-primary" />
               </div>
             ) : docs.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-8">{t.noDocs}</p>
+              <p className="text-xs text-muted-foreground text-center py-8">{t.noDocs}</p>
             ) : (
               docs.map(doc => (
                 <div
                   key={doc.id}
                   onClick={() => setSelectedDoc(doc)}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer flex justify-between items-center ${
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex justify-between items-center ${
                     selectedDoc?.id === doc.id
-                      ? 'bg-indigo-50/50 border-indigo-200 shadow-sm'
-                      : 'border-slate-100 bg-white hover:bg-slate-50/50'
+                      ? 'bg-accent/50 border-primary shadow-sm'
+                      : 'border-border bg-card hover:bg-background/50'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-                      <FileText className="w-4.5 h-4.5 text-indigo-600" />
+                    <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shrink-0">
+                      <FileText className="w-4.5 h-4.5 text-primary" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-700 truncate">{translateStaticText(doc.name, isRtl)}</p>
+                      <p className="text-xs font-bold text-foreground truncate">{translateStaticText(doc.name, isRtl)}</p>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[9px] uppercase tracking-wider bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md font-bold">
+                        <span className="text-[9px] uppercase tracking-wider bg-muted text-muted-foreground px-1.5 py-0.5 rounded-md font-bold">
                           {isRtl ? (
                             doc.category === 'Pleading' ? 'لائحة دعوى' :
                             doc.category === 'Discovery' ? 'إفصاح' :
@@ -492,7 +492,7 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
                             doc.category === 'Corporate' ? 'شركات' : doc.category
                           ) : doc.category}
                         </span>
-                        <span className="text-[9px] text-slate-400 font-mono">{isRtl ? 'إصدار' : 'v'}{doc.version} • {doc.fileSize}</span>
+                        <span className="text-[9px] text-muted-foreground font-mono">{isRtl ? 'إصدار' : 'v'}{doc.version} • {doc.fileSize}</span>
                       </div>
                     </div>
                   </div>
@@ -505,7 +505,7 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
                       className={`p-1.5 rounded-lg border transition-all ${
                         doc.visibleToClient
                           ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                          : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-slate-600'
+                          : 'bg-background text-muted-foreground border-border hover:text-muted-foreground'
                       }`}
                     >
                       {doc.visibleToClient ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
@@ -525,10 +525,10 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
                       onClick={() => triggerGeminiSummarization(doc.id, doc.name, doc.category)}
                       disabled={aiAnalyzingId === doc.id}
                       title={isRtl ? 'بدء تحليل البنود عبر جيمي' : 'Run AI Clause Review via Gemini'}
-                      className="p-1.5 rounded-lg border border-indigo-100 bg-white text-indigo-600 hover:bg-indigo-50 shadow-sm transition-all disabled:opacity-40 cursor-pointer"
+                      className="p-1.5 rounded-lg border border-primary bg-card text-primary hover:bg-accent shadow-sm transition-all disabled:opacity-40 cursor-pointer"
                     >
                       {aiAnalyzingId === doc.id ? (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-primary" />
                       ) : (
                         <Sparkles className="w-3.5 h-3.5" />
                       )}
@@ -541,11 +541,11 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
         </div>
 
         {/* Right Hand: Selected File Details & AI summary */}
-        <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-5 flex flex-col justify-between overflow-y-auto max-h-[480px]">
+        <div className="bg-background/50 rounded-xl border border-border p-4 md:p-5 flex flex-col justify-between overflow-y-auto max-h-[480px]">
           {selectedDoc ? (
             <div className="space-y-4 animate-in fade-in duration-200">
-              <div className="border-b border-slate-200/60 pb-3">
-                <span className="text-[9px] font-bold text-indigo-600 uppercase tracking-widest">
+              <div className="border-b border-border/60 pb-3">
+                <span className="text-[9px] font-bold text-primary uppercase tracking-widest">
                   {isRtl ? 'مستند' : 'DOCUMENT'} - {isRtl ? (
                     selectedDoc.category === 'Pleading' ? 'لائحة دعوى' :
                     selectedDoc.category === 'Discovery' ? 'إفصاح' :
@@ -554,8 +554,8 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
                     selectedDoc.category === 'Corporate' ? 'شركات' : selectedDoc.category
                   ) : selectedDoc.category}
                 </span>
-                <h4 className="text-sm font-bold text-slate-800 font-display mt-0.5">{translateStaticText(selectedDoc.name, isRtl)}</h4>
-                <p className="text-[10px] text-slate-400 mt-1">
+                <h4 className="text-sm font-bold text-foreground font-display mt-0.5">{translateStaticText(selectedDoc.name, isRtl)}</h4>
+                <p className="text-[10px] text-muted-foreground mt-1">
                   {isRtl ? (
                     `تم الرفع بتاريخ ${new Date(selectedDoc.uploadedAt).toLocaleDateString()} بواسطة ${selectedDoc.uploadedBy.includes('Farah') ? 'المستشار فرح الصباح' : selectedDoc.uploadedBy}`
                   ) : (
@@ -569,12 +569,12 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
                 <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-md flex items-center gap-1 border ${
                   selectedDoc.visibleToClient
                     ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                    : 'bg-slate-100 border-slate-200 text-slate-400'
+                    : 'bg-muted border-border text-muted-foreground'
                 }`}>
                   <Eye className="w-3 h-3" />
                   {selectedDoc.visibleToClient ? t.visiblePortal : t.internalOffice}
                 </span>
-                <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-white border border-slate-200 text-slate-500 rounded-md flex items-center gap-1 font-mono">
+                <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-card border border-border text-muted-foreground rounded-md flex items-center gap-1 font-mono">
                   {t.version} {selectedDoc.version}.0
                 </span>
                 <button
@@ -587,7 +587,7 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
                 <button
                   onClick={() => handleDownload(selectedDoc.id, selectedDoc.name)}
                   disabled={downloadingDocId === selectedDoc.id}
-                  className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-700 rounded-md flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                  className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-accent hover:bg-primary/15 border border-primary text-primary rounded-md flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {downloadingDocId === selectedDoc.id ? (
                     <RefreshCw className="w-3 h-3 animate-spin" />
@@ -602,21 +602,21 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
 
               {/* AI Clause analysis & Summarization body */}
               <div className="space-y-2 pt-2">
-                <div className="flex items-center gap-1.5 text-indigo-600">
+                <div className="flex items-center gap-1.5 text-primary">
                   <Sparkles className="w-4 h-4" />
                   <span className="text-xs font-bold uppercase tracking-wider">{t.aiSummaryHeader}</span>
                 </div>
 
-                <div className="bg-white border border-slate-200/80 p-4 rounded-xl text-xs text-slate-600 leading-relaxed shadow-sm">
+                <div className="bg-card border border-border/80 p-4 rounded-xl text-xs text-muted-foreground leading-relaxed shadow-sm">
                   {translateStaticText(selectedDoc.aiSummary || '', isRtl) || (isRtl ? "لا يوجد ملخص متاح بعد. اضغط على زر النجمة لتشغيل مراجعة جيمي للبنود واستخراج المخاطر." : "No summary available yet. Click the Sparkles button next to the file to run a deep litigation clause analysis via Gemini.")}
                 </div>
 
                 {selectedDoc.aiTags && selectedDoc.aiTags.length > 0 && (
                   <div className="pt-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">{t.aiTagsHeader}</span>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">{t.aiTagsHeader}</span>
                     <div className="flex flex-wrap gap-1.5">
                       {selectedDoc.aiTags.map((tag, idx) => (
-                        <span key={idx} className="bg-indigo-50 border border-indigo-100 text-indigo-600 text-[10px] font-bold px-2.5 py-1 rounded-full">
+                        <span key={idx} className="bg-accent border border-primary text-primary text-[10px] font-bold px-2.5 py-1 rounded-full">
                           #{translateStaticText(tag, isRtl)}
                         </span>
                       ))}
@@ -626,18 +626,18 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
               </div>
             </div>
           ) : (
-            <div className="h-full flex flex-col justify-center items-center text-center text-slate-400 py-10 gap-2">
-              <FileCheck className="w-10 h-10 text-slate-300" />
+            <div className="h-full flex flex-col justify-center items-center text-center text-muted-foreground py-10 gap-2">
+              <FileCheck className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
               <p className="text-xs">{t.selectDocPrompt}</p>
             </div>
           )}
 
           {selectedDoc && !selectedDoc.aiSummary && (
-            <div className="mt-5 border-t border-slate-200/60 pt-4">
+            <div className="mt-5 border-t border-border/60 pt-4">
               <button
                 onClick={() => triggerGeminiSummarization(selectedDoc.id, selectedDoc.name, selectedDoc.category)}
                 disabled={aiAnalyzingId === selectedDoc.id}
-                className="w-full py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold shadow-sm hover:bg-indigo-700 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+                className="w-full py-2 bg-primary text-primary-foreground rounded-lg text-xs font-semibold shadow-sm flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {aiAnalyzingId === selectedDoc.id ? (
                   <>

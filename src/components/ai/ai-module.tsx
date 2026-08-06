@@ -195,28 +195,28 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
   ];
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col h-full gap-3.5 sm:gap-5" id="ai-copilot-module">
+    <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-sm flex flex-col h-full gap-3.5 sm:gap-5" id="ai-copilot-module">
       {/* Module Title */}
-      <div className="flex justify-between items-center border-b border-slate-100 pb-2.5 sm:pb-4">
+      <div className="flex justify-between items-center border-b border-border pb-2.5 sm:pb-4">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-indigo-600 fill-indigo-100 shrink-0" />
-          <h3 className="text-base sm:text-lg font-bold text-slate-800 font-display">{t.aiCopilotTitle}</h3>
+          <Sparkles className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-primary fill-accent shrink-0" />
+          <h3 className="text-base sm:text-lg font-bold text-foreground font-display">{t.aiCopilotTitle}</h3>
         </div>
-        <span className="text-[10px] uppercase font-bold tracking-widest text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full font-mono">
+        <span className="text-[10px] uppercase font-bold tracking-widest text-primary bg-accent border border-primary px-2 py-0.5 rounded-full font-mono">
           {t.poweredBy}
         </span>
       </div>
 
       {/* Tab switcher — Ask (RAG) is the new default; Draft is the legacy
           pleading copilot. Lawyers land on the grounded Q&A first. */}
-      <div className="flex gap-1 p-1 bg-slate-100 rounded-2xl">
+      <div className="flex gap-1 p-1 bg-muted rounded-xl">
         <button
           type="button"
           onClick={() => setTab('ask')}
           className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
             tab === 'ask'
-              ? 'bg-white text-indigo-700 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
+              ? 'bg-card text-primary shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           <Search className="w-3.5 h-3.5" />
@@ -227,8 +227,8 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
           onClick={() => setTab('draft')}
           className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
             tab === 'draft'
-              ? 'bg-white text-indigo-700 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
+              ? 'bg-card text-primary shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           <FileText className="w-3.5 h-3.5" />
@@ -249,22 +249,22 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
         {/* Left Side: Drafting Configs */}
         <div className="lg:col-span-5 flex flex-col gap-4">
           <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">{t.draftTemplate}</label>
+            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">{t.draftTemplate}</label>
             <div className="grid grid-cols-2 gap-2">
               {templateOptions.map(tpl => (
                 <button
                   key={tpl.value}
                   type="button"
                   onClick={() => setDraftType(tpl.value)}
-                  className={`p-3 text-xs font-semibold rounded-2xl border transition-all flex flex-col justify-between cursor-pointer ${
+                  className={`p-3 text-xs font-semibold rounded-xl border transition-all flex flex-col justify-between cursor-pointer ${
                     isRtl ? 'text-right' : 'text-left rtl:text-right rtl:text-left'
                   } ${
                     draftType === tpl.value
-                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'
-                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100/50 text-slate-600'
+                      ? 'bg-primary border-primary text-white shadow-md'
+                      : 'border-border bg-background hover:bg-muted/50 text-muted-foreground'
                   }`}
                 >
-                  <FileText className={`w-4 h-4 mb-2 ${draftType === tpl.value ? 'text-indigo-200' : 'text-slate-400'}`} />
+                  <FileText className={`w-4 h-4 mb-2 ${draftType === tpl.value ? 'text-primary' : 'text-muted-foreground'}`} />
                   <span>{tpl.name}</span>
                 </button>
               ))}
@@ -274,7 +274,7 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
           <div>
             {/* Header label & Voice Dictation Mic control */}
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 {t.draftDirectives}
               </label>
 
@@ -285,7 +285,7 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
                 className={`px-2.5 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all cursor-pointer ${
                   isListening
                     ? 'bg-rose-500 text-white border-rose-600 shadow-md animate-pulse'
-                    : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200'
+                    : 'bg-accent hover:bg-primary/15 text-primary border-primary'
                 }`}
                 title={isListening ? (isRtl ? 'إيقاف الإملاء الصوتي' : 'Stop voice dictation') : (isRtl ? 'بدء الإملاء الصوتي' : 'Start voice dictation')}
               >
@@ -296,7 +296,7 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
                   </>
                 ) : (
                   <>
-                    <Mic className="w-3.5 h-3.5 text-indigo-600" />
+                    <Mic className="w-3.5 h-3.5 text-primary" />
                     <span>{isRtl ? 'إملاء صوتي' : 'Voice Dictate'}</span>
                   </>
                 )}
@@ -305,7 +305,7 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
 
             {/* Quick Voice Legal Template Directives */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-1 scrollbar-none">
-              <span className="text-[10px] text-slate-400 font-bold shrink-0">{isRtl ? 'إملاء سريع:' : 'Quick Dictate:'}</span>
+              <span className="text-[10px] text-muted-foreground font-bold shrink-0">{isRtl ? 'إملاء سريع:' : 'Quick Dictate:'}</span>
               {[
                 { label: isRtl ? 'وقائع الدعوى' : 'Case Facts', val: isRtl ? 'وقائع القضية والمستندات' : 'Case Facts & Documents' },
                 { label: isRtl ? 'شهادة الشهود' : 'Witness Statements', val: isRtl ? 'أقوال وشهادات الشهود' : 'Witness Testimony' },
@@ -315,7 +315,7 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
                   key={item.label}
                   type="button"
                   onClick={() => handleInsertQuickTemplate(item.val)}
-                  className="px-2 py-0.5 text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium rounded-lg border border-slate-200 shrink-0 cursor-pointer transition-colors"
+                  className="px-2 py-0.5 text-[10px] bg-muted hover:bg-foreground/10 text-muted-foreground font-medium rounded-lg border border-border shrink-0 cursor-pointer transition-colors"
                 >
                   + {item.label}
                 </button>
@@ -344,15 +344,15 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
                 onChange={e => setCustomInstructions(e.target.value)}
                 placeholder={isRtl ? 'اضغط على زِر الإملاء الصوتي للتحدث مباشرة، أو اكتب الملاحظات والطلبات...' : t.draftDirectivesPlaceholder}
                 rows={4}
-                className={`w-full text-xs border rounded-2xl p-4 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-100 leading-normal ${
-                  isListening ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200'
+                className={`w-full text-xs border rounded-lg p-4 bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 transition-colors leading-normal ${
+                  isListening ? 'border-rose-300 ring-2 ring-rose-100' : 'border-border'
                 }`}
               />
 
               {/* Interim Transcript Live Overlay */}
               {interimTranscript && (
-                <div className="mt-1 p-2 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-800 italic flex items-center gap-2">
-                  <Volume2 className="w-3.5 h-3.5 text-indigo-500 shrink-0 animate-bounce" />
+                <div className="mt-1 p-2 bg-accent border border-primary rounded-xl text-xs text-primary italic flex items-center gap-2">
+                  <Volume2 className="w-3.5 h-3.5 text-primary shrink-0 animate-bounce" />
                   <span>"{interimTranscript}"</span>
                 </div>
               )}
@@ -362,7 +362,7 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
                 <button
                   type="button"
                   onClick={() => setCustomInstructions('')}
-                  className="absolute top-2.5 right-2.5 p-1 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-lg text-[10px] transition-colors cursor-pointer"
+                  className="absolute top-2.5 right-2.5 p-1 bg-muted hover:bg-foreground/10 text-muted-foreground rounded-lg text-[10px] transition-colors cursor-pointer"
                   title={isRtl ? 'مسح النص' : 'Clear text'}
                 >
                   <Trash2 className="w-3 h-3" />
@@ -380,7 +380,7 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
           <button
             onClick={handleGenerateDraft}
             disabled={loading || customInstructions.trim().length < 2}
-            className="w-full py-3 bg-indigo-600 text-white rounded-2xl text-xs font-bold hover:bg-indigo-700 shadow-md shadow-indigo-100 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-primary text-primary-foreground rounded-lg text-xs font-bold shadow-md shadow-primary/10 flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <>
@@ -402,20 +402,20 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
         </div>
 
         {/* Right Side: Draft Text Output in Parchment Viewport */}
-        <div className="lg:col-span-7 flex flex-col justify-between bg-slate-50 border border-slate-200 rounded-3xl p-5 overflow-hidden min-h-[350px]">
+        <div className="lg:col-span-7 flex flex-col justify-between bg-background border border-border rounded-xl p-4 md:p-5 overflow-hidden min-h-[350px]">
           {draftText ? (
             <div className="flex flex-col h-full justify-between gap-4">
-              <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+              <div className="flex justify-between items-center pb-2 border-b border-border">
                 <div>
-                  <span className="text-[9px] uppercase font-bold text-slate-400 font-mono">{t.draftReady}</span>
-                  <p className="text-xs font-bold text-slate-700">
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground font-mono">{t.draftReady}</span>
+                  <p className="text-xs font-bold text-foreground">
                     {templateOptions.find(o => o.value === draftType)?.name || draftType}
                   </p>
                 </div>
                 <div className="flex gap-1.5 shrink-0">
                   <button
                     onClick={handleCopyToClipboard}
-                    className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-indigo-600 shadow-sm transition-all text-xs flex items-center gap-1 cursor-pointer"
+                    className="p-1.5 rounded-lg border border-border bg-card text-muted-foreground hover:text-primary shadow-sm transition-all text-xs flex items-center gap-1 cursor-pointer"
                   >
                     {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copied ? t.copiedBtn : t.copyBtn}</span>
@@ -425,21 +425,21 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
 
               {/* Text Area Mock Parchment scroll */}
               <div 
-                className="flex-grow overflow-y-auto max-h-[350px] bg-white border border-slate-100 p-5 rounded-2xl shadow-inner text-xs text-slate-700 leading-relaxed font-sans whitespace-pre-line"
+                className="flex-grow overflow-y-auto max-h-[350px] bg-card border border-border p-4 rounded-xl shadow-inner text-xs text-foreground leading-relaxed font-sans whitespace-pre-line"
                 style={{ direction: isRtl ? 'rtl' : 'ltr' }}
               >
                 {draftText}
               </div>
 
-              <span className="text-[9px] text-slate-400 text-center uppercase tracking-widest font-bold font-mono">
+              <span className="text-[9px] text-muted-foreground text-center uppercase tracking-widest font-bold font-mono">
                 {t.draftLegalNotes}
               </span>
             </div>
           ) : (
-            <div className="h-full flex flex-col justify-center items-center text-center text-slate-400 py-10 gap-2">
-              <FileText className="w-12 h-12 text-slate-300" />
-              <p className="text-xs">{t.noDraftPrompt}</p>
-              <p className="text-[10px] text-slate-400">{isRtl ? 'جميع المستندات المصاغة تتبع البناء القانوني المعتمد في الشرق الأوسط.' : 'All drafts use formal Middle Eastern judicial structures.'}</p>
+            <div className="h-full flex flex-col justify-center items-center text-center text-muted-foreground py-10 gap-2">
+              <FileText className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+              <p className="text-sm font-semibold text-muted-foreground">{t.noDraftPrompt}</p>
+              <p className="text-[10px] text-muted-foreground">{isRtl ? 'جميع المستندات المصاغة تتبع البناء القانوني المعتمد في الشرق الأوسط.' : 'All drafts use formal Middle Eastern judicial structures.'}</p>
             </div>
           )}
         </div>

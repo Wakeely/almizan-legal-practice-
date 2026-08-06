@@ -276,14 +276,14 @@ export default function AnalyticsModule({ activeMatter }: AnalyticsModuleProps) 
       )}
 
       {/* Analytics Header with Report Export Toolbar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-bold">
-            <BarChart3 className="w-3.5 h-3.5 text-indigo-400" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary text-xs font-bold">
+            <BarChart3 className="w-3.5 h-3.5 text-primary" />
             <span>{isRtl ? 'تحليلات الأداء المالي والأثر القضائي' : 'Financial & Legal Performance Analytics'}</span>
           </div>
-          <h3 className="text-lg sm:text-xl font-black text-white font-display">
+          <h3 className="text-lg sm:text-xl font-black text-foreground font-display">
             {isRtl ? 'مؤشرات الأداء وتصدير التقارير' : 'Monthly Performance & Billing Analytics'}
           </h3>
         </div>
@@ -295,7 +295,7 @@ export default function AnalyticsModule({ activeMatter }: AnalyticsModuleProps) 
           <button
             onClick={handleExportPDF}
             disabled={exportingType !== null}
-            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md border border-indigo-400/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+            className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-lg shadow-md border border-primary/30 flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
             title={isRtl ? 'تصدير تقرير أداء PDF مطبوع' : 'Export PDF Performance Report'}
           >
             <FileText className="w-4 h-4" />
@@ -306,7 +306,7 @@ export default function AnalyticsModule({ activeMatter }: AnalyticsModuleProps) 
           <button
             onClick={handleExportExcel}
             disabled={exportingType !== null}
-            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md border border-emerald-400/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow-md border border-emerald-400/30 flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
             title={isRtl ? 'تصدير بيانات الأداء إلى جدول Excel (.csv)' : 'Export Excel Spreadsheet (.csv)'}
           >
             <FileSpreadsheet className="w-4 h-4" />
@@ -319,11 +319,11 @@ export default function AnalyticsModule({ activeMatter }: AnalyticsModuleProps) 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6" id="analytics-bento-grid">
         
         {/* 1. Risk Factor Block */}
-        <div className="bg-indigo-900 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col text-white justify-between min-h-[140px] md:min-h-[160px] relative overflow-hidden md:col-span-1">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-800/30 rounded-full blur-xl pointer-events-none" />
+        <div className="bg-card border border-border rounded-xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col text-foreground justify-between min-h-[140px] md:min-h-[160px] relative overflow-hidden md:col-span-1">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-xl pointer-events-none" />
           <div className="flex justify-between items-start mb-2 sm:mb-4">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-200">{t.riskFactorIndex}</span>
-            <div className="px-2 py-0.5 bg-white/10 border border-white/10 rounded text-[9px] uppercase font-bold text-indigo-100">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t.riskFactorIndex}</span>
+            <div className="px-2 py-0.5 bg-primary/10 border border-primary/30 rounded text-[9px] uppercase font-bold text-primary">
               {activeMatter.riskLevel === 'High' ? (isRtl ? 'مرتفع' : 'High') : activeMatter.riskLevel === 'Medium' ? (isRtl ? 'متوسط' : 'Medium') : (isRtl ? 'منخفض' : 'Low')}
             </div>
           </div>
@@ -331,62 +331,62 @@ export default function AnalyticsModule({ activeMatter }: AnalyticsModuleProps) 
             <div className="text-2xl sm:text-3xl font-extrabold font-display">
               {activeMatter.riskLevel === 'High' ? '74.2%' : activeMatter.riskLevel === 'Medium' ? '38.5%' : '14.8%'}
             </div>
-            <p className="text-[11px] text-indigo-200 mt-1 leading-relaxed">
+            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
               {t.riskFactorDesc}
             </p>
           </div>
         </div>
 
         {/* 2. Staff Resource Allocation Map */}
-        <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col justify-between min-h-[140px] md:min-h-[160px] md:col-span-1">
+        <div className="bg-card border border-border rounded-xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col justify-between min-h-[140px] md:min-h-[160px] md:col-span-1">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.resourceAllocation}</span>
-            <Users className="w-4.5 h-4.5 text-indigo-600" />
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t.resourceAllocation}</span>
+            <Users className="w-4.5 h-4.5 text-primary" />
           </div>
           <div className="space-y-1.5 sm:space-y-2 mt-2 sm:mt-4">
-            <div className="h-2 sm:h-2.5 bg-slate-100 rounded-full w-full overflow-hidden">
-              <div className="h-2 sm:h-2.5 bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${staffRatio}%` }} />
+            <div className="h-2 sm:h-2.5 bg-muted rounded-full w-full overflow-hidden">
+              <div className="h-2 sm:h-2.5 bg-primary rounded-full transition-all duration-500" style={{ width: `${staffRatio}%` }} />
             </div>
-            <div className="h-2 sm:h-2.5 bg-slate-100 rounded-full w-full overflow-hidden">
-              <div className="h-2 sm:h-2.5 bg-indigo-500 rounded-full opacity-60 transition-all duration-500" style={{ width: `${Math.max(20, staffRatio - 15)}%` }} />
+            <div className="h-2 sm:h-2.5 bg-muted rounded-full w-full overflow-hidden">
+              <div className="h-2 sm:h-2.5 bg-primary rounded-full opacity-60 transition-all duration-500" style={{ width: `${Math.max(20, staffRatio - 15)}%` }} />
             </div>
-            <div className="h-2 sm:h-2.5 bg-slate-100 rounded-full w-full overflow-hidden">
-              <div className="h-2 sm:h-2.5 bg-indigo-500 rounded-full opacity-30 transition-all duration-500" style={{ width: `${Math.max(10, staffRatio - 35)}%` }} />
+            <div className="h-2 sm:h-2.5 bg-muted rounded-full w-full overflow-hidden">
+              <div className="h-2 sm:h-2.5 bg-primary rounded-full opacity-30 transition-all duration-500" style={{ width: `${Math.max(10, staffRatio - 35)}%` }} />
             </div>
           </div>
-          <p className="text-[10px] text-slate-500 text-center font-bold mt-1.5 sm:mt-2">
+          <p className="text-[10px] text-muted-foreground text-center font-bold mt-1.5 sm:mt-2">
             {t.allocatedStaff}: {activeMatter.riskLevel === 'High' ? '6/8' : '3/8'}
           </p>
         </div>
 
         {/* 3. Primary Goal Saturation Indicator */}
-        <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col justify-between border-l-4 border-l-emerald-500 min-h-[140px] md:min-h-[160px] md:col-span-1">
+        <div className="bg-card border border-border rounded-xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col justify-between border-l-4 border-l-emerald-500 min-h-[140px] md:min-h-[160px] md:col-span-1">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.primaryObjective}</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t.primaryObjective}</span>
             <Target className="w-4.5 h-4.5 text-emerald-500" />
           </div>
           <div>
-            <h4 className="text-base font-bold text-slate-800 font-display">{t.contractSaturation}</h4>
-            <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+            <h4 className="text-base font-bold text-foreground font-display">{t.contractSaturation}</h4>
+            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
               {isRtl ? `تأمين معدل امتثال بنسبة ${activeMatter.winProbability}% لمتطلبات ما قبل المحاكمة وجلسة الاكتشاف.` : `Ensure ${activeMatter.winProbability}% compliance rating by pre-trial discovery hearing.`}
             </p>
           </div>
         </div>
 
         {/* 4. Financial Health Monitor */}
-        <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col justify-between min-h-[140px] md:min-h-[160px] md:col-span-1">
+        <div className="bg-card border border-border rounded-xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col justify-between min-h-[140px] md:min-h-[160px] md:col-span-1">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.pleadingCapStatus}</span>
-            <Activity className="w-4.5 h-4.5 text-indigo-600" />
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t.pleadingCapStatus}</span>
+            <Activity className="w-4.5 h-4.5 text-primary" />
           </div>
           <div>
-            <div className="text-xl font-bold text-slate-800 font-mono">
+            <div className="text-xl font-bold text-foreground font-mono">
               {remainingBudget.toLocaleString()} {isRtl ? 'د.أ' : 'JOD'}
             </div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{t.budgetBalance}</p>
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">{t.budgetBalance}</p>
             <div className="flex items-center gap-1.5 mt-2 sm:mt-3">
               <span className={`w-2.5 h-2.5 rounded-full ${budgetRatio > 75 ? 'bg-red-500' : 'bg-emerald-500'}`} />
-              <span className="text-[10px] font-semibold text-slate-500">{budgetRatio}% {t.budgetExhausted}</span>
+              <span className="text-[10px] font-semibold text-muted-foreground">{budgetRatio}% {t.budgetExhausted}</span>
             </div>
           </div>
         </div>
@@ -394,15 +394,15 @@ export default function AnalyticsModule({ activeMatter }: AnalyticsModuleProps) 
       </div>
 
       {/* Monthly Performance & Billing Summary Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
-        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+      <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-sm space-y-3">
+        <div className="flex items-center justify-between pb-2 border-b border-border">
           <div className="flex items-center gap-2">
-            <CalendarClock className="w-4 h-4 text-indigo-600" />
-            <h4 className="text-sm font-bold text-slate-800 font-display">
+            <CalendarClock className="w-4 h-4 text-primary" />
+            <h4 className="text-sm font-bold text-foreground font-display">
               {isRtl ? 'جدول الأداء المالي والساعات المفوترة شهرياً' : 'Monthly Performance & Billed Hours Log'}
             </h4>
           </div>
-          <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+          <span className="text-[10px] font-bold text-primary bg-accent px-2 py-0.5 rounded-full border border-primary">
             {isRtl ? 'مستند تصدير معتمد' : 'Report Ready'}
           </span>
         </div>
@@ -410,7 +410,7 @@ export default function AnalyticsModule({ activeMatter }: AnalyticsModuleProps) 
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left rtl:text-right rtl:text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 text-[10px] uppercase font-bold text-slate-400 bg-slate-50">
+              <tr className="border-b border-border text-[10px] uppercase font-bold text-muted-foreground bg-background">
                 <th className="p-2.5">{isRtl ? 'الشهر' : 'Month'}</th>
                 <th className="p-2.5">{isRtl ? 'الإيراد المفوتر' : 'Billed Amount'}</th>
                 <th className="p-2.5">{isRtl ? 'ساعات العمل' : 'Billable Hours'}</th>
@@ -419,14 +419,14 @@ export default function AnalyticsModule({ activeMatter }: AnalyticsModuleProps) 
                 <th className="p-2.5 text-right rtl:text-left">{isRtl ? 'الحالة' : 'Status'}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
+            <tbody className="divide-y divide-border font-medium">
               {monthlyData.map((m) => (
-                <tr key={m.code} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="p-2.5 font-bold text-slate-800">{m.month}</td>
-                  <td className="p-2.5 font-mono text-indigo-700 font-bold">{m.billed.toLocaleString()} JOD</td>
-                  <td className="p-2.5 text-slate-600">{m.hours} hrs</td>
-                  <td className="p-2.5 text-slate-600">{m.budgetUsed}</td>
-                  <td className="p-2.5 text-slate-600">{m.riskIndex}</td>
+                <tr key={m.code} className="hover:bg-background/80 transition-colors">
+                  <td className="p-2.5 font-bold text-foreground">{m.month}</td>
+                  <td className="p-2.5 font-mono text-primary font-bold">{m.billed.toLocaleString()} JOD</td>
+                  <td className="p-2.5 text-muted-foreground">{m.hours} hrs</td>
+                  <td className="p-2.5 text-muted-foreground">{m.budgetUsed}</td>
+                  <td className="p-2.5 text-muted-foreground">{m.riskIndex}</td>
                   <td className="p-2.5 text-right rtl:text-left">
                     <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                       {m.status}

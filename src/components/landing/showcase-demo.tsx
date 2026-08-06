@@ -94,8 +94,8 @@ function ConsolePane({ lang, activeIdx, label }: { lang: "ar" | "en"; activeIdx:
               >
                 <span className="text-red-500 font-bold text-xs uppercase tracking-wider relative z-10">PDF</span>
                 <div className="absolute top-1.5 right-1.5 w-3 h-3 bg-red-100 rounded-sm"></div>
-                <div className="absolute bottom-2 left-2 right-2 h-1 bg-gray-100 rounded-full"></div>
-                <div className="absolute bottom-4 left-2 right-4 h-1 bg-gray-100 rounded-full"></div>
+                <div className="absolute bottom-2 left-2 right-2 h-1 bg-muted rounded-full"></div>
+                <div className="absolute bottom-4 left-2 right-4 h-1 bg-muted rounded-full"></div>
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, scale: 0.5 }}

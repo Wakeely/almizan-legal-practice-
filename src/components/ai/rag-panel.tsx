@@ -238,8 +238,8 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
   return (
     <div className="flex flex-col h-full gap-4">
       {/* Subtitle — honesty about corpus limits */}
-      <div className="flex items-start gap-2 text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
-        <BookOpen className="w-3.5 h-3.5 mt-0.5 shrink-0 text-slate-400" />
+      <div className="flex items-start gap-2 text-[11px] text-muted-foreground bg-card border border-border rounded-xl p-2.5">
+        <BookOpen className="w-3.5 h-3.5 mt-0.5 shrink-0 text-muted-foreground" />
         <span>{t.ragSubtitle}</span>
       </div>
 
@@ -324,15 +324,15 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
 
       {/* --- One-click RAG setup (Managing Partner only, only when RAG_SEED_ENABLED=1 AND not fully setup) --- */}
       {isManagingPartner && setupStatus?.enabled && !setupStatus.fullySetup && (
-        <div className="border border-indigo-300 bg-indigo-50 rounded-2xl p-3.5 flex flex-col gap-2.5">
+        <div className="border border-primary/30 bg-primary/5 rounded-2xl p-3.5 flex flex-col gap-2.5">
           <div className="flex items-start gap-2">
-            <DatabaseZap className="w-4 h-4 mt-0.5 shrink-0 text-indigo-600" />
+            <DatabaseZap className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
             <div className="flex-grow min-w-0">
-              <div className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+              <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
                 <Lock className="w-3 h-3" />
                 {isRtl ? 'إعداد RAG بنقرة واحدة (للمدير فقط)' : 'One-click RAG setup (Managing Partner only)'}
               </div>
-              <div className="text-[10px] text-indigo-700 mt-0.5 leading-relaxed">
+              <div className="text-[10px] text-primary mt-0.5 leading-relaxed">
                 {isRtl
                   ? 'هذا الزر ينشئ كل شيء: الجداول، تفعيل pgvector، الفهارس، دوال البحث، وتحميل 31 مادة قانونية بتضميناتها. لا حاجة لأي SQL أو طرفية.'
                   : 'This button creates everything: tables, pgvector extension, indexes, search functions, and seeds 31 legal articles with embeddings. No SQL or terminal needed.'}
@@ -363,7 +363,7 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
           <button
             onClick={handleSetup}
             disabled={setupLoading || !setupStatus.hasGeminiKey}
-            className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-2.5 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {setupLoading ? (
               <>
@@ -385,7 +385,7 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
           )}
 
           {setupResult && (
-            <div className="text-[10px] text-slate-800 bg-white border border-slate-200 rounded-lg p-2.5">
+            <div className="text-[10px] text-foreground bg-white border border-border rounded-lg p-2.5">
               <div className={`font-bold mb-1 ${setupResult.ok ? 'text-emerald-700' : 'text-amber-700'}`}>
                 {setupResult.ok
                   ? (isRtl ? '✓ اكتمل الإعداد بنجاح' : '✓ Setup complete')
@@ -396,7 +396,7 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
                   <span className="font-mono shrink-0">{s.ok ? '✓' : '✗'}</span>
                   <span className="flex-grow">
                     <span className="font-semibold">Step {s.step}:</span> {s.message}
-                    {s.detail && <span className="block text-slate-500 mt-0.5 font-mono text-[9px]">{s.detail}</span>}
+                    {s.detail && <span className="block text-muted-foreground mt-0.5 font-mono text-[9px]">{s.detail}</span>}
                   </span>
                 </div>
               ))}
@@ -408,7 +408,7 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
                 </div>
               )}
               {setupResult.ok && (
-                <div className="mt-1.5 text-slate-600">
+                <div className="mt-1.5 text-muted-foreground">
                   {isRtl
                     ? 'الآن جرّب طرح سؤال. ثم اذهب إلى Vercel → Settings → Environment Variables واضبط RAG_SEED_ENABLED=0 وأعد النشر لإخفاء هذا الزر.'
                     : 'Try asking a question now. Then go to Vercel → Settings → Environment Variables, set RAG_SEED_ENABLED=0, and redeploy to hide this button.'}
@@ -443,10 +443,10 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
           onKeyDown={handleKeyDown}
           placeholder={t.ragPlaceholder}
           rows={3}
-          className="w-full text-sm border border-slate-200 rounded-2xl p-4 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-100 leading-normal resize-none"
+          className="w-full text-sm border border-border rounded-2xl p-4 bg-card focus:outline-none focus:ring-2 focus:ring-indigo-100 leading-normal resize-none"
           dir={isRtl ? 'rtl' : 'ltr'}
         />
-        <div className="absolute bottom-3 right-3 text-[10px] text-slate-400 font-mono">
+        <div className="absolute bottom-3 right-3 text-[10px] text-muted-foreground font-mono">
           ⌘+↵
         </div>
       </div>
@@ -455,7 +455,7 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
       <button
         onClick={handleAsk}
         disabled={loading || !question.trim() || (!includeMatter && !includeCorpus)}
-        className="w-full py-3 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 shadow-md shadow-indigo-100 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 bg-primary text-white rounded-2xl text-sm font-bold hover:bg-primary shadow-md shadow-indigo-100 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? (
           <>
@@ -521,7 +521,7 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
 
           {/* Answer text */}
           <div
-            className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap bg-white border border-slate-200 rounded-2xl p-4"
+            className="text-sm text-foreground leading-relaxed whitespace-pre-wrap bg-white border border-border rounded-2xl p-4"
             dir={answer.lang === 'ar' ? 'rtl' : 'ltr'}
           >
             {answer.answer || (isRtl ? '—' : '—')}
@@ -530,7 +530,7 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
           {/* Sources */}
           {answer.sources.length > 0 && (
             <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 <Sparkles className="w-3 h-3" />
                 <span>{t.ragSourcesTitle} ({answer.sources.length})</span>
               </div>
@@ -549,7 +549,7 @@ export default function RagPanel({ activeMatter }: RagPanelProps) {
           )}
 
           {/* Disclaimer */}
-          <div className="text-[10px] text-slate-400 italic border-t border-slate-100 pt-2 mt-1">
+          <div className="text-[10px] text-muted-foreground italic border-t border-border pt-2 mt-1">
             {answer.disclaimer}
           </div>
         </div>
@@ -579,8 +579,8 @@ function ToggleChip({
       onClick={onClick}
       className={`px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 transition-all cursor-pointer ${
         active
-          ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-          : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+          ? 'bg-primary text-white border-primary shadow-sm'
+          : 'bg-white text-muted-foreground border-border hover:bg-card'
       }`}
     >
       {icon}
@@ -599,7 +599,7 @@ function Badge({
   const styles = {
     good: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     warn: 'bg-amber-50 text-amber-700 border-amber-200',
-    neutral: 'bg-slate-50 text-slate-600 border-slate-200',
+    neutral: 'bg-card text-muted-foreground border-border',
   }[variant];
   return (
     <span
@@ -652,30 +652,30 @@ function SourceChip({
   }
 
   return (
-    <div className="border border-slate-200 rounded-xl bg-white overflow-hidden">
+    <div className="border border-border rounded-xl bg-white overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between gap-2 p-2.5 text-xs hover:bg-slate-50 transition-colors cursor-pointer text-left"
+        className="w-full flex items-center justify-between gap-2 p-2.5 text-xs hover:bg-card transition-colors cursor-pointer text-left"
         dir={isRtl ? 'rtl' : 'ltr'}
       >
         <div className="flex items-center gap-2 min-w-0 flex-grow">
-          <TypeIcon className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[9px] font-bold uppercase tracking-wide shrink-0">
+          <TypeIcon className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground text-[9px] font-bold uppercase tracking-wide shrink-0">
             {typeLabel}
           </span>
-          <span className="font-semibold text-slate-700 truncate">{primary}</span>
+          <span className="font-semibold text-foreground truncate">{primary}</span>
         </div>
         {expanded ? (
-          <ChevronUp className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <ChevronUp className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         ) : (
-          <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         )}
       </button>
       {expanded && (
         <div className="px-2.5 pb-2.5 pt-0">
           <div
-            className="text-[11px] text-slate-600 leading-relaxed bg-slate-50 border border-slate-100 rounded-lg p-2.5 whitespace-pre-wrap"
+            className="text-[11px] text-muted-foreground leading-relaxed bg-card border border-border rounded-lg p-2.5 whitespace-pre-wrap"
             dir={isRtl ? 'rtl' : 'ltr'}
           >
             {citation.excerpt}
@@ -685,7 +685,7 @@ function SourceChip({
               href={citation.sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 mt-1.5 text-[10px] text-indigo-600 hover:text-indigo-700 font-semibold"
+              className="inline-flex items-center gap-1 mt-1.5 text-[10px] text-primary hover:text-primary font-semibold"
             >
               <BookOpen className="w-3 h-3" />
               <span>{isRtl ? 'المصدر الرسمي' : 'Official source'}</span>
@@ -695,7 +695,7 @@ function SourceChip({
               workspace is the destination, not a specific page anchor, because
               the existing UI doesn't expose deep links to individual pages.) */}
           {citation.type !== 'statute' && (citation.documentId || citation.transcriptId) && (
-            <span className="inline-flex items-center gap-1 mt-1.5 ml-2 text-[10px] text-slate-400">
+            <span className="inline-flex items-center gap-1 mt-1.5 ml-2 text-[10px] text-muted-foreground">
               <FileText className="w-3 h-3" />
               <span>{isRtl ? 'متاح في ملفات القضية' : 'Available in matter files'}</span>
             </span>
@@ -708,7 +708,7 @@ function SourceChip({
 
 function SetupCheck({ done, label }: { done: boolean; label: string }) {
   return (
-    <div className={`flex items-center gap-1.5 ${done ? 'text-emerald-600' : 'text-slate-400'}`}>
+    <div className={`flex items-center gap-1.5 ${done ? 'text-emerald-600' : 'text-muted-foreground'}`}>
       <span className="font-mono">{done ? '✓' : '○'}</span>
       <span>{label}</span>
     </div>

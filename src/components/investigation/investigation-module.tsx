@@ -207,7 +207,7 @@ export default function InvestigationModule({ activeMatter }: InvestigationModul
   // ── Render: role gate ──────────────────────────────────────────────────
   if (!roleAllowed) {
     return (
-      <div className="bg-card border border-border rounded-2xl p-8 text-center">
+      <div className="bg-card border border-border rounded-xl p-8 text-center">
         <Lock className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
         <h3 className="text-base font-bold mb-1">
           {isAr ? 'هذه الميزة غير متاحة لدورك' : 'Not available for your role'}

@@ -299,23 +299,23 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col h-full gap-3.5 sm:gap-5" id="tasks-module">
+    <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-sm flex flex-col h-full gap-3.5 sm:gap-5" id="tasks-module">
       {/* Module Header & Scope Switcher */}
-      <div className="flex justify-between items-center border-b border-slate-100 pb-2.5 sm:pb-4 flex-wrap gap-2">
+      <div className="flex justify-between items-center border-b border-border pb-2.5 sm:pb-4 flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <Clock className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-indigo-600 shrink-0" />
-            <h3 className="text-base sm:text-lg font-bold text-slate-800 font-display">{t.workflowTitle}</h3>
+            <Clock className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-primary shrink-0" />
+            <h3 className="text-base sm:text-lg font-bold text-foreground font-display">{t.workflowTitle}</h3>
           </div>
 
           {/* Scope Switcher: Single Case vs Cross-Case Kanban */}
-          <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold font-display">
+          <div className="flex items-center p-1 bg-muted rounded-xl border border-border text-xs font-bold font-display">
             <button
               onClick={() => setBoardScope('single')}
               className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
                 boardScope === 'single'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <FolderOpen className="w-3.5 h-3.5" />
@@ -325,8 +325,8 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
               onClick={() => setBoardScope('all')}
               className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
                 boardScope === 'all'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
@@ -347,7 +347,7 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
 
           <button
             onClick={() => setShowForm(!showForm)}
-            className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold rounded-xl flex items-center gap-1 transition-colors cursor-pointer"
+            className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-accent hover:bg-primary/15 text-primary text-xs font-bold rounded-xl flex items-center gap-1 transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             {t.addTask}
@@ -357,20 +357,20 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
 
       {/* Cross-Case Filter Bar */}
       {boardScope === 'all' && (
-        <div className="bg-indigo-50/50 border border-indigo-100/80 p-2.5 rounded-2xl flex flex-wrap items-center justify-between gap-2.5 text-xs">
+        <div className="bg-accent/50 border border-primary/80 p-2.5 rounded-2xl flex flex-wrap items-center justify-between gap-2.5 text-xs">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-indigo-600 shrink-0" />
-            <span className="font-bold text-slate-700">{isRtl ? 'تصفية المهام الشاملة:' : 'Cross-Case Filters:'}</span>
+            <Filter className="w-4 h-4 text-primary shrink-0" />
+            <span className="font-bold text-foreground">{isRtl ? 'تصفية المهام الشاملة:' : 'Cross-Case Filters:'}</span>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             {/* Filter by Matter */}
             <div className="flex items-center gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">{isRtl ? 'القضية:' : 'Matter:'}</label>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">{isRtl ? 'القضية:' : 'Matter:'}</label>
               <select
                 value={matterFilter}
                 onChange={e => setMatterFilter(e.target.value)}
-                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-medium text-slate-700 focus:outline-none"
+                className="bg-card border border-border rounded-lg px-2 py-1 text-xs font-medium text-foreground focus:outline-none"
               >
                 <option value="all">{isRtl ? 'جميع القضايا' : 'All Matters'}</option>
                 {matters.map(m => (
@@ -381,11 +381,11 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
 
             {/* Filter by Assignee */}
             <div className="flex items-center gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">{isRtl ? 'المسؤول:' : 'Assignee:'}</label>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">{isRtl ? 'المسؤول:' : 'Assignee:'}</label>
               <select
                 value={assigneeFilter}
                 onChange={e => setAssigneeFilter(e.target.value)}
-                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-medium text-slate-700 focus:outline-none"
+                className="bg-card border border-border rounded-lg px-2 py-1 text-xs font-medium text-foreground focus:outline-none"
               >
                 <option value="all">{isRtl ? 'جميع المستشارين' : 'All Assignees'}</option>
                 <option value="Farah Al-Sabah">Farah Al-Sabah</option>
@@ -399,25 +399,25 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
 
       {/* Task Creation Form Dropdown */}
       {showForm && (
-        <form onSubmit={handleCreateTask} className="bg-slate-50 border border-slate-100 p-4 rounded-2xl space-y-3 animate-in slide-in-from-top-4 duration-200">
+        <form onSubmit={handleCreateTask} className="bg-background border border-border p-4 rounded-xl space-y-3 animate-in slide-in-from-top-4 duration-200">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.taskTitleLabel}</label>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">{t.taskTitleLabel}</label>
               <input
                 type="text"
                 required
                 placeholder={isRtl ? "مثال: استلام رد محكم مركز التحكيم التجاري" : "e.g. Obtain SCCA Arbitrator response"}
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                className="w-full text-xs border border-border rounded-xl px-3 py-2 bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.assignedLawyer}</label>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">{t.assignedLawyer}</label>
               <select
                 value={assignedTo}
                 onChange={e => setAssignedTo(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none"
+                className="w-full text-xs border border-border rounded-xl px-3 py-2 bg-card focus:outline-none"
               >
                 <option value="Farah Al-Sabah">{isRtl ? 'فرح الصباح (مستشار أول)' : 'Farah Al-Sabah (Senior Associate)'}</option>
                 <option value="Walid Al-Gharaballi">{isRtl ? 'وليد الغربللي (شريك أول)' : 'Walid Al-Gharaballi (Senior Partner)'}</option>
@@ -429,21 +429,21 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
           {/* Prerequisite Tasks Selector */}
           {tasks.length > 0 && (
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center justify-between">
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 flex items-center justify-between">
                 <span>{isRtl ? 'المهام الحاكمة والمشترطات المسبقة (تمنع الاستكمال قبل إنجازها):' : 'Prerequisite Tasks (Blocks progression until finished):'}</span>
                 <span className="text-[9px] text-amber-600 font-mono font-normal flex items-center gap-1">
                   <Lock className="w-3 h-3" />
                   {isRtl ? 'اعتمادية تتابعية' : 'Sequential Dependency'}
                 </span>
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-white border border-slate-200 rounded-xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-card border border-border rounded-xl">
                 {tasks.map((existingTask) => {
                   const isChecked = selectedDependsOnTaskIds.includes(existingTask.id);
                   return (
                     <label
                       key={existingTask.id}
                       className={`p-2 rounded-lg border text-xs flex items-center gap-2 cursor-pointer transition-all ${
-                        isChecked ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold' : 'border-slate-100 text-slate-600 hover:bg-slate-50'
+                        isChecked ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold' : 'border-border text-muted-foreground hover:bg-background'
                       }`}
                     >
                       <input
@@ -456,10 +456,10 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
                             setSelectedDependsOnTaskIds(prev => prev.filter(id => id !== existingTask.id));
                           }
                         }}
-                        className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 h-3.5 w-3.5"
+                        className="rounded border-border text-amber-600 focus:ring-amber-500 h-3.5 w-3.5"
                       />
                       <span className="truncate min-w-0 flex-grow">{translateStaticText(existingTask.title, isRtl)}</span>
-                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 shrink-0">
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
                         {existingTask.status}
                       </span>
                     </label>
@@ -471,20 +471,20 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.dueDate}</label>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">{t.dueDate}</label>
               <input
                 type="date"
                 value={dueDate}
                 onChange={e => setDueDate(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none"
+                className="w-full text-xs border border-border rounded-xl px-3 py-2 bg-card focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.priority}</label>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">{t.priority}</label>
               <select
                 value={priority}
                 onChange={e => setPriority(e.target.value as any)}
-                className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none"
+                className="w-full text-xs border border-border rounded-xl px-3 py-2 bg-card focus:outline-none"
               >
                 <option value="Low">{isRtl ? 'منخفضة' : 'Low'}</option>
                 <option value="Medium">{isRtl ? 'متوسطة' : 'Medium'}</option>
@@ -497,9 +497,9 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
                 id="visibleToClientCheckbox"
                 checked={visibleToClient}
                 onChange={e => setVisibleToClient(e.target.checked)}
-                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer"
+                className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer"
               />
-              <label htmlFor="visibleToClientCheckbox" className="text-xs font-bold text-slate-500 uppercase tracking-wide cursor-pointer select-none">
+              <label htmlFor="visibleToClientCheckbox" className="text-xs font-bold text-muted-foreground uppercase tracking-wide cursor-pointer select-none">
                 {t.clientVisible}
               </label>
             </div>
@@ -509,14 +509,14 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="px-4 py-1.5 border border-slate-200 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100"
+              className="px-4 py-1.5 border border-border rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted"
             >
               {t.cancel}
             </button>
             <button
               type="submit"
               disabled={submitting || !title}
-              className="px-4 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 shadow-md shadow-indigo-100 flex items-center gap-1 disabled:opacity-50"
+              className="px-4 py-1.5 bg-primary text-white rounded-xl text-xs font-semibold  shadow-md shadow-primary/10 flex items-center gap-1 disabled:opacity-50"
             >
               {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
               {t.saveTask}
@@ -527,19 +527,19 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
 
       {/* Drag Notice Toast */}
       {dragNotice && (
-        <div className="bg-indigo-950 text-indigo-100 border border-indigo-500/40 text-xs px-3.5 py-2 rounded-xl flex items-center justify-between shadow-md animate-in fade-in">
+        <div className="bg-card border border-border text-xs px-3.5 py-2 rounded-xl flex items-center justify-between shadow-md animate-in fade-in">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="font-bold">{dragNotice}</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span className="font-bold text-foreground">{dragNotice}</span>
           </div>
-          <span className="text-[10px] text-indigo-300 font-mono">Al Mizan Workflow Engine</span>
+          <span className="text-[10px] text-muted-foreground font-mono">Al Mizan Workflow Engine</span>
         </div>
       )}
 
       {/* Kanban Drag & Drop Helper Legend Bar */}
-      <div className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 flex flex-wrap items-center justify-between text-[11px] text-slate-500 gap-2">
+      <div className="bg-background border border-border rounded-xl px-3 py-1.5 flex flex-wrap items-center justify-between text-[11px] text-muted-foreground gap-2">
         <div className="flex items-center gap-1.5 font-medium">
-          <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+          <ArrowRightLeft className="w-3.5 h-3.5 text-primary shrink-0" />
           <span>
             {isRtl
               ? 'اسحب بطاقة المهمة وأفلتها في العمود المطلوب لتغيير مرحلة العمل، أو فوق أزرار الأولوية لتعديل درجة الأهمية'
@@ -549,7 +549,7 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
 
         {/* Priority Drop Target Chips */}
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-bold text-slate-400 uppercase">{isRtl ? 'تغيير الأولوية بالنقل:' : 'Quick Priority Drop:'}</span>
+          <span className="text-[10px] font-bold text-muted-foreground uppercase">{isRtl ? 'تغيير الأولوية بالنقل:' : 'Quick Priority Drop:'}</span>
           {(['High', 'Medium', 'Low'] as const).map(p => (
             <div
               key={p}
@@ -558,7 +558,7 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
               className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border cursor-pointer transition-all ${
                 p === 'High' ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' :
                 p === 'Medium' ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100' :
-                'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100'
+                'bg-accent text-primary border-primary hover:bg-accent'
               }`}
               title={isRtl ? `أفلت المهمة هنا لتعيين أولوية ${getPriorityLocalized(p)}` : `Drop task here to set ${p} priority`}
             >
@@ -589,19 +589,19 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
               onDrop={(e) => handleDropOnStage(e, stage)}
               className={`rounded-2xl p-3 flex flex-col gap-3 min-w-[200px] transition-all duration-200 ${
                 isCurrentDropZone
-                  ? 'bg-indigo-50/60 border-2 border-indigo-500 shadow-md ring-2 ring-indigo-200'
-                  : 'bg-slate-50/50 border border-slate-100'
+                  ? 'bg-accent/60 border-2 border-primary shadow-md ring-2 ring-primary/30'
+                  : 'bg-background/50 border border-border'
               }`}
             >
               {/* Stage Header */}
               <div className="flex justify-between items-center px-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 font-display">
+                  <span className="text-xs font-bold uppercase tracking-wider text-foreground font-display">
                     {getStageLocalized(stage)}
                   </span>
                 </div>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${
-                  isCurrentDropZone ? 'bg-indigo-600 text-white' : 'bg-slate-200/60 text-slate-600'
+                  isCurrentDropZone ? 'bg-primary text-white' : 'bg-muted/60 text-muted-foreground'
                 }`}>
                   {stageTasks.length}
                 </span>
@@ -611,11 +611,11 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
               <div className="space-y-2.5 flex-grow overflow-y-auto max-h-[380px] pr-1">
                 {loading ? (
                   <div className="flex justify-center py-6">
-                    <RefreshCw className="w-5 h-5 animate-spin text-slate-400" />
+                    <RefreshCw className="w-5 h-5 animate-spin text-muted-foreground" />
                   </div>
                 ) : stageTasks.length === 0 ? (
                   <div className={`py-8 text-center border-2 border-dashed rounded-xl transition-all ${
-                    isCurrentDropZone ? 'border-indigo-400 bg-indigo-100/50 text-indigo-700' : 'border-slate-200 text-slate-400'
+                    isCurrentDropZone ? 'border-primary bg-accent/50 text-primary' : 'border-border text-muted-foreground'
                   }`}>
                     <p className="text-[10px] font-bold">
                       {isCurrentDropZone ? (isRtl ? 'أفلت المهمة هنا' : 'Drop task here') : t.noTasks}
@@ -633,22 +633,22 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
                         key={task.id}
                         draggable={true}
                         onDragStart={(e) => handleDragStart(e, task)}
-                        className={`bg-white border p-3 rounded-xl shadow-xs hover:shadow-md transition-all flex flex-col gap-2 cursor-grab active:cursor-grabbing ${
+                        className={`bg-card border p-3 rounded-xl shadow-xs hover:shadow-md transition-all flex flex-col gap-2 cursor-grab active:cursor-grabbing ${
                           isDraggingThis
-                            ? 'opacity-40 border-2 border-dashed border-indigo-500 bg-indigo-50/20'
+                            ? 'opacity-40 border-2 border-dashed border-primary bg-accent/20'
                             : hasBlockers
                             ? 'border-amber-300 bg-amber-50/10 hover:border-amber-400'
-                            : 'border-slate-200/70 hover:border-indigo-200'
+                            : 'border-border/70 hover:border-primary'
                         }`}
                       >
                         {/* Drag Grip Handle, Priority Tag & Client Visibility */}
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <GripVertical className="w-3.5 h-3.5 text-slate-300 hover:text-slate-600 cursor-grab shrink-0" />
+                            <GripVertical className="w-3.5 h-3.5 text-muted-foreground/40 hover:text-muted-foreground cursor-grab shrink-0" />
                             <span className={`text-[8px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded-md ${
                               task.priority === 'High' ? 'bg-red-50 text-red-600 border border-red-100' :
                               task.priority === 'Medium' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
-                              'bg-indigo-50 text-indigo-600 border border-indigo-100'
+                              'bg-accent text-primary border border-primary'
                             }`}>
                               {getPriorityLocalized(task.priority)}
                             </span>
@@ -673,7 +673,7 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
                             className={`p-1 rounded-md border transition-all ${
                               task.visibleToClient
                                 ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                                : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-slate-600'
+                                : 'bg-background text-muted-foreground border-border hover:text-muted-foreground'
                             }`}
                           >
                             {task.visibleToClient ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
@@ -682,43 +682,43 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
 
                         {/* Cross-Case Matter Badge */}
                         {boardScope === 'all' && (
-                          <div className="text-[9px] font-bold text-indigo-800 bg-indigo-50/80 border border-indigo-100 rounded-md px-2 py-0.5 truncate flex items-center gap-1.5">
-                            <FolderOpen className="w-2.5 h-2.5 text-indigo-500 shrink-0" />
+                          <div className="text-[9px] font-bold text-primary bg-accent/80 border border-primary rounded-md px-2 py-0.5 truncate flex items-center gap-1.5">
+                            <FolderOpen className="w-2.5 h-2.5 text-primary shrink-0" />
                             <span className="truncate">{taskMatter ? taskMatter.title : task.matterId}</span>
                           </div>
                         )}
 
                         {/* Title & Description */}
                         <div>
-                          <h4 className="text-xs font-bold text-slate-700 leading-snug">{translateStaticText(task.title, isRtl)}</h4>
+                          <h4 className="text-xs font-bold text-foreground leading-snug">{translateStaticText(task.title, isRtl)}</h4>
                           {task.description && (
-                            <p className="text-[10px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                            <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
                               {translateStaticText(task.description || '', isRtl)}
                             </p>
                           )}
                         </div>
 
                         {/* Metadata row */}
-                        <div className="flex justify-between items-center pt-2 border-t border-slate-100 mt-1">
-                          <div className="flex items-center gap-1 text-[9px] text-slate-400">
-                            <User className="w-3 h-3 text-slate-400 shrink-0" />
+                        <div className="flex justify-between items-center pt-2 border-t border-border mt-1">
+                          <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                            <User className="w-3 h-3 text-muted-foreground shrink-0" />
                             <span className="truncate max-w-[80px]" title={task.assignedTo}>
                               {translateStaticText(task.assignedTo, isRtl)}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1 text-[9px] text-slate-400 font-mono">
-                            <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                          <div className="flex items-center gap-1 text-[9px] text-muted-foreground font-mono">
+                            <Calendar className="w-3 h-3 text-muted-foreground shrink-0" />
                             <span>{new Date(task.dueDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}</span>
                           </div>
                         </div>
 
                         {/* Advance Stage controls */}
-                        <div className="grid grid-cols-2 gap-1 mt-1 border-t border-slate-100/60 pt-1.5">
+                        <div className="grid grid-cols-2 gap-1 mt-1 border-t border-border/60 pt-1.5">
                           {STAGES.indexOf(task.status) > 0 && (
                             <button
                               type="button"
                               onClick={() => updateTaskStatus(task.id, STAGES[STAGES.indexOf(task.status) - 1])}
-                              className="text-[9px] font-bold text-slate-500 hover:text-indigo-600 py-1 bg-slate-50 hover:bg-indigo-50 border border-slate-200/60 rounded-md transition-colors cursor-pointer"
+                              className="text-[9px] font-bold text-muted-foreground hover:text-primary py-1 bg-background hover:bg-accent border border-border/60 rounded-md transition-colors cursor-pointer"
                             >
                               {t.back}
                             </button>
@@ -727,7 +727,7 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
                             <button
                               type="button"
                               onClick={() => updateTaskStatus(task.id, STAGES[STAGES.indexOf(task.status) + 1])}
-                              className="text-[9px] font-bold text-slate-500 hover:text-indigo-600 py-1 bg-slate-50 hover:bg-indigo-50 border border-slate-200/60 rounded-md transition-colors col-start-2 cursor-pointer"
+                              className="text-[9px] font-bold text-muted-foreground hover:text-primary py-1 bg-background hover:bg-accent border border-border/60 rounded-md transition-colors col-start-2 cursor-pointer"
                             >
                               {t.next}
                             </button>
@@ -757,24 +757,24 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
 
       {/* Blocked Task Advancement Interception Modal */}
       {blockedTaskAttempt && (
-        <div className="fixed inset-0 z-[120] bg-slate-950/80 backdrop-blur-sm flex justify-center items-center p-4 animate-in fade-in">
-          <div className="bg-white border border-amber-200 rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-[120] bg-foreground/60 backdrop-blur-sm flex justify-center items-center p-4 animate-in fade-in">
+          <div className="bg-card border border-border rounded-xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-amber-800">
               <div className="w-10 h-10 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0">
                 <Lock className="w-5 h-5 text-amber-700" />
               </div>
               <div>
-                <h4 className="text-sm sm:text-base font-extrabold font-display text-slate-800">
+                <h4 className="text-sm sm:text-base font-extrabold font-display text-foreground">
                   {isRtl ? 'المهمة محجوزة باشتراطات سابقة!' : 'Task Blocked by Prerequisites!'}
                 </h4>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   {isRtl ? 'لا يمكن تحريك مرحلة هذه المهمة بسبب اشتراطات غير مكتملة' : 'Cannot advance task status due to active unfinished prerequisite tasks'}
                 </p>
               </div>
             </div>
 
             <div className="bg-amber-50/70 border border-amber-200 p-3.5 rounded-2xl text-xs text-amber-900 space-y-2">
-              <p className="font-bold text-slate-800">
+              <p className="font-bold text-foreground">
                 "{translateStaticText(blockedTaskAttempt.task.title, isRtl)}"
               </p>
               <p className="text-[11px] text-amber-800">
@@ -796,7 +796,7 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
                   setShowDependencyMatrixModal(true);
                   setBlockedTaskAttempt(null);
                 }}
-                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                className="w-full py-2.5 bg-primary text-primary-foreground text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Workflow className="w-4 h-4" />
                 <span>{isRtl ? 'عرض المسار التتابعي واستكمال المهام السابقة' : 'View Dependency Chain Matrix'}</span>
@@ -805,7 +805,7 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
               <button
                 type="button"
                 onClick={() => updateTaskStatus(blockedTaskAttempt.task.id, blockedTaskAttempt.targetStage, true)}
-                className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                className="w-full py-2 bg-secondary hover:bg-accent text-secondary-foreground text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
                 <span>{isRtl ? 'تجاوز بقرار الشريك المسؤول (قيد المراجعة)' : 'Partner Force Override Advance'}</span>
@@ -814,7 +814,7 @@ export default function TasksModule({ matterId, matters = [] }: TasksModuleProps
               <button
                 type="button"
                 onClick={() => setBlockedTaskAttempt(null)}
-                className="w-full py-1.5 text-slate-400 hover:text-slate-600 text-xs font-bold transition-colors cursor-pointer text-center"
+                className="w-full py-1.5 text-muted-foreground hover:text-muted-foreground text-xs font-bold transition-colors cursor-pointer text-center"
               >
                 {isRtl ? 'إلغاء' : 'Cancel'}
               </button>

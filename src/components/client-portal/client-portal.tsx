@@ -163,21 +163,21 @@ export default function ClientPortal({ activeMatter, onRefreshMatter }: ClientPo
   };
 
   return (
-    <div className="bg-slate-50 border border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col h-full gap-3.5 sm:gap-6" id="client-portal">
+    <div className="bg-background border border-border rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col h-full gap-3.5 sm:gap-6" id="client-portal">
       {/* Header Profile */}
-      <div className="flex justify-between items-center bg-white border border-slate-200 p-3.5 sm:p-5 rounded-xl sm:rounded-2xl shadow-sm">
+      <div className="flex justify-between items-center bg-card border border-border p-3.5 sm:p-5 rounded-xl sm:rounded-2xl shadow-sm">
         <div className="flex items-center gap-2.5 sm:gap-3">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-center text-slate-700 shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-muted border border-border rounded-xl flex items-center justify-center text-foreground shrink-0">
             <Eye className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
           </div>
           <div>
-            <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block">{t.clientTransparency}</span>
-            <h2 className="text-sm sm:text-base font-extrabold text-slate-900 font-display mt-0.5">{translateStaticText(activeMatter.title, isRtl)}</h2>
+            <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest block">{t.clientTransparency}</span>
+            <h2 className="text-sm sm:text-base font-extrabold text-foreground font-display mt-0.5">{translateStaticText(activeMatter.title, isRtl)}</h2>
           </div>
         </div>
         <div className={isRtl ? 'text-left rtl:text-right rtl:text-left' : 'text-right rtl:text-left'}>
-          <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">{t.loggedClient}</span>
-          <span className="text-xs sm:text-sm font-bold text-slate-800 block mt-0.5">{translateStaticText(activeMatter.clientName, isRtl)}</span>
+          <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest block">{t.loggedClient}</span>
+          <span className="text-xs sm:text-sm font-bold text-foreground block mt-0.5">{translateStaticText(activeMatter.clientName, isRtl)}</span>
         </div>
       </div>
 
@@ -189,26 +189,26 @@ export default function ClientPortal({ activeMatter, onRefreshMatter }: ClientPo
         {/* Left Column (Span 5): Case Progress Timeline */}
         <div className="lg:col-span-5 flex flex-col gap-3.5 sm:gap-6">
           {/* Timeline Block */}
-          <div className="bg-white border border-slate-200 rounded-xl sm:rounded-2xl p-3.5 sm:p-5 shadow-sm flex-grow" id="client-summary-card">
-            <div className="flex items-center gap-1.5 border-b border-slate-100 pb-3 mb-4">
-              <Calendar className="w-4 h-4 text-slate-600" />
-              <h3 className="text-sm font-extrabold text-slate-900 font-display">{t.auditTrail}</h3>
+          <div className="bg-card border border-border rounded-xl sm:rounded-2xl p-3.5 sm:p-5 shadow-sm flex-grow" id="client-summary-card">
+            <div className="flex items-center gap-1.5 border-b border-border pb-3 mb-4">
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+              <h3 className="text-sm font-extrabold text-foreground font-display">{t.auditTrail}</h3>
             </div>
 
             {timeline.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-10">{t.noMilestones}</p>
+              <p className="text-xs text-muted-foreground text-center py-10">{t.noMilestones}</p>
             ) : (
-              <div className={`relative border-l border-slate-200 ${isRtl ? 'mr-2 pr-4 border-r border-l-0 ml-0' : 'ml-2 pl-4'} space-y-5`}>
+              <div className={`relative border-l border-border ${isRtl ? 'mr-2 pr-4 border-r border-l-0 ml-0' : 'ml-2 pl-4'} space-y-5`}>
                 {timeline.map((event) => (
                   <div key={event.id} className="relative text-xs">
                     {/* Timeline dot */}
-                    <span className={`absolute ${isRtl ? '-right-[21px]' : '-left-[21px]'} top-1 w-3.5 h-3.5 rounded-full border-2 border-white bg-slate-600 shadow-sm`} />
+                    <span className={`absolute ${isRtl ? '-right-[21px]' : '-left-[21px]'} top-1 w-3.5 h-3.5 rounded-full border-2 border-card bg-muted-foreground shadow-sm`} />
                     <div>
                       <div className="flex justify-between items-center">
-                        <span className="font-extrabold text-slate-800">{translateStaticText(event.title, isRtl)}</span>
-                        <span className="text-[9px] font-mono font-bold text-slate-500">{event.date}</span>
+                        <span className="font-extrabold text-foreground">{translateStaticText(event.title, isRtl)}</span>
+                        <span className="text-[9px] font-mono font-bold text-muted-foreground">{event.date}</span>
                       </div>
-                      <p className="text-[11px] text-slate-600 mt-1 leading-relaxed font-normal">{translateStaticText(event.description, isRtl)}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed font-normal">{translateStaticText(event.description, isRtl)}</p>
                     </div>
                   </div>
                 ))}
@@ -217,35 +217,35 @@ export default function ClientPortal({ activeMatter, onRefreshMatter }: ClientPo
           </div>
 
           {/* Billing & Settlement */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm" id="client-invoices-card">
-            <div className="flex items-center gap-1.5 border-b border-slate-100 pb-3 mb-4">
-              <CreditCard className="w-4 h-4 text-slate-600" />
-              <h3 className="text-sm font-extrabold text-slate-900 font-display">{t.settlementTitle}</h3>
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm" id="client-invoices-card">
+            <div className="flex items-center gap-1.5 border-b border-border pb-3 mb-4">
+              <CreditCard className="w-4 h-4 text-muted-foreground" />
+              <h3 className="text-sm font-extrabold text-foreground font-display">{t.settlementTitle}</h3>
             </div>
 
             <div className="space-y-3">
               {invoices.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center py-6">{t.noInvoices}</p>
+                <p className="text-xs text-muted-foreground text-center py-6">{t.noInvoices}</p>
               ) : (
                 invoices.map(inv => (
-                  <div key={inv.id} className="p-3 border border-slate-200 rounded-xl bg-slate-50/50 flex justify-between items-center text-xs">
+                  <div key={inv.id} className="p-3 border border-border rounded-xl bg-background/50 flex justify-between items-center text-xs">
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-extrabold text-slate-800">{inv.invoiceNumber}</span>
+                        <span className="font-extrabold text-foreground">{inv.invoiceNumber}</span>
                         <span className={`px-1.5 py-0.5 text-[8px] font-extrabold rounded uppercase tracking-wide ${
                           inv.status === 'Paid' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-100 text-rose-800 border border-rose-200'
                         }`}>
                           {getInvoiceStatusLocalized(inv.status)}
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-500 font-medium mt-1">{isRtl ? 'تاريخ الاستحقاق' : 'Due'} {inv.dueDate}</p>
-                      <span className="font-black text-slate-900 text-[13px]">{inv.totalAmount.toLocaleString()} {isRtl ? 'د.أ' : 'JOD'}</span>
+                      <p className="text-[10px] text-muted-foreground font-medium mt-1">{isRtl ? 'تاريخ الاستحقاق' : 'Due'} {inv.dueDate}</p>
+                      <span className="font-black text-foreground text-[13px]">{inv.totalAmount.toLocaleString()} {isRtl ? 'د.أ' : 'JOD'}</span>
                     </div>
 
                     {inv.status !== 'Paid' ? (
                       <button
                         onClick={() => handlePayInvoice(inv.id)}
-                        className="px-3.5 py-2 bg-slate-800 text-white hover:bg-slate-900 rounded-xl font-bold text-[11px] shadow-sm transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                        className="px-3.5 py-2 bg-foreground/90 text-white hover:bg-foreground rounded-xl font-bold text-[11px] shadow-sm transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
                       >
                         <CreditCard className="w-3.5 h-3.5 shrink-0" /> {isRtl ? 'دفع عبر كليك CliQ' : 'CliQ pay'}
                       </button>
@@ -264,23 +264,23 @@ export default function ClientPortal({ activeMatter, onRefreshMatter }: ClientPo
         {/* Right Column (Span 7): Secure Documents & AI Chat Advisor */}
         <div className="lg:col-span-7 flex flex-col gap-6">
           {/* Shared Documents */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm" id="client-docs-card">
-            <div className="flex items-center gap-1.5 border-b border-slate-100 pb-3 mb-3">
-              <FileText className="w-4 h-4 text-slate-600" />
-              <h3 className="text-sm font-extrabold text-slate-900 font-display">{t.sharedFiles}</h3>
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm" id="client-docs-card">
+            <div className="flex items-center gap-1.5 border-b border-border pb-3 mb-3">
+              <FileText className="w-4 h-4 text-muted-foreground" />
+              <h3 className="text-sm font-extrabold text-foreground font-display">{t.sharedFiles}</h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {docs.length === 0 ? (
-                <div className="col-span-2 py-8 text-center text-xs text-slate-400">
+                <div className="col-span-2 py-8 text-center text-xs text-muted-foreground">
                   {t.noFilesShared}
                 </div>
               ) : (
                 docs.map(doc => (
-                  <div key={doc.id} className="p-3 border border-slate-200 rounded-xl bg-slate-50 flex justify-between items-center text-xs">
+                  <div key={doc.id} className="p-3 border border-border rounded-xl bg-background flex justify-between items-center text-xs">
                     <div className="truncate pr-2">
-                      <p className="font-extrabold text-slate-800 truncate" title={translateStaticText(doc.name, isRtl)}>{translateStaticText(doc.name, isRtl)}</p>
-                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">{doc.fileSize} • {isRtl ? 'إصدار' : 'Version'} {doc.version}.0</p>
+                      <p className="font-extrabold text-foreground truncate" title={translateStaticText(doc.name, isRtl)}>{translateStaticText(doc.name, isRtl)}</p>
+                      <p className="text-[10px] text-muted-foreground font-medium mt-0.5">{doc.fileSize} • {isRtl ? 'إصدار' : 'Version'} {doc.version}.0</p>
                     </div>
                     <button
                       onClick={async () => {
@@ -298,7 +298,7 @@ export default function ClientPortal({ activeMatter, onRefreshMatter }: ClientPo
                           URL.revokeObjectURL(url);
                         } catch (err) { console.error('Download error:', err); }
                       }}
-                      className="p-2 bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg shadow-2xs transition-colors cursor-pointer shrink-0"
+                      className="p-2 bg-card hover:bg-muted text-muted-foreground hover:text-foreground border border-border rounded-lg shadow-2xs transition-colors cursor-pointer shrink-0"
                     >
                       <Download className="w-3.5 h-3.5" />
                     </button>
@@ -309,16 +309,16 @@ export default function ClientPortal({ activeMatter, onRefreshMatter }: ClientPo
           </div>
 
           {/* Secure Chat with Lawyers */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col gap-3" id="client-messages-card">
-            <div className="flex items-center gap-1.5 border-b border-slate-100 pb-2">
-              <MessageSquare className="w-4 h-4 text-slate-600" />
-              <h3 className="text-sm font-extrabold text-slate-900 font-display">{t.secureMessaging}</h3>
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col gap-3" id="client-messages-card">
+            <div className="flex items-center gap-1.5 border-b border-border pb-2">
+              <MessageSquare className="w-4 h-4 text-muted-foreground" />
+              <h3 className="text-sm font-extrabold text-foreground font-display">{t.secureMessaging}</h3>
             </div>
 
             {/* Chats Scroll */}
-            <div className="flex flex-col gap-2.5 max-h-[220px] overflow-y-auto bg-slate-50 p-3.5 rounded-xl border border-slate-200 shadow-inner">
+            <div className="flex flex-col gap-2.5 max-h-[220px] overflow-y-auto bg-background p-3.5 rounded-xl border border-border shadow-inner">
               {messages.length === 0 ? (
-                <p className="text-[10px] text-slate-400 text-center py-4">{t.noMessages}</p>
+                <p className="text-[10px] text-muted-foreground text-center py-4">{t.noMessages}</p>
               ) : (
                 messages.map(msg => {
                   const isClient = msg.sender === 'Client';
@@ -327,11 +327,11 @@ export default function ClientPortal({ activeMatter, onRefreshMatter }: ClientPo
                       key={msg.id}
                       className={`p-3 rounded-2xl max-w-[85%] text-xs flex flex-col gap-1 shadow-2xs ${
                         isClient
-                          ? `bg-slate-800 text-white ${isRtl ? 'mr-auto' : 'ml-auto'}`
-                          : `bg-white text-slate-800 border border-slate-200 ${isRtl ? 'ml-auto' : 'mr-auto'}`
+                          ? `bg-foreground/90 text-white ${isRtl ? 'mr-auto' : 'ml-auto'}`
+                          : `bg-card text-foreground border border-border ${isRtl ? 'ml-auto' : 'mr-auto'}`
                       }`}
                     >
-                      <span className={`text-[9px] font-extrabold uppercase tracking-wider ${isClient ? 'text-slate-300' : 'text-slate-500'}`}>
+                      <span className={`text-[9px] font-extrabold uppercase tracking-wider ${isClient ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
                         {isClient ? (isRtl ? 'أنت' : 'You') : (isRtl ? 'المستشار فرح الصباح' : 'Senior Counsel Farah')}
                       </span>
                       <p className="leading-relaxed font-semibold">{translateStaticText(msg.text, isRtl)}</p>
@@ -347,12 +347,12 @@ export default function ClientPortal({ activeMatter, onRefreshMatter }: ClientPo
                 placeholder={t.messagingPlaceholder}
                 value={msgInput}
                 onChange={e => setMsgInput(e.target.value)}
-                className="flex-grow text-xs border border-slate-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-slate-200 bg-white font-semibold text-slate-800 leading-normal"
+                className="flex-grow text-xs border border-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-slate-200 bg-card font-semibold text-foreground leading-normal"
               />
               <button
                 type="submit"
                 disabled={sendingMsg || !msgInput}
-                className="px-4 bg-slate-800 text-white rounded-xl hover:bg-slate-900 flex items-center justify-center shrink-0 disabled:opacity-50 cursor-pointer transition-colors"
+                className="px-4 bg-foreground/90 text-white rounded-xl hover:bg-foreground flex items-center justify-center shrink-0 disabled:opacity-50 cursor-pointer transition-colors"
               >
                 <Send className="w-3.5 h-3.5 shrink-0" />
               </button>
@@ -360,22 +360,22 @@ export default function ClientPortal({ activeMatter, onRefreshMatter }: ClientPo
           </div>
 
           {/* Safe client AI assistant Advisor — light silver theme for readability */}
-          <div className="bg-gradient-to-br from-slate-100 via-white to-slate-100 rounded-3xl p-5 text-slate-900 flex flex-col gap-3 relative overflow-hidden shadow-sm border border-slate-200">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-slate-200/40 rounded-full blur-2xl pointer-events-none" />
+          <div className="bg-gradient-to-br from-slate-100 via-white to-slate-100 rounded-3xl p-5 text-foreground flex flex-col gap-3 relative overflow-hidden shadow-sm border border-border">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-muted/40 rounded-full blur-2xl pointer-events-none" />
 
             <div className="flex justify-between items-center">
-              <div className="flex items-center gap-1.5 text-slate-600">
-                <Sparkles className="w-4 h-4 text-indigo-500 fill-indigo-400 animate-pulse shrink-0" />
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Sparkles className="w-4 h-4 text-primary fill-primary animate-pulse shrink-0" />
                 <span className="text-xs font-extrabold uppercase tracking-widest">{t.safeAiAssistant}</span>
               </div>
-              <span className="px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest bg-slate-100 text-slate-600 border border-slate-200 rounded-md">
+              <span className="px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest bg-muted text-muted-foreground border border-border rounded-md">
                 {t.permissionsChecked}
               </span>
             </div>
 
             <div>
-              <h4 className="text-sm font-extrabold font-display text-slate-900">{t.safeAiTitle}</h4>
-              <p className="text-[11px] text-slate-600 mt-1 leading-relaxed font-normal">
+              <h4 className="text-sm font-extrabold font-display text-foreground">{t.safeAiTitle}</h4>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed font-normal">
                 {t.safeAiDesc}
               </p>
             </div>
@@ -386,22 +386,22 @@ export default function ClientPortal({ activeMatter, onRefreshMatter }: ClientPo
                 placeholder={t.safeAiPlaceholder}
                 value={aiQuery}
                 onChange={e => setAiQuery(e.target.value)}
-                className="flex-grow text-xs border border-slate-200 rounded-xl px-3.5 py-2.5 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 font-semibold leading-normal"
+                className="flex-grow text-xs border border-border rounded-xl px-3.5 py-2.5 bg-card text-foreground placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 font-semibold leading-normal"
               />
               <button
                 onClick={handleAskClientAi}
                 disabled={queryingAi || !aiQuery}
-                className="px-4 py-2.5 bg-slate-800 text-white rounded-xl text-xs font-bold shadow hover:bg-slate-900 transition-colors flex items-center gap-1.5 shrink-0 disabled:opacity-50 cursor-pointer"
+                className="px-4 py-2.5 bg-foreground/90 text-white rounded-xl text-xs font-bold shadow hover:bg-foreground transition-colors flex items-center gap-1.5 shrink-0 disabled:opacity-50 cursor-pointer"
               >
-                {queryingAi ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" /> : <Sparkles className="w-3.5 h-3.5 text-indigo-400 fill-indigo-400" />}
+                {queryingAi ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" /> : <Sparkles className="w-3.5 h-3.5 text-primary fill-primary" />}
                 {t.askAiBtn}
               </button>
             </div>
 
             {aiReply && (
-              <div className="bg-white border border-slate-200 p-4 rounded-2xl text-xs text-slate-800 mt-1 animate-in slide-in-from-bottom-2 duration-300 leading-relaxed shadow-sm">
-                <span className="text-[9px] uppercase font-bold text-indigo-500 tracking-wider block mb-1">{t.advisorResponse}</span>
-                <p className="leading-relaxed whitespace-pre-line font-medium text-slate-800">{aiReply}</p>
+              <div className="bg-card border border-border p-4 rounded-2xl text-xs text-foreground mt-1 animate-in slide-in-from-bottom-2 duration-300 leading-relaxed shadow-sm">
+                <span className="text-[9px] uppercase font-bold text-primary tracking-wider block mb-1">{t.advisorResponse}</span>
+                <p className="leading-relaxed whitespace-pre-line font-medium text-foreground">{aiReply}</p>
               </div>
             )}
           </div>

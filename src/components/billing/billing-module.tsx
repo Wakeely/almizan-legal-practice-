@@ -366,19 +366,19 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
   const totalPaid = invoices.filter(i => i.status === 'Paid').reduce((acc, curr) => acc + curr.totalAmount, 0);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col h-full gap-3.5 sm:gap-5" id="billing-module">
+    <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-sm flex flex-col h-full gap-3.5 sm:gap-5" id="billing-module">
       
       {/* Module Header */}
-      <div className="flex justify-between items-center border-b border-slate-100 pb-2.5 sm:pb-4">
+      <div className="flex justify-between items-center border-b border-border pb-2.5 sm:pb-4">
         <div className="flex items-center gap-2">
-          <Receipt className="w-5 h-5 text-indigo-600 shrink-0" />
-          <h3 className="text-base sm:text-lg font-bold text-slate-800 font-display">{t.billingTitle}</h3>
+          <Receipt className="w-5 h-5 text-primary shrink-0" />
+          <h3 className="text-base sm:text-lg font-bold text-foreground font-display">{t.billingTitle}</h3>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] uppercase font-bold tracking-widest bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md font-mono">
+          <span className="text-[10px] uppercase font-bold tracking-widest bg-muted text-muted-foreground px-2.5 py-1 rounded-md font-mono">
             UTBMS / LEDES 1998B Compliant
           </span>
-          <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 font-mono">
+          <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground font-mono">
             {isRtl ? 'الأرقام بالدينار الأردني JOD' : 'Billed in JOD'}
           </span>
         </div>
@@ -386,52 +386,52 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
 
       {/* Trust Ledger & Financial Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col justify-between">
+        <div className="bg-card border border-border p-4 rounded-xl flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">{t.unbilledLedger}</span>
-            <span className="text-xl font-bold text-slate-800 font-display mt-1 block">{unbilledAmount.toLocaleString()} {isRtl ? 'د.أ' : 'JOD'}</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">{t.unbilledLedger}</span>
+            <span className="text-xl font-bold text-foreground font-display mt-1 block">{unbilledAmount.toLocaleString()} {isRtl ? 'د.أ' : 'JOD'}</span>
           </div>
-          <span className="text-[10px] text-slate-500 font-mono mt-2 block">{unbilledHours.toFixed(1)} {t.outstanding}</span>
+          <span className="text-[10px] text-muted-foreground font-mono mt-2 block">{unbilledHours.toFixed(1)} {t.outstanding}</span>
         </div>
 
-        <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-2xl flex flex-col justify-between">
+        <div className="bg-card border border-border p-4 rounded-xl flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block">{t.sentInvoices}</span>
-            <span className="text-xl font-bold text-indigo-900 font-display mt-1 block">{totalBilled.toLocaleString()} {isRtl ? 'د.أ' : 'JOD'}</span>
+            <span className="text-[10px] font-bold text-primary uppercase tracking-widest block">{t.sentInvoices}</span>
+            <span className="text-xl font-bold text-foreground font-display mt-1 block">{totalBilled.toLocaleString()} {isRtl ? 'د.أ' : 'JOD'}</span>
           </div>
           <button
             onClick={handleGenerateInvoice}
             disabled={unbilledAmount === 0}
-            className="mt-2 text-[10px] font-extrabold uppercase tracking-widest bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-all text-center disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer"
+            className="mt-2 text-[10px] font-extrabold uppercase tracking-widest bg-primary text-primary-foreground px-3 py-1.5 rounded-lg transition-colors text-center disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer"
           >
             {t.generateInvoice}
           </button>
         </div>
 
-        <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-2xl flex flex-col justify-between">
+        <div className="bg-card border border-border p-4 rounded-xl flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest block">{t.trustFunds}</span>
-            <span className="text-xl font-bold text-emerald-700 font-display mt-1 block">{totalPaid.toLocaleString()} {isRtl ? 'د.أ' : 'JOD'}</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">{t.trustFunds}</span>
+            <span className="text-xl font-bold text-foreground font-display mt-1 block">{totalPaid.toLocaleString()} {isRtl ? 'د.أ' : 'JOD'}</span>
           </div>
-          <span className="text-[10px] text-emerald-600 font-semibold mt-2 block">{t.realization}: {totalBilled > 0 ? ((totalPaid/totalBilled)*100).toFixed(0) : 100}%</span>
+          <span className="text-[10px] text-muted-foreground font-semibold mt-2 block">{t.realization}: {totalBilled > 0 ? ((totalPaid/totalBilled)*100).toFixed(0) : 100}%</span>
         </div>
       </div>
 
       {/* Stopwatch & Live Timer Controls */}
-      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="bg-card border border-border rounded-xl p-4 flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className={`p-2.5 rounded-xl ${timerStatus === 'running' ? 'bg-emerald-100 text-emerald-700 animate-pulse' : 'bg-indigo-100/50 text-indigo-600'}`}>
+          <div className={`p-2.5 rounded-lg ${timerStatus === 'running' ? 'bg-emerald-100 text-emerald-700 animate-pulse' : 'bg-primary/10 text-primary'}`}>
             <Clock className="w-5 h-5" />
           </div>
           <div className="min-w-[140px]">
             <div className="flex items-center gap-1.5">
-              <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block">{t.stopwatchTitle}</span>
+              <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-wider block">{t.stopwatchTitle}</span>
               {timerStatus === 'running' && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />}
             </div>
-            <span className="text-lg font-extrabold text-slate-800 font-mono mt-0.5 block">
+            <span className="text-lg font-extrabold text-foreground font-mono mt-0.5 block">
               {formatTimer(timerSeconds)}
             </span>
-            <span className="text-[10px] text-slate-400 font-mono">
+            <span className="text-[10px] text-muted-foreground font-mono">
               {(timerSeconds / 3600).toFixed(2)} hrs • ~{((timerSeconds / 3600) * manualRate).toFixed(0)} JOD
             </span>
           </div>
@@ -440,7 +440,7 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
             {timerStatus === 'idle' ? (
               <button
                 onClick={handleStartTimer}
-                className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold shadow-md hover:bg-indigo-700 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold shadow-md transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
               >
                 <Play className="w-3.5 h-3.5 fill-white" /> {t.startActive}
               </button>
@@ -474,25 +474,25 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
         {/* Trigger manual input */}
         <button
           onClick={() => setShowTimeForm(!showTimeForm)}
-          className="text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 px-4 py-2 rounded-xl shadow-xs cursor-pointer shrink-0 w-full md:w-auto text-center flex items-center justify-center gap-1.5"
+          className="text-xs font-bold text-foreground bg-card border border-border hover:bg-background px-4 py-2 rounded-xl shadow-xs cursor-pointer shrink-0 w-full md:w-auto text-center flex items-center justify-center gap-1.5"
         >
-          <Plus className="w-3.5 h-3.5 text-indigo-600" />
+          <Plus className="w-3.5 h-3.5 text-primary" />
           {showTimeForm ? (isRtl ? 'إخفاء الإدخال اليدوي' : 'Hide Manual Log') : t.manualLogBtn}
         </button>
       </div>
 
       {/* Manual log Form with UTBMS / LEDES Codes */}
       {showTimeForm && (
-        <form onSubmit={handleCreateTimeEntry} className="bg-slate-50 p-4 border border-slate-200 rounded-2xl space-y-3 animate-in fade-in duration-200">
+        <form onSubmit={handleCreateTimeEntry} className="bg-background p-4 border border-border rounded-xl space-y-3 animate-in fade-in duration-200">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="md:col-span-2">
               <div className="flex justify-between items-center mb-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">{t.timeEntryDesc}</label>
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">{t.timeEntryDesc}</label>
                 <button
                   type="button"
                   onClick={handleAIClassifyLEDES}
                   disabled={classifyingAI || !manualDesc}
-                  className="text-[10px] font-extrabold text-indigo-600 hover:text-indigo-800 disabled:opacity-40 flex items-center gap-1 cursor-pointer"
+                  className="text-[10px] font-extrabold text-primary hover:text-primary disabled:opacity-40 flex items-center gap-1 cursor-pointer"
                 >
                   {classifyingAI ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
                   {isRtl ? 'تصنيف UTBMS تلقائياً بالذكاء' : 'AI UTBMS Auto-Classify'}
@@ -504,12 +504,12 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
                 placeholder={isRtl ? "مثال: مراجعة وصياغة بنود مذكرة الدفاع لمركز التحكيم" : "e.g. Defense drafting for SCCA Arbitration tribunal"}
                 value={manualDesc}
                 onChange={e => setManualDesc(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                className="w-full text-xs border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t.logHoursLabel}</label>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">{t.logHoursLabel}</label>
               <input
                 type="number"
                 step="0.1"
@@ -517,7 +517,7 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
                 placeholder="2.5"
                 value={manualHours}
                 onChange={e => setManualHours(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 font-mono font-bold"
+                className="w-full text-xs border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 transition-colors font-mono font-bold"
               />
             </div>
           </div>
@@ -525,13 +525,13 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
           {/* UTBMS Task & Activity Code Selectors */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
                 UTBMS Task Code:
               </label>
               <select
                 value={taskCode}
                 onChange={e => setTaskCode(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none"
+                className="w-full text-xs border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 transition-colors"
               >
                 {UTBMS_TASK_CODES.map(tc => (
                   <option key={tc.code} value={tc.code}>{tc.label}</option>
@@ -540,13 +540,13 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
                 UTBMS Activity Code:
               </label>
               <select
                 value={activityCode}
                 onChange={e => setActivityCode(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none"
+                className="w-full text-xs border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 transition-colors"
               >
                 {UTBMS_ACTIVITY_CODES.map(ac => (
                   <option key={ac.code} value={ac.code}>{ac.label}</option>
@@ -559,14 +559,14 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
             <button
               type="button"
               onClick={() => setShowTimeForm(false)}
-              className="px-3.5 py-1.5 text-xs text-slate-500 hover:bg-slate-100 rounded-lg cursor-pointer"
+              className="px-3.5 py-1.5 text-xs text-muted-foreground hover:bg-muted rounded-lg cursor-pointer"
             >
               {t.cancel}
             </button>
             <button
               type="submit"
               disabled={savingTime}
-              className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1"
+              className="px-4 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1"
             >
               {savingTime && <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1" />}
               {t.saveTime}
@@ -580,28 +580,28 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
         
         {/* Time ledger */}
         <div className="overflow-y-auto pr-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">{t.hoursLogged}</span>
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">{t.hoursLogged}</span>
           <div className="space-y-2">
             {entries.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-6 border border-dashed border-slate-200 rounded-2xl">
+              <p className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-xl">
                 {t.emptyTimeLedger}
               </p>
             ) : (
               entries.map(te => (
-                <div key={te.id} className="p-3 bg-slate-50/60 border border-slate-200 rounded-2xl flex justify-between items-center text-xs">
+                <div key={te.id} className="p-3 bg-background/60 border border-border rounded-xl flex justify-between items-center text-xs">
                   <div>
-                    <p className="font-bold text-slate-800 leading-snug">{translateStaticText(te.description, isRtl)}</p>
+                    <p className="font-bold text-foreground leading-snug">{translateStaticText(te.description, isRtl)}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] text-slate-500 font-mono">
+                      <span className="text-[10px] text-muted-foreground font-mono">
                         {te.date} • {te.hours} {isRtl ? 'ساعة' : 'hrs'} @ {te.rate} JOD
                       </span>
-                      <span className="px-1.5 py-0.5 bg-slate-200/80 text-slate-700 font-mono text-[9px] font-bold rounded">
+                      <span className="px-1.5 py-0.5 bg-muted/80 text-foreground font-mono text-[9px] font-bold rounded">
                         {te.taskCode || 'L120'} / {te.activityCode || 'A103'}
                       </span>
                     </div>
                   </div>
                   <span className={`px-2 py-0.5 rounded-md font-bold text-[9px] uppercase tracking-wider shrink-0 ${
-                    te.billed ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-200 text-slate-600'
+                    te.billed ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-muted text-muted-foreground'
                   }`}>
                     {te.billed ? (isRtl ? 'مفوترة' : 'Invoiced') : (isRtl ? 'معلقة' : 'Pending')}
                   </span>
@@ -613,29 +613,29 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
 
         {/* Invoices List */}
         <div className="overflow-y-auto pr-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">
             {isRtl ? 'سجل الفواتير والتصدير الإلكتروني (LEDES)' : 'Disbursement & Invoices History'}
           </span>
           <div className="space-y-2">
             {invoices.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-6 border border-dashed border-slate-200 rounded-2xl">
+              <p className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-xl">
                 {t.emptyInvoiceHistory}
               </p>
             ) : (
               invoices.map(inv => (
-                <div key={inv.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex justify-between items-center text-xs shadow-xs">
+                <div key={inv.id} className="p-3 bg-card border border-border rounded-xl flex justify-between items-center text-xs shadow-xs">
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="font-extrabold text-slate-800">{inv.invoiceNumber}</span>
+                      <span className="font-extrabold text-foreground">{inv.invoiceNumber}</span>
                       <span className={`px-2 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wide ${
                         inv.status === 'Paid' ? 'bg-emerald-100 text-emerald-800' :
-                        inv.status === 'Sent' ? 'bg-indigo-100 text-indigo-800' : 'bg-rose-100 text-rose-800'
+                        inv.status === 'Sent' ? 'bg-accent text-primary' : 'bg-rose-100 text-rose-800'
                       }`}>
                         {getInvoiceStatusLocalized(inv.status)}
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-1 font-mono">
-                      {isRtl ? 'استحقاق' : 'Due'}: {inv.dueDate} • <span className="text-slate-800 font-bold">{inv.totalAmount.toLocaleString()} JOD</span>
+                    <p className="text-[10px] text-muted-foreground mt-1 font-mono">
+                      {isRtl ? 'استحقاق' : 'Due'}: {inv.dueDate} • <span className="text-foreground font-bold">{inv.totalAmount.toLocaleString()} JOD</span>
                     </p>
                   </div>
 
@@ -643,7 +643,7 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
                     <button
                       type="button"
                       onClick={() => setSelectedInvoice(inv)}
-                      className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                      className="p-1.5 bg-muted hover:bg-foreground/10 text-foreground rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer"
                       title="Preview Statement"
                     >
                       <Eye className="w-3.5 h-3.5" />
@@ -652,7 +652,7 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
                     <button
                       type="button"
                       onClick={() => handleExportLEDES1998B(inv)}
-                      className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                      className="px-2 py-1 bg-accent hover:bg-primary/15 text-primary border border-primary rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer"
                       title="Export LEDES 1998B"
                     >
                       <Download className="w-3 h-3" />
@@ -678,51 +678,51 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
 
       {/* Invoice Statement & LEDES Print Preview Modal */}
       {selectedInvoice && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl space-y-6 relative animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-foreground/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-card border border-border rounded-xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl space-y-6 relative animate-in zoom-in-95">
             
             {/* Close */}
             <button
               onClick={() => setSelectedInvoice(null)}
-              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 cursor-pointer"
+              className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-muted-foreground rounded-full hover:bg-muted cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
             {/* Print Header */}
-            <div className="border-b border-slate-200 pb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="border-b border-border pb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h2 className="text-xl font-black text-slate-900 font-display">AL-HIKMAH & PARTNERS</h2>
-                <p className="text-xs text-slate-500 font-medium">Advocates & International Arbitrators • DIFC / Amman</p>
-                <p className="text-[11px] text-slate-400 font-mono mt-0.5">CR: 948201-JO • Tax Reg: 104928301</p>
+                <h2 className="text-xl font-black text-foreground font-display">AL-HIKMAH & PARTNERS</h2>
+                <p className="text-xs text-muted-foreground font-medium">Advocates & International Arbitrators • DIFC / Amman</p>
+                <p className="text-[11px] text-muted-foreground font-mono mt-0.5">CR: 948201-JO • Tax Reg: 104928301</p>
               </div>
               <div className="text-right rtl:text-left">
-                <span className="text-xs font-bold font-mono text-indigo-700 uppercase bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-200">
+                <span className="text-xs font-bold font-mono text-primary uppercase bg-accent px-3 py-1 rounded-lg border border-primary">
                   STATEMENT OF ACCOUNT / INVOICE
                 </span>
-                <p className="text-sm font-black text-slate-800 font-mono mt-1">{selectedInvoice.invoiceNumber}</p>
-                <p className="text-xs text-slate-500 font-mono">{selectedInvoice.issueDate || '2026-07-23'}</p>
+                <p className="text-sm font-black text-foreground font-mono mt-1">{selectedInvoice.invoiceNumber}</p>
+                <p className="text-xs text-muted-foreground font-mono">{selectedInvoice.issueDate || '2026-07-23'}</p>
               </div>
             </div>
 
             {/* Matter & Client Details */}
-            <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl text-xs">
+            <div className="grid grid-cols-2 gap-4 bg-background p-4 rounded-xl text-xs">
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Billed To:</span>
-                <strong className="text-slate-800 text-sm block mt-0.5">{activeMatter.clientName}</strong>
-                <p className="text-slate-500 font-mono">{activeMatter.clientEmail}</p>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Billed To:</span>
+                <strong className="text-foreground text-sm block mt-0.5">{activeMatter.clientName}</strong>
+                <p className="text-muted-foreground font-mono">{activeMatter.clientEmail}</p>
               </div>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Matter Ref:</span>
-                <strong className="text-slate-800 text-sm block mt-0.5">{translateStaticText(activeMatter.title, isRtl)}</strong>
-                <p className="text-slate-500 font-mono">Jurisdiction: {activeMatter.jurisdiction}</p>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Matter Ref:</span>
+                <strong className="text-foreground text-sm block mt-0.5">{translateStaticText(activeMatter.title, isRtl)}</strong>
+                <p className="text-muted-foreground font-mono">Jurisdiction: {activeMatter.jurisdiction}</p>
               </div>
             </div>
 
             {/* Itemized Table */}
-            <div className="border border-slate-200 rounded-2xl overflow-hidden">
+            <div className="border border-border rounded-xl overflow-hidden">
               <table className="w-full text-xs text-left rtl:text-right rtl:text-left border-collapse">
-                <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-[10px]">
+                <thead className="bg-muted text-foreground font-bold uppercase text-[10px]">
                   <tr>
                     <th className="p-3">Date</th>
                     <th className="p-3">Description & UTBMS Code</th>
@@ -731,19 +731,19 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
                     <th className="p-3 text-right rtl:text-left">Amount (JOD)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {entries.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50/50">
-                      <td className="p-3 font-mono text-slate-500">{item.date}</td>
+                    <tr key={item.id} className="hover:bg-background/50">
+                      <td className="p-3 font-mono text-muted-foreground">{item.date}</td>
                       <td className="p-3">
-                        <p className="font-bold text-slate-800">{translateStaticText(item.description, isRtl)}</p>
-                        <span className="text-[9px] font-mono font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                        <p className="font-bold text-foreground">{translateStaticText(item.description, isRtl)}</p>
+                        <span className="text-[9px] font-mono font-bold text-primary bg-accent px-1.5 py-0.5 rounded mt-0.5 inline-block">
                           {item.taskCode || 'L120'} - {item.activityCode || 'A103'}
                         </span>
                       </td>
                       <td className="p-3 text-right rtl:text-left font-mono font-bold">{item.hours}</td>
                       <td className="p-3 text-right rtl:text-left font-mono">{item.rate}</td>
-                      <td className="p-3 text-right rtl:text-left font-mono font-bold text-slate-900">
+                      <td className="p-3 text-right rtl:text-left font-mono font-bold text-foreground">
                         {(item.hours * item.rate).toLocaleString()}
                       </td>
                     </tr>
@@ -754,33 +754,33 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
 
             {/* Totals & Tax Calculation */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 pt-2">
-              <div className="text-xs text-slate-500 space-y-1">
+              <div className="text-xs text-muted-foreground space-y-1">
                 <p>• E-Billing Standard: LEDES 1998B compliant format.</p>
                 <p>• Payment methods accepted: Wire transfer, Bank Draft, CliQ transfer.</p>
               </div>
 
               <div className="w-full sm:w-64 space-y-2 text-xs border-t sm:border-t-0 pt-3 sm:pt-0">
-                <div className="flex justify-between text-slate-600">
+                <div className="flex justify-between text-muted-foreground">
                   <span>Subtotal:</span>
                   <span className="font-mono font-bold">{selectedInvoice.totalAmount.toLocaleString()} JOD</span>
                 </div>
-                <div className="flex justify-between text-slate-600 items-center">
+                <div className="flex justify-between text-muted-foreground items-center">
                   <span>VAT / Tax (5%):</span>
                   <span className="font-mono font-bold">{(selectedInvoice.totalAmount * taxRate).toLocaleString()} JOD</span>
                 </div>
-                <div className="flex justify-between text-slate-900 font-extrabold text-base pt-2 border-t border-slate-200">
+                <div className="flex justify-between text-foreground font-extrabold text-base pt-2 border-t border-border">
                   <span>Total Due:</span>
-                  <span className="font-mono text-indigo-700">{(selectedInvoice.totalAmount * (1 + taxRate)).toLocaleString()} JOD</span>
+                  <span className="font-mono text-primary">{(selectedInvoice.totalAmount * (1 + taxRate)).toLocaleString()} JOD</span>
                 </div>
               </div>
             </div>
 
             {/* Action Bar */}
-            <div className="flex flex-wrap justify-between items-center pt-4 border-t border-slate-100 gap-3">
+            <div className="flex flex-wrap justify-between items-center pt-4 border-t border-border gap-3">
               <button
                 type="button"
                 onClick={() => handleExportLEDES1998B(selectedInvoice)}
-                className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 bg-accent hover:bg-primary/15 text-primary border border-primary rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
                 <span>Export LEDES 1998B (.txt)</span>
@@ -790,7 +790,7 @@ export default function BillingModule({ activeMatter, onRefreshMatter }: Billing
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer"
+                  className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-bold flex items-center gap-2 cursor-pointer"
                 >
                   <Printer className="w-4 h-4" />
                   <span>Print Invoice Statement</span>

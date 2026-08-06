@@ -1,26 +1,19 @@
 "use client";
 
 // =============================================================================
-// Al Mizan Legal Practice — single-page app entry (state-driven)
+// Al Mizan Legal Practice — REDESIGNED: URL-stateful, triage-first
 // -----------------------------------------------------------------------------
-// The fullstack-dev sandbox only exposes the `/` route to the user. The
-// reference Vite app is also a single-page app driven by `useState`, so this
-// is a faithful architectural port.
-//
-// Flow:
-//   landing  → user clicks "Launch Workspace" or "Client Portal"
-//   auth     → AuthModal opens (sign-in / sign-up / forgot-password)
-//   authed   → workspace renders:
-//               Row 1: AnalyticsModule         (Turn 2)
-//               Row 2: MattersModule + TasksModule (Turn 2)
-//               Row 3-4: DocumentsModule, BillingModule, CalendarModule,
-//                        AiModule, WarRoomModule, ClientPortal (Turns 3-5)
+// FIX 1: Hash-based URL state — every view/matter is bookmarkable
+// FIX 3: Matter picker is THE entry point, not an afterthought
+// FIX 4: Client portal is a separate layout, not a toggle
+// FIX 5: Overview = triage dashboard ("3 things need you today")
 // =============================================================================
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import LandingPage from "@/components/landing/landing-page";
 import AuthModal from "@/components/auth/auth-modal";
 import Header from "@/components/header/header";
+import WorkspaceSidebar, { type WorkspaceView } from "@/components/workspace/workspace-sidebar";
 import AnalyticsModule from "@/components/analytics/analytics-module";
 import MattersModule from "@/components/matters/matters-module";
 import TasksModule from "@/components/tasks/tasks-module";
@@ -33,6 +26,7 @@ import InvestigationModule from "@/components/investigation/investigation-module
 import ClientPortal from "@/components/client-portal/client-portal";
 import OfflineBanner from "@/components/offline/offline-banner";
 import SyncStatusIndicator from "@/components/offline/sync-status-indicator";
+import MobileBottomNav from "@/components/mobile/mobile-bottom-nav";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useLanguage } from "@/components/providers/language-provider";
 import type { Matter } from "@/lib/types";
@@ -41,75 +35,260 @@ import {
   getAllFromOfflineStore,
   STORES,
 } from "@/lib/offline-storage";
-import { RefreshCw, Lock, FolderOpen, BarChart3, Briefcase, FileText, Calendar, Sparkles, Sword, Receipt, FileSearch } from "lucide-react";
+import {
+  RefreshCw, Lock, FolderOpen, Plus, ChevronRight,
+  AlertTriangle, Clock, FileText, Calendar, Sparkles,
+  Briefcase, BarChart3,
+} from "lucide-react";
 
-type View = "landing" | "workspace";
+// ── Valid workspace view keys ──
+const VALID_VIEWS: WorkspaceView[] = [
+  "overview", "matter", "documents", "calendar",
+  "ai", "warroom", "billing", "investigation",
+];
 
+type AppView = "landing" | "workspace";
+
+// =============================================================================
+// FIX 1: URL STATE — parse & sync hash to React state
+// =============================================================================
+function parseHash(): { view: WorkspaceView; matterId: string; mode: "Lawyer" | "Client" } {
+  if (typeof window === "undefined") return { view: "overview", matterId: "", mode: "Lawyer" };
+  const hash = window.location.hash.replace("#", "");
+  if (!hash) return { view: "overview", matterId: "", mode: "Lawyer" };
+
+  const parts = hash.split("/");
+  const rawView = parts[0] as WorkspaceView;
+  const rawMatter = parts[1] || "";
+  const rawMode = (parts[2] as "Lawyer" | "Client") || "Lawyer";
+
+  return {
+    view: VALID_VIEWS.includes(rawView) ? rawView : "overview",
+    matterId: rawMatter,
+    mode: rawMode === "Client" ? "Client" : "Lawyer",
+  };
+}
+
+function buildHash(view: WorkspaceView, matterId: string, mode: "Lawyer" | "Client"): string {
+  return `#${view}/${matterId}/${mode}`;
+}
+
+// =============================================================================
+// FIX 5: TRIAGE DASHBOARD — "What needs you today"
+// =============================================================================
+function TriageDashboard({ matter }: { matter: Matter }) {
+  const { isRtl } = useLanguage();
+  const today = new Date().toLocaleDateString(isRtl ? "ar-JO" : "en-US", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+  });
+
+  const budgetUsed = matter.budget > 0
+    ? Math.round((matter.expenses / matter.budget) * 100)
+    : 0;
+  const isBudgetAlert = budgetUsed > 85;
+  const isHighRisk = matter.riskLevel === "High";
+  const hasImpendingDeadline = matter.statuteDeadline && new Date(matter.statuteDeadline) < new Date(Date.now() + 14 * 86400000);
+
+  return (
+    <div className="space-y-6">
+      {/* Greeting banner */}
+      <div className="rounded-xl bg-primary/5 border border-primary/10 p-5">
+        <h2 className="text-base font-bold mb-1">
+          {isRtl ? `ملخص قضية: ${matter.title}` : `Case Summary: ${matter.title}`}
+        </h2>
+        <p className="text-xs text-muted-foreground">{today}</p>
+      </div>
+
+      {/* Triage cards — 3 things that need attention */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Card 1: Risk & Deadlines */}
+        <div className={`rounded-xl border p-5 bg-card ${
+          (isHighRisk || hasImpendingDeadline) ? 'border-destructive/40' : 'border-border'
+        }`}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+              (isHighRisk || hasImpendingDeadline)
+                ? 'bg-destructive/10 text-destructive'
+                : 'bg-emerald-50 text-emerald-600'
+            }`}>
+              {(isHighRisk || hasImpendingDeadline) ? (
+                <AlertTriangle className="w-4 h-4" />
+              ) : (
+                <CheckCircle className="w-4 h-4" />
+              )}
+            </div>
+            <h3 className="text-sm font-bold">
+              {isRtl ? 'السلامة القضائية' : 'Case Health'}
+            </h3>
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">{isRtl ? 'مستوى المخاطر' : 'Risk Level'}</span>
+              <span className={`font-bold ${isHighRisk ? 'text-destructive' : 'text-emerald-600'}`}>
+                {isHighRisk ? (isRtl ? 'مرتفع' : 'High') : matter.riskLevel}
+              </span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">{isRtl ? 'احتمالية الفوز' : 'Win Probability'}</span>
+              <span className="font-bold">{matter.winProbability}%</span>
+            </div>
+            {matter.statuteDeadline && (
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">{isRtl ? 'تقادم الدعوى' : 'Statute Deadline'}</span>
+                <span className={`font-bold ${hasImpendingDeadline ? 'text-destructive' : ''}`}>
+                  {new Date(matter.statuteDeadline).toLocaleDateString()}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Card 2: Budget */}
+        <div className={`rounded-xl border p-5 bg-card ${
+          isBudgetAlert ? 'border-amber-400/50' : 'border-border'
+        }`}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+              isBudgetAlert ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
+            }`}>
+              <BarChart3 className="w-4 h-4" />
+            </div>
+            <h3 className="text-sm font-bold">{isRtl ? 'الميزانية' : 'Budget'}</h3>
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">{isRtl ? 'المصروف' : 'Expenses'}</span>
+              <span className="font-bold">{matter.expenses.toLocaleString()} {isRtl ? 'د.أ' : 'JOD'}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">{isRtl ? 'المتبقي' : 'Remaining'}</span>
+              <span className="font-bold">{(matter.budget - matter.expenses).toLocaleString()} {isRtl ? 'د.أ' : 'JOD'}</span>
+            </div>
+            {/* Budget bar */}
+            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  isBudgetAlert ? 'bg-amber-500' : budgetUsed > 60 ? 'bg-primary' : 'bg-emerald-500'
+                }`}
+                style={{ width: `${Math.min(budgetUsed, 100)}%` }}
+              />
+            </div>
+            <div className="text-[10px] text-muted-foreground text-right">
+              {budgetUsed}% {isRtl ? 'مستهلك' : 'used'}
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Quick Actions */}
+        <div className="rounded-xl border border-border p-5 bg-card">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <h3 className="text-sm font-bold">{isRtl ? 'إجراءات سريعة' : 'Quick Actions'}</h3>
+          </div>
+          <div className="space-y-2">
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('mobile-tab-changed', { detail: 'docs' }))}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-accent/50 hover:bg-accent transition-colors cursor-pointer text-left rtl:text-right"
+            >
+              <FileText className="w-4 h-4 text-primary shrink-0" />
+              <span className="text-xs font-semibold flex-1">
+                {isRtl ? 'رفع مستند جديد' : 'Upload Document'}
+              </span>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground rtl:rotate-180" />
+            </button>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('mobile-tab-changed', { detail: 'tasks' }))}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-accent/50 hover:bg-accent transition-colors cursor-pointer text-left rtl:text-right"
+            >
+              <Briefcase className="w-4 h-4 text-primary shrink-0" />
+              <span className="text-xs font-semibold flex-1">
+                {isRtl ? 'إدارة المهام' : 'Manage Tasks'}
+              </span>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground rtl:rotate-180" />
+            </button>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('mobile-tab-changed', { detail: 'calendar' }))}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-accent/50 hover:bg-accent transition-colors cursor-pointer text-left rtl:text-right"
+            >
+              <Calendar className="w-4 h-4 text-primary shrink-0" />
+              <span className="text-xs font-semibold flex-1">
+                {isRtl ? 'عرض التقويم' : 'View Calendar'}
+              </span>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground rtl:rotate-180" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// CheckCircle icon (used in triage)
+// =============================================================================
+function CheckCircle({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  );
+}
+
+// =============================================================================
+// MAIN PAGE COMPONENT
+// =============================================================================
 export default function Page() {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const { t, isRtl } = useLanguage();
 
-  const [view, setView] = useState<View>("landing");
+  const [view, setView] = useState<AppView>("landing");
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [mode, setMode] = useState<"Lawyer" | "Client">("Lawyer");
 
-  // Workspace state
   const [matters, setMatters] = useState<Matter[]>([]);
   const [activeMatterId, setActiveMatterId] = useState<string>("");
   const [mattersLoading, setMattersLoading] = useState(true);
-  // Section tab — replaces the old long-scroll layout. Each tab shows ONE
-  // section full-screen, so the user never has to scroll up/down to find
-  // what they need. Mirrors the mobile nav tabs.
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "matter" | "documents" | "calendar" | "ai" | "warroom" | "billing" | "investigation"
-  >("overview");
+  const [activeView, setActiveView] = useState<WorkspaceView>("overview");
+  const [mobileTab, setMobileTab] = useState<'all' | 'analytics' | 'tasks' | 'docs' | 'ai'>('all');
+
+  // FIX 1: Track if state was restored from URL
+  const urlRestored = useRef(false);
 
   const fetchMatters = useCallback(async () => {
     setMattersLoading(true);
     try {
-      // Offline fast-path: if we already know we're offline, skip the network
-      // round-trip and go straight to IndexedDB.
-      const isOffline =
-        typeof navigator !== "undefined" && navigator.onLine === false;
-
+      const isOffline = typeof navigator !== "undefined" && navigator.onLine === false;
       if (!isOffline) {
         try {
           const res = await fetch("/api/matters", { cache: "no-store" });
           if (res.ok) {
             const raw = await res.json();
-            // The API returns { data: Matter[], pagination: {...} }.
-            // Extract the array; fall back to [] if the shape is unexpected
-            // (e.g. an error object slipped through). This prevents the
-            // "matters.find is not a function" crash that turns the page white.
-            const data: Matter[] = Array.isArray(raw)
-              ? raw
-              : Array.isArray(raw?.data)
-                ? raw.data
-                : [];
+            const data: Matter[] = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
             setMatters(data);
-            // Phase 1.1: write-back to IndexedDB so the cache is populated
-            // for offline refresh.
             if (data.length > 0) {
               await saveItemsToOfflineStore(STORES.MATTERS, data);
-              // Only set active matter if none is currently selected
-              setActiveMatterId((prev) => prev || data[0].id);
+              // Only auto-select if no URL state
+              if (!urlRestored.current) {
+                setActiveMatterId((prev) => prev || data[0].id);
+              }
             }
             return;
           }
         } catch (err) {
-          // Network failed mid-request — fall through to offline cache.
           console.warn("Matters fetch failed; falling back to offline cache:", err);
         }
       }
-
-      // Offline fallback: read all cached matters from IndexedDB.
       const cached = await getAllFromOfflineStore<Matter>(STORES.MATTERS);
       if (cached && cached.length > 0) {
         setMatters(cached);
-        setActiveMatterId((prev) => prev || cached[0].id);
+        if (!urlRestored.current) {
+          setActiveMatterId((prev) => prev || cached[0].id);
+        }
       } else {
-        // No cache + offline → empty state.
         setMatters([]);
       }
     } catch (err) {
@@ -119,53 +298,73 @@ export default function Page() {
     }
   }, []);
 
-  // Listen for mobile-tab-changed events from MobileBottomNav — now maps to
-  // the same activeTab state used by the desktop tab bar, so mobile + desktop
-  // share the same navigation.
+  // ── FIX 1: Sync URL hash ↔ React state ──
+  // Write hash whenever state changes (but not during initial URL restore)
+  useEffect(() => {
+    if (view !== "workspace" || !activeMatterId) return;
+    if (urlRestored.current) {
+      window.history.replaceState(null, "", buildHash(activeView, activeMatterId, mode));
+    }
+  }, [activeView, activeMatterId, mode, view]);
+
+  // Read hash on mount and on popstate (back/forward)
+  useEffect(() => {
+    if (view !== "workspace") return;
+
+    const applyUrlState = () => {
+      const { view: urlView, matterId, mode: urlMode } = parseHash();
+      if (urlView) setActiveView(urlView);
+      if (matterId) setActiveMatterId(matterId);
+      if (urlMode) setMode(urlMode);
+      urlRestored.current = true;
+    };
+
+    // Initial restore
+    if (!urlRestored.current) applyUrlState();
+
+    // Back/forward navigation
+    const handlePopState = () => applyUrlState();
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [view]);
+
+  // Mobile tab events
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as string | undefined;
       if (!detail) return;
-      // Map old mobile tab names to the new unified tab state.
-      const tabMap: Record<string, typeof activeTab> = {
-        analytics: "overview",
-        tasks: "matter",
-        docs: "documents",
-        ai: "ai",
-        all: "overview",
+      const tabMap: Record<string, WorkspaceView> = {
+        analytics: "overview", tasks: "matter", docs: "documents",
+        ai: "ai", all: "overview", calendar: "calendar",
       };
-      setActiveTab(tabMap[detail] ?? "overview");
+      setActiveView(tabMap[detail] ?? "overview");
     };
     window.addEventListener("mobile-tab-changed", handler);
     return () => window.removeEventListener("mobile-tab-changed", handler);
   }, []);
 
-  // Auto-enter workspace + fetch matters when authenticated (handles page refresh)
+  // Auto-enter workspace when authenticated
   useEffect(() => {
     if (isAuthenticated && view === "landing") {
       setView("workspace");
     }
   }, [isAuthenticated, view]);
 
-  // Fetch matters when workspace view is active
+  // Fetch matters when workspace is active
   useEffect(() => {
     if (view === "workspace" && isAuthenticated) {
       fetchMatters();
     }
   }, [view, isAuthenticated, fetchMatters]);
 
-  // After the offline queue flushes on reconnect, refresh matters so the UI
-  // reflects server-side state (e.g. a matter created offline is now persisted).
+  // Refresh matters after offline sync
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handler = () => {
-      if (view === "workspace" && isAuthenticated) {
-        fetchMatters();
-      }
+      if (view === "workspace" && isAuthenticated) fetchMatters();
     };
     window.addEventListener("almizan:sync-complete", handler);
-    return () =>
-      window.removeEventListener("almizan:sync-complete", handler);
+    return () => window.removeEventListener("almizan:sync-complete", handler);
   }, [view, isAuthenticated, fetchMatters]);
 
   // ----- LANDING VIEW -----
@@ -174,33 +373,16 @@ export default function Page() {
       <>
         <LandingPage
           onEnterWorkspace={() => {
-            if (isAuthenticated) {
-              setMode("Lawyer");
-              setView("workspace");
-            } else {
-              setAuthMode("signin");
-              setAuthOpen(true);
-            }
+            if (isAuthenticated) { setMode("Lawyer"); setView("workspace"); }
+            else { setAuthMode("signin"); setAuthOpen(true); }
           }}
           onEnterClientPortal={() => {
-            if (isAuthenticated) {
-              setMode("Client");
-              setView("workspace");
-            } else {
-              setAuthMode("signin");
-              setAuthOpen(true);
-            }
+            if (isAuthenticated) { setMode("Client"); setView("workspace"); }
+            else { setAuthMode("signin"); setAuthOpen(true); }
           }}
         />
-        <AuthModal
-          isOpen={authOpen}
-          onClose={() => setAuthOpen(false)}
-          initialMode={authMode}
-          onSuccess={() => {
-            setMode("Lawyer");
-            setView("workspace");
-          }}
-        />
+        <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} initialMode={authMode}
+          onSuccess={() => { setMode("Lawyer"); setView("workspace"); }} />
       </>
     );
   }
@@ -226,256 +408,254 @@ export default function Page() {
             <Lock className="w-8 h-8" />
           </div>
           <div className="text-center max-w-md">
-            <h2 className="text-xl font-extrabold">
-              {isRtl ? "يجب تسجيل الدخول للوصول لبيئة العمل" : "Authentication required"}
-            </h2>
+            <h2 className="text-xl font-extrabold">{isRtl ? "يجب تسجيل الدخول" : "Authentication required"}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              {isRtl
-                ? "يرجى تسجيل الدخول أو إنشاء حساب للمتابعة إلى مساحة عمل الميزان."
-                : "Please sign in or create an account to access the Al Mizan workspace."}
+              {isRtl ? "يرجى تسجيل الدخول أو إنشاء حساب." : "Please sign in or create an account."}
             </p>
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={() => { setAuthMode("signin"); setAuthOpen(true); }}
-              className="px-5 py-2.5 bg-primary text-primary-foreground font-bold text-xs rounded-xl shadow hover:opacity-90 transition cursor-pointer"
-            >
+            <button onClick={() => { setAuthMode("signin"); setAuthOpen(true); }}
+              className="px-5 py-2.5 bg-primary text-primary-foreground font-bold text-xs rounded-xl shadow hover:opacity-90 transition cursor-pointer">
               {isRtl ? "تسجيل الدخول" : "Sign In"}
             </button>
-            <button
-              onClick={() => { setAuthMode("signup"); setAuthOpen(true); }}
-              className="px-5 py-2.5 bg-secondary text-secondary-foreground font-bold text-xs rounded-xl border border-border hover:bg-accent transition cursor-pointer"
-            >
+            <button onClick={() => { setAuthMode("signup"); setAuthOpen(true); }}
+              className="px-5 py-2.5 bg-secondary text-secondary-foreground font-bold text-xs rounded-xl border border-border hover:bg-accent transition cursor-pointer">
               {isRtl ? "إنشاء حساب" : "Register"}
             </button>
           </div>
         </div>
-        <AuthModal
-          isOpen={authOpen}
-          onClose={() => setAuthOpen(false)}
-          initialMode={authMode}
-          onSuccess={() => setView("workspace")}
-        />
+        <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} initialMode={authMode}
+          onSuccess={() => setView("workspace")} />
       </>
     );
   }
 
   // ----- WORKSPACE VIEW -----
-
   const handleNewMatterCreated = (newMatter: Matter) => {
     setMatters((prev) => [...prev, newMatter]);
     setActiveMatterId(newMatter.id);
   };
-
   const handleMatterUpdated = (updated: Matter) => {
     setMatters((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
   };
-
-  const handleRefreshMatter = () => {
-    fetchMatters();
-  };
+  const handleRefreshMatter = () => fetchMatters();
 
   const activeMatter = matters.find((m) => m.id === activeMatterId);
 
+  // FIX 4: Client mode → completely different layout, no sidebar
+  const isClientMode = mode === "Client";
+
+  // FIX 3: If no matter selected, show matter picker as THE entry point
+  if (!activeMatter && matters.length > 0 && !mattersLoading) {
+    // Auto-select first matter (shouldn't happen, but safety net)
+    setActiveMatterId(matters[0].id);
+  }
+
   return (
     <>
-    <OfflineBanner />
-    <div className="app-theme-wrapper min-h-screen p-2 sm:p-4 md:p-8 pb-24 lg:pb-8 text-foreground flex flex-col overflow-x-hidden">
-      {/* Header with profile widget, matter selector, mode toggle */}
-      <Header
-        currentMode={mode}
-        onModeChange={(m) => setMode(m)}
-        matters={matters}
-        activeMatterId={activeMatterId}
-        onActiveMatterChange={(id) => setActiveMatterId(id)}
-        onNewMatterCreated={handleNewMatterCreated}
-        onShowLandingPage={() => setView("landing")}
-      />
+      <OfflineBanner />
+      <div className="app-theme-wrapper min-h-screen text-foreground flex flex-col overflow-hidden">
 
-      {/* Main Panel Controller */}
-      {activeMatter ? (
-        <main className="flex-grow flex flex-col mt-4">
-          {mode === "Lawyer" ? (
-            <div className="flex flex-col gap-4" id="lawyer-workspace">
-              {/* ─── Section Tab Bar ─── */}
-              {/* Replaces the old long-scroll layout. Each tab shows ONE section
-                  full-screen — no more scrolling up/down to find what you need. */}
-              <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border border-border rounded-2xl p-1.5 shadow-sm">
-                <div className="flex gap-1 overflow-x-auto scrollbar-none">
-                  <TabButton
-                    active={activeTab === "overview"}
-                    onClick={() => setActiveTab("overview")}
-                    icon={<BarChart3 className="w-4 h-4 shrink-0" />}
-                    label={t.tabOverview}
-                  />
-                  <TabButton
-                    active={activeTab === "matter"}
-                    onClick={() => setActiveTab("matter")}
-                    icon={<Briefcase className="w-4 h-4 shrink-0" />}
-                    label={t.tabMatter}
-                  />
-                  <TabButton
-                    active={activeTab === "documents"}
-                    onClick={() => setActiveTab("documents")}
-                    icon={<FileText className="w-4 h-4 shrink-0" />}
-                    label={t.tabDocuments}
-                  />
-                  <TabButton
-                    active={activeTab === "calendar"}
-                    onClick={() => setActiveTab("calendar")}
-                    icon={<Calendar className="w-4 h-4 shrink-0" />}
-                    label={t.tabCalendar}
-                  />
-                  <TabButton
-                    active={activeTab === "ai"}
-                    onClick={() => setActiveTab("ai")}
-                    icon={<Sparkles className="w-4 h-4 shrink-0" />}
-                    label={t.tabAi}
-                  />
-                  <TabButton
-                    active={activeTab === "warroom"}
-                    onClick={() => setActiveTab("warroom")}
-                    icon={<Sword className="w-4 h-4 shrink-0" />}
-                    label={t.tabWarRoom}
-                  />
-                  <TabButton
-                    active={activeTab === "billing"}
-                    onClick={() => setActiveTab("billing")}
-                    icon={<Receipt className="w-4 h-4 shrink-0" />}
-                    label={t.tabBilling}
-                  />
-                  <TabButton
-                    active={activeTab === "investigation"}
-                    onClick={() => setActiveTab("investigation")}
-                    icon={<FileSearch className="w-4 h-4 shrink-0" />}
-                    label={isRtl ? "التحقيق" : "Investigation"}
-                  />
+        {/* ── MOBILE BOTTOM NAV (hidden on desktop, sidebar handles desktop) ── */}
+        {view === "workspace" && !isClientMode && activeMatter && (
+          <MobileBottomNav
+            currentMode={mode}
+            onModeChange={setMode}
+            activeMobileTab={mobileTab}
+            onSelectMobileTab={(tab) => {
+              setMobileTab(tab);
+              window.dispatchEvent(new CustomEvent('mobile-tab-changed', { detail: tab }));
+            }}
+            unreadNotificationsCount={0}
+            onOpenNotifications={() => {}}
+            onOpenSearch={() => window.dispatchEvent(new CustomEvent('open-search-modal'))}
+            onOpenNewMatterModal={() => window.dispatchEvent(new CustomEvent('open-new-matter-modal'))}
+            matters={matters}
+            activeMatterId={activeMatterId}
+            onActiveMatterChange={setActiveMatterId}
+          />
+        )}
+
+        {/* ── TOP HEADER BAR ── */}
+        <Header
+          currentMode={mode}
+          onModeChange={(m) => setMode(m)}
+          matters={matters}
+          activeMatterId={activeMatterId}
+          onActiveMatterChange={(id) => setActiveMatterId(id)}
+          onNewMatterCreated={handleNewMatterCreated}
+          onShowLandingPage={() => setView("landing")}
+        />
+
+        {/* ── MAIN LAYOUT ── */}
+        {activeMatter ? (
+          isClientMode ? (
+            /* ================================================================
+               FIX 4: CLIENT PORTAL — full-width, no sidebar, no internal tools
+               ================================================================ */
+            <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-8">
+              <div className="max-w-4xl mx-auto page-enter">
+                {/* Client header banner */}
+                <div className="flex items-center gap-3 mb-6 p-4 bg-primary/5 border border-primary/10 rounded-xl">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                    <Briefcase className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-sm font-bold truncate">{activeMatter.title}</h1>
+                    <p className="text-xs text-muted-foreground">{activeMatter.clientName}</p>
+                  </div>
+                </div>
+                <ClientPortal activeMatter={activeMatter} onRefreshMatter={handleRefreshMatter} />
+              </div>
+            </main>
+          ) : (
+            /* ================================================================
+               LAWYER WORKSPACE — sidebar + content
+               ================================================================ */
+            <div className="flex flex-1 overflow-hidden">
+              <WorkspaceSidebar
+                activeView={activeView}
+                onViewChange={setActiveView}
+                matters={matters}
+                activeMatterId={activeMatterId}
+                onActiveMatterChange={(id) => setActiveMatterId(id)}
+                user={user}
+                onLogout={logout}
+                currentMode={mode}
+                onModeChange={setMode}
+              />
+
+              <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-8">
+                <div className="max-w-7xl mx-auto page-enter" key={activeView}>
+
+                  {/* FIX 5: Overview = triage dashboard, not analytics graphs */}
+                  {activeView === "overview" && (
+                    <>
+                      <TriageDashboard matter={activeMatter} />
+                      <div className="mt-6">
+                        <AnalyticsModule activeMatter={activeMatter} />
+                      </div>
+                    </>
+                  )}
+
+                  {activeView === "matter" && (
+                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                      <div className="xl:col-span-5">
+                        <MattersModule activeMatter={activeMatter} onMatterUpdated={handleMatterUpdated} />
+                      </div>
+                      <div className="xl:col-span-7">
+                        <TasksModule matterId={activeMatter.id} matters={matters} />
+                      </div>
+                    </div>
+                  )}
+
+                  {activeView === "documents" && (
+                    <DocumentsModule matterId={activeMatter.id} onRefreshExpenses={handleRefreshMatter} />
+                  )}
+                  {activeView === "calendar" && (
+                    <CalendarModule matterId={activeMatter.id} matters={matters} />
+                  )}
+                  {activeView === "ai" && <AiModule activeMatter={activeMatter} />}
+                  {activeView === "warroom" && <WarRoomModule activeMatter={activeMatter} />}
+                  {activeView === "billing" && (
+                    <BillingModule activeMatter={activeMatter} onRefreshMatter={handleRefreshMatter} />
+                  )}
+                  {activeView === "investigation" && <InvestigationModule activeMatter={activeMatter} />}
+                </div>
+              </main>
+            </div>
+          )
+        ) : (
+          /* ── FIX 3: MATTER SELECTOR AS ENTRY POINT ── */
+          <div className="flex-1 flex items-center justify-center p-8">
+            {mattersLoading ? (
+              <div className="flex flex-col items-center gap-3">
+                <RefreshCw className="w-6 h-6 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  {isRtl ? "جاري تحميل القضايا..." : "Loading matters..."}
+                </p>
+              </div>
+            ) : matters.length === 0 ? (
+              <div className="bg-card border border-border rounded-2xl p-12 text-center shadow-sm max-w-md w-full">
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6">
+                  <FolderOpen className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-bold mb-2">
+                  {isRtl ? "ابدأ بأول قضية" : "Start Your First Case"}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+                  {isRtl
+                    ? "أنشئ ملف قضية جديد لبدء العمل."
+                    : "Create a new matter to get started."}
+                </p>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("open-new-matter-modal"))}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-bold text-sm rounded-xl shadow hover:opacity-90 transition cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  {isRtl ? "إنشاء قضية جديدة" : "Create New Matter"}
+                </button>
+              </div>
+            ) : (
+              /* FIX 3: Matter picker grid — the FIRST thing you see, big and clear */
+              <div className="w-full max-w-2xl">
+                <div className="text-center mb-8">
+                  <h2 className="text-xl font-bold mb-2">
+                    {isRtl ? "اختر قضية للعمل عليها" : "Select a Case to Work On"}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {isRtl
+                      ? "اختر من قضاياك النشطة أدناه"
+                      : "Pick from your active matters below"}
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {matters.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => setActiveMatterId(m.id)}
+                      className="flex items-start gap-3 p-5 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-accent/30 transition-all cursor-pointer text-left rtl:text-right group"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                        <Briefcase className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold truncate">{m.title}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{m.clientName}</div>
+                        <div className="flex items-center gap-3 mt-2">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            m.riskLevel === "High"
+                              ? "bg-destructive/10 text-destructive"
+                              : m.riskLevel === "Medium"
+                                ? "bg-amber-50 text-amber-600"
+                                : "bg-emerald-50 text-emerald-600"
+                          }`}>
+                            {m.riskLevel}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {m.jurisdiction}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-3 rtl:rotate-180" />
+                    </button>
+                  ))}
                 </div>
               </div>
+            )}
+          </div>
+        )}
 
-              {/* ─── Section Content (only the active tab renders) ─── */}
-              <div className="flex-grow">
-                {activeTab === "overview" && (
-                  <div id="analytics-module" className="animate-in fade-in duration-200">
-                    <AnalyticsModule activeMatter={activeMatter} />
-                  </div>
-                )}
-
-                {activeTab === "matter" && (
-                  <div id="tasks-module" className="animate-in fade-in duration-200 grid grid-cols-1 xl:grid-cols-12 gap-4">
-                    <div className="xl:col-span-5">
-                      <MattersModule activeMatter={activeMatter} onMatterUpdated={handleMatterUpdated} />
-                    </div>
-                    <div className="xl:col-span-7">
-                      <TasksModule matterId={activeMatter.id} matters={matters} />
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === "documents" && (
-                  <div id="documents-module" className="animate-in fade-in duration-200">
-                    <DocumentsModule
-                      matterId={activeMatter.id}
-                      onRefreshExpenses={handleRefreshMatter}
-                    />
-                  </div>
-                )}
-
-                {activeTab === "calendar" && (
-                  <div id="calendar-module" className="animate-in fade-in duration-200">
-                    <CalendarModule matterId={activeMatter.id} matters={matters} />
-                  </div>
-                )}
-
-                {activeTab === "ai" && (
-                  <div id="ai-module" className="animate-in fade-in duration-200">
-                    <AiModule activeMatter={activeMatter} />
-                  </div>
-                )}
-
-                {activeTab === "warroom" && (
-                  <div id="warroom-module" className="animate-in fade-in duration-200">
-                    <WarRoomModule activeMatter={activeMatter} />
-                  </div>
-                )}
-
-                {activeTab === "billing" && (
-                  <div id="billing-module" className="animate-in fade-in duration-200">
-                    <BillingModule
-                      activeMatter={activeMatter}
-                      onRefreshMatter={handleRefreshMatter}
-                    />
-                  </div>
-                )}
-
-                {activeTab === "investigation" && (
-                  <div id="investigation-module" className="animate-in fade-in duration-200">
-                    <InvestigationModule activeMatter={activeMatter} />
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            /* CLIENT PORTAL — server-filtered view (only visibleToClient records exposed) */
-            <ClientPortal activeMatter={activeMatter} onRefreshMatter={handleRefreshMatter} />
-          )}
-        </main>
-      ) : (
-        <div className="flex-grow bg-card border border-border rounded-3xl p-12 text-center shadow-sm flex flex-col items-center justify-center gap-4 mt-4">
-          <FolderOpen className="w-16 h-16 text-muted-foreground/40 animate-pulse" />
-          <h3 className="text-xl font-bold">
-            {isRtl ? "لا توجد قضية مفتوحة" : "No Case Files Open"}
-          </h3>
-          <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
-            {isRtl
-              ? "يرجى قيد ملف قضية جديد أو تحديد نزاع تجاري نشط من القائمة العلوية للبدء."
-              : "Create an intake file or select an active matter from the header dropdown to begin."}
-          </p>
-        </div>
-      )}
-
-      {/* Footer */}
-      <footer className="mt-8 pt-6 border-t border-border flex flex-col md:flex-row justify-between items-center text-[10px] text-muted-foreground uppercase tracking-widest gap-3">
-        <span>AL MIZAN LEGAL PRACTICE © 2026</span>
-        <span className="text-center">BILINGUAL • MULTI-TENANT • RTL-READY</span>
-        <div className="flex items-center gap-3">
-          <SyncStatusIndicator />
-          <span>v0.5.0 — OFFLINE COURTROOM</span>
-        </div>
-      </footer>
-    </div>
+        {/* ── FOOTER ── (hidden on mobile when bottom nav is active) ── */}
+        <footer className="border-t border-border px-4 md:px-8 py-4 flex flex-col md:flex-row justify-between items-center text-[10px] text-muted-foreground uppercase tracking-widest gap-2">
+          <span>AL MIZAN LEGAL PRACTICE © 2026</span>
+          <span className="text-center">BILINGUAL • MULTI-TENANT • RTL-READY</span>
+          <div className="flex items-center gap-3">
+            <SyncStatusIndicator />
+            <span>v0.7.0</span>
+          </div>
+        </footer>
+      </div>
     </>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TabButton — a single tab in the workspace section tab bar.
-// Active tab gets the indigo background; inactive tabs are muted.
-// Icon + label, horizontally scrollable on small screens.
-// ─────────────────────────────────────────────────────────────────────────────
-function TabButton({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-        active
-          ? "bg-indigo-600 text-white shadow-sm"
-          : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-      }`}
-    >
-      {icon}
-      <span>{label}</span>
-    </button>
   );
 }

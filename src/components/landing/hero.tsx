@@ -160,8 +160,8 @@ function AnalyzeStep({ isRtl }: { isRtl: boolean }) {
           className="relative w-12 h-14 bg-white rounded-md shadow-lg flex items-center justify-center border-t-4 border-t-red-500 overflow-hidden"
         >
           <span className="text-red-500 font-bold text-[10px] uppercase tracking-wider relative z-10">PDF</span>
-          <div className="absolute bottom-2 left-2 right-2 h-1 bg-gray-100 rounded-full"></div>
-          <div className="absolute bottom-4 left-2 right-4 h-1 bg-gray-100 rounded-full"></div>
+          <div className="absolute bottom-2 left-2 right-2 h-1 bg-muted rounded-full"></div>
+          <div className="absolute bottom-4 left-2 right-4 h-1 bg-muted rounded-full"></div>
         </motion.div>
         <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15 }}>
           <FileSearch className="w-7 h-7 text-brass-light opacity-90" />

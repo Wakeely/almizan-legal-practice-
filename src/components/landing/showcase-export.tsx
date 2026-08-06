@@ -122,13 +122,13 @@ export default function ShowcaseExport() {
 
                 {/* Abstract representations of further content */}
                 <div className="space-y-2 opacity-30 mt-4 mb-3">
-                  <div className="h-2 w-full bg-gray-300 rounded"></div>
-                  <div className="h-2 w-full bg-gray-300 rounded"></div>
-                  <div className="h-2 w-3/4 bg-gray-300 rounded"></div>
+                  <div className="h-2 w-full bg-muted rounded"></div>
+                  <div className="h-2 w-full bg-muted rounded"></div>
+                  <div className="h-2 w-3/4 bg-muted rounded"></div>
                 </div>
                 <div className="space-y-2 opacity-30">
-                  <div className="h-2 w-full bg-gray-300 rounded"></div>
-                  <div className="h-2 w-5/6 bg-gray-300 rounded"></div>
+                  <div className="h-2 w-full bg-muted rounded"></div>
+                  <div className="h-2 w-5/6 bg-muted rounded"></div>
                 </div>
 
                 {/* CTA overlaid in the center */}

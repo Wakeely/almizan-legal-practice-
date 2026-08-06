@@ -92,24 +92,24 @@ export default function CourtRulesCalendaringModule({ activeMatter, onDeadlinesA
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col gap-5">
+    <div className="bg-white border border-border rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col gap-5">
       
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-800 shrink-0">
             <Landmark className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 font-display">
+              <h3 className="text-base sm:text-lg font-extrabold text-foreground font-display">
                 {isRtl ? 'حاسبة المواعيد والمهل الإجرائية القضائية الآلية' : 'Automated Court Rules Calendaring Engine'}
               </h3>
               <span className="px-2.5 py-0.5 bg-teal-100 text-teal-900 border border-teal-300 text-[10px] font-bold rounded-full">
                 {isRtl ? 'حساب نظامي دقيق' : 'Rules Engine'}
               </span>
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">
               {isRtl 
                 ? 'احتساب المهل القضائية، مواعيد الطعن بالاستئناف، ومدد الإفصاح وفقاً لقوانين الإجراءات المدنية والتجارية' 
                 : 'Calculate court deadlines, appeal windows, and discovery cutoffs based on regional civil procedure rules'}
@@ -119,19 +119,19 @@ export default function CourtRulesCalendaringModule({ activeMatter, onDeadlinesA
       </div>
 
       {/* Input Parameters Box */}
-      <form onSubmit={handleCalculateDeadlines} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4">
+      <form onSubmit={handleCalculateDeadlines} className="bg-card border border-border rounded-2xl p-4 sm:p-5 space-y-4">
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           
           {/* Jurisdiction Ruleset */}
           <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">
+            <label className="text-xs font-bold text-foreground block mb-1">
               {isRtl ? 'نظام وقانون الإجراءات القضائية:' : 'Jurisdiction / Court Ruleset:'}
             </label>
             <select
               value={jurisdiction}
               onChange={(e) => setJurisdiction(e.target.value)}
-              className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-teal-700"
+              className="w-full bg-white border border-border rounded-xl p-2.5 text-xs text-foreground font-medium focus:outline-none focus:border-teal-700"
             >
               <option value="UAE Civil Procedure Law (Federal Law No. 42 / 2022)">{isRtl ? 'قانون الإجراءات المدنية الإماراتي (قانون اتحادي ٤٢ / ٢٠٢٢)' : 'UAE Civil Procedure Law (Federal Law 42/2022)'}</option>
               <option value="Saudi Arabia Commercial Courts Law (Royal Decree M/93)">{isRtl ? 'نظام المحاكم التجارية السعودي (مرسوم ملكي م/٩٣)' : 'Saudi Commercial Courts Law (Royal Decree M/93)'}</option>
@@ -143,13 +143,13 @@ export default function CourtRulesCalendaringModule({ activeMatter, onDeadlinesA
 
           {/* Triggering Procedural Event */}
           <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">
+            <label className="text-xs font-bold text-foreground block mb-1">
               {isRtl ? 'الحدث الإجرائي المنشئ للميعاد:' : 'Triggering Court Event:'}
             </label>
             <select
               value={triggerEvent}
               onChange={(e) => setTriggerEvent(e.target.value)}
-              className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-teal-700"
+              className="w-full bg-white border border-border rounded-xl p-2.5 text-xs text-foreground font-medium focus:outline-none focus:border-teal-700"
             >
               <option value="Service of Summons / Statement of Claim">{isRtl ? 'إعلان صحيفة الدعوى / لائحة الادعاء' : 'Service of Summons / Statement of Claim'}</option>
               <option value="Filing / Service of Statement of Defense">{isRtl ? 'إيداع المذكرة الجوابية / دفاع الخصم' : 'Service of Statement of Defense'}</option>
@@ -162,14 +162,14 @@ export default function CourtRulesCalendaringModule({ activeMatter, onDeadlinesA
 
           {/* Trigger Date */}
           <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">
+            <label className="text-xs font-bold text-foreground block mb-1">
               {isRtl ? 'تاريخ وقوع الحدث (Start Date):' : 'Trigger Date:'}
             </label>
             <input
               type="date"
               value={triggerDate}
               onChange={(e) => setTriggerDate(e.target.value)}
-              className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 font-mono font-bold focus:outline-none focus:border-teal-700"
+              className="w-full bg-white border border-border rounded-xl p-2.5 text-xs text-foreground font-mono font-bold focus:outline-none focus:border-teal-700"
             />
           </div>
 
@@ -228,7 +228,7 @@ export default function CourtRulesCalendaringModule({ activeMatter, onDeadlinesA
           {/* Deadlines Timeline Grid */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider font-display">
+              <h4 className="text-xs font-extrabold text-foreground uppercase tracking-wider font-display">
                 {isRtl ? 'جدول المواعيد والمهل الإجرائية المستخرجة:' : 'Calculated Statutory Deadlines Schedule:'}
               </h4>
               <button
@@ -255,12 +255,12 @@ export default function CourtRulesCalendaringModule({ activeMatter, onDeadlinesA
                       ? 'bg-rose-50/60 border-rose-200' 
                       : d.priority === 'Medium' 
                       ? 'bg-amber-50/60 border-amber-200' 
-                      : 'bg-white border-slate-200'
+                      : 'bg-white border-border'
                   }`}
                 >
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="px-2 py-0.5 bg-slate-900 text-white font-mono font-extrabold text-[10px] rounded">
+                      <span className="px-2 py-0.5 bg-foreground text-white font-mono font-extrabold text-[10px] rounded">
                         +{d.daysFromTrigger} {isRtl ? 'يوم' : 'Days'}
                       </span>
                       <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${
@@ -272,18 +272,18 @@ export default function CourtRulesCalendaringModule({ activeMatter, onDeadlinesA
                       </span>
                     </div>
 
-                    <h5 className="text-xs font-extrabold text-slate-900 font-display">
+                    <h5 className="text-xs font-extrabold text-foreground font-display">
                       {d.title}
                     </h5>
 
-                    <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+                    <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
                       {d.description}
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-[11px] font-mono">
-                    <span className="text-slate-500 font-medium">
-                      {isRtl ? 'النص والمادة:' : 'Ref:'} <strong className="text-slate-800">{d.ruleReference}</strong>
+                  <div className="flex items-center justify-between pt-2 border-t border-border/60 text-[11px] font-mono">
+                    <span className="text-muted-foreground font-medium">
+                      {isRtl ? 'النص والمادة:' : 'Ref:'} <strong className="text-foreground">{d.ruleReference}</strong>
                     </span>
                     <span className="text-teal-900 font-bold bg-teal-100/80 px-2 py-0.5 rounded">
                       {d.calculatedDate}

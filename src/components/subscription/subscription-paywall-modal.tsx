@@ -156,20 +156,20 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200 my-auto">
+    <div className="fixed inset-0 z-50 bg-foreground/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl border border-border w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200 my-auto">
         
         {/* Modal Header */}
-        <div className="bg-slate-900 text-white p-5 sm:p-6 relative flex justify-between items-center border-b border-slate-800">
+        <div className="bg-foreground text-white p-5 sm:p-6 relative flex justify-between items-center border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-amber-500 text-slate-950 rounded-2xl shadow-md">
+            <div className="p-2.5 bg-amber-500 text-foreground rounded-2xl shadow-md">
               <Zap className="w-5 h-5 font-bold" />
             </div>
             <div>
               <h3 className="text-lg font-bold font-display tracking-tight text-white flex items-center gap-2">
                 <span>{isRtl ? 'خطط الاشتراكات وبوابة الترقية (Subscription Paywall)' : 'Al Mizan Plans & Licensing'}</span>
               </h3>
-              <p className="text-xs text-slate-400 font-sans mt-0.5">
+              <p className="text-xs text-muted-foreground font-sans mt-0.5">
                 {user ? (
                   isRtl
                     ? `خطتك الحالية: ${user.subscriptionTier} (${user.planStatus})`
@@ -182,7 +182,7 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors cursor-pointer"
+            className="p-2 text-muted-foreground hover:text-white hover:bg-foreground rounded-full transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -205,17 +205,17 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
           <div className="p-5 sm:p-6 space-y-6">
             {/* Billing Cycle Switcher */}
             <div className="flex justify-center items-center gap-3">
-              <span className={`text-xs font-bold ${billingCycle === 'Monthly' ? 'text-slate-900' : 'text-slate-400'}`}>
+              <span className={`text-xs font-bold ${billingCycle === 'Monthly' ? 'text-foreground' : 'text-muted-foreground'}`}>
                 {isRtl ? 'اشتراك شهري' : 'Monthly Billing'}
               </span>
               <button
                 onClick={() => setBillingCycle(billingCycle === 'Monthly' ? 'Annual' : 'Monthly')}
-                className="w-12 h-6 bg-slate-900 rounded-full p-1 relative transition-colors cursor-pointer"
+                className="w-12 h-6 bg-foreground rounded-full p-1 relative transition-colors cursor-pointer"
               >
                 <div className={`w-4 h-4 bg-amber-400 rounded-full transition-transform ${billingCycle === 'Annual' ? 'translate-x-6 rtl:-translate-x-6' : ''}`} />
               </button>
               <div className="flex items-center gap-1.5">
-                <span className={`text-xs font-bold ${billingCycle === 'Annual' ? 'text-slate-900' : 'text-slate-400'}`}>
+                <span className={`text-xs font-bold ${billingCycle === 'Annual' ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {isRtl ? 'اشتراك سنوي' : 'Annual Billing'}
                 </span>
                 <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-md uppercase">
@@ -235,12 +235,12 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
                     key={p.id}
                     className={`rounded-2xl p-5 border flex flex-col justify-between transition-all relative ${
                       p.id === 'Pro Practice'
-                        ? 'bg-slate-900 text-white border-indigo-500 shadow-xl ring-2 ring-indigo-500/20'
-                        : 'bg-slate-50 text-slate-900 border-slate-200 hover:border-slate-300'
+                        ? 'bg-foreground text-white border-primary/50 shadow-xl ring-2 ring-primary/20'
+                        : 'bg-card text-foreground border-border hover:border-border'
                     }`}
                   >
                     {p.badge && (
-                      <span className="absolute -top-3 right-4 bg-indigo-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
+                      <span className="absolute -top-3 right-4 bg-primary text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
                         {p.badge}
                       </span>
                     )}
@@ -248,19 +248,19 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
                     <div className="space-y-3">
                       <div>
                         <h4 className="text-base font-bold font-display">{isRtl ? p.nameAr : p.nameEn}</h4>
-                        <p className={`text-[11px] mt-1 ${p.id === 'Pro Practice' ? 'text-slate-300' : 'text-slate-500'}`}>
+                        <p className={`text-[11px] mt-1 ${p.id === 'Pro Practice' ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
                           {isRtl ? p.descriptionAr : p.descriptionEn}
                         </p>
                       </div>
 
-                      <div className="pt-2 border-t border-slate-200/20">
+                      <div className="pt-2 border-t border-border/20">
                         <div className="flex items-baseline gap-1">
                           <span className="text-2xl font-extrabold font-mono">${price}</span>
-                          <span className={`text-xs ${p.id === 'Pro Practice' ? 'text-slate-400' : 'text-slate-500'}`}>
+                          <span className={`text-xs ${p.id === 'Pro Practice' ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
                             {isRtl ? '/ شهر' : '/ month'}
                           </span>
                         </div>
-                        <span className={`text-[10px] font-medium block mt-0.5 ${p.id === 'Pro Practice' ? 'text-slate-400' : 'text-slate-500'}`}>
+                        <span className={`text-[10px] font-medium block mt-0.5 ${p.id === 'Pro Practice' ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
                           {isRtl ? p.seatsAr : p.seatsEn}
                         </span>
                       </div>
@@ -269,14 +269,14 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
                       <ul className="space-y-2 pt-2 text-xs">
                         {(isRtl ? p.featuresAr : p.featuresEn).map((f, idx) => (
                           <li key={idx} className="flex items-start gap-2">
-                            <Check className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${p.id === 'Pro Practice' ? 'text-amber-400' : 'text-indigo-600'}`} />
+                            <Check className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${p.id === 'Pro Practice' ? 'text-amber-400' : 'text-primary'}`} />
                             <span className="leading-tight text-[11px]">{f}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
 
-                    <div className="pt-5 mt-4 border-t border-slate-200/20">
+                    <div className="pt-5 mt-4 border-t border-border/20">
                       {isCurrent ? (
                         <button
                           disabled
@@ -290,8 +290,8 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
                           onClick={() => handleSelectPlanToCheckout(p.id)}
                           className={`w-full py-2.5 font-bold text-xs rounded-xl transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5 ${
                             p.id === 'Pro Practice'
-                              ? 'bg-amber-400 hover:bg-amber-500 text-slate-950'
-                              : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                              ? 'bg-amber-400 hover:bg-amber-500 text-foreground'
+                              : 'bg-primary hover:bg-primary text-white'
                           }`}
                         >
                           <CreditCard className="w-4 h-4" />
@@ -309,37 +309,37 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
         {/* STEP 2: CHECKOUT & PAYMENT FORM */}
         {checkoutStep === 'checkout' && (
           <form onSubmit={handleConfirmPayment} className="p-6 space-y-5 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between border-b border-border pb-3">
               <div>
-                <h4 className="text-sm font-bold text-slate-900 font-display">
+                <h4 className="text-sm font-bold text-foreground font-display">
                   {isRtl ? `إتمام ترقية الاشتراك: ${selectedTier}` : `Complete Order: ${selectedTier}`}
                 </h4>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {isRtl ? `الدورة الفوترية المختارة: ${billingCycle === 'Annual' ? 'سنوي (توفير 20%)' : 'شهري'}` : `Selected Billing Cycle: ${billingCycle}`}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setCheckoutStep('plans')}
-                className="text-xs font-bold text-indigo-600 hover:underline cursor-pointer"
+                className="text-xs font-bold text-primary hover:underline cursor-pointer"
               >
                 {isRtl ? '← تغيير الخطة' : '← Change Plan'}
               </button>
             </div>
 
             {/* Payment Summary */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs space-y-2">
-              <div className="flex justify-between text-slate-600">
+            <div className="bg-card border border-border rounded-2xl p-4 text-xs space-y-2">
+              <div className="flex justify-between text-muted-foreground">
                 <span>{isRtl ? 'سعر الخطة:' : 'Base Subscription:'}</span>
                 <span className="font-mono font-bold">${selectedTier === 'Enterprise & Arbitration' ? (billingCycle === 'Annual' ? 3828 : 399) : (billingCycle === 'Annual' ? 1428 : 149)}</span>
               </div>
-              <div className="flex justify-between text-slate-600">
+              <div className="flex justify-between text-muted-foreground">
                 <span>{isRtl ? 'ضريبة المبيعات / القيمة المضافة (0% للمؤسسات القانونية):' : 'VAT / Sales Tax (0% Legal Entity):'}</span>
                 <span className="font-mono font-bold">$0.00</span>
               </div>
-              <div className="flex justify-between border-t border-slate-200 pt-2 text-slate-900 text-sm font-bold">
+              <div className="flex justify-between border-t border-border pt-2 text-foreground text-sm font-bold">
                 <span>{isRtl ? 'الإجمالي المستحق:' : 'Total Amount Due:'}</span>
-                <span className="font-mono text-indigo-600">
+                <span className="font-mono text-primary">
                   ${selectedTier === 'Enterprise & Arbitration' ? (billingCycle === 'Annual' ? 3828 : 399) : (billingCycle === 'Annual' ? 1428 : 149)}
                 </span>
               </div>
@@ -348,25 +348,25 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
             {/* Credit Card Input Details */}
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">{isRtl ? 'اسم صاحب البطاقة / الشركة:' : 'Cardholder Name:'}</label>
+                <label className="block font-bold text-foreground mb-1">{isRtl ? 'اسم صاحب البطاقة / الشركة:' : 'Cardholder Name:'}</label>
                 <input
                   type="text"
                   value={cardHolder}
                   onChange={e => setCardHolder(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-card border border-border rounded-xl px-3 py-2 font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   required
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">{isRtl ? 'رقم البطاقة الائتمانية:' : 'Credit / Debit Card Number:'}</label>
+                <label className="block font-bold text-foreground mb-1">{isRtl ? 'رقم البطاقة الائتمانية:' : 'Credit / Debit Card Number:'}</label>
                 <div className="relative">
-                  <CreditCard className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 rtl:left-auto rtl:right-3" />
+                  <CreditCard className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 rtl:left-auto rtl:right-3" />
                   <input
                     type="text"
                     value={cardNumber}
                     onChange={e => setCardNumber(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-card border border-border rounded-xl pl-9 pr-3 py-2 font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                   />
                 </div>
@@ -374,24 +374,24 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">{isRtl ? 'تاريخ الانتهاء:' : 'Expiry Date:'}</label>
+                  <label className="block font-bold text-foreground mb-1">{isRtl ? 'تاريخ الانتهاء:' : 'Expiry Date:'}</label>
                   <input
                     type="text"
                     value={expiry}
                     onChange={e => setExpiry(e.target.value)}
                     placeholder="MM/YY"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-card border border-border rounded-xl px-3 py-2 font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">{isRtl ? 'رمز الأمان (CVV):' : 'Security Code (CVV):'}</label>
+                  <label className="block font-bold text-foreground mb-1">{isRtl ? 'رمز الأمان (CVV):' : 'Security Code (CVV):'}</label>
                   <input
                     type="password"
                     value={cvv}
                     onChange={e => setCvv(e.target.value)}
                     placeholder="882"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-card border border-border rounded-xl px-3 py-2 font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                   />
                 </div>
@@ -401,7 +401,7 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
             <button
               type="submit"
               disabled={isProcessing}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white text-xs font-bold rounded-2xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-muted text-white text-xs font-bold rounded-2xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
               {isProcessing ? (
                 <>
@@ -426,10 +426,10 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
             </div>
 
             <div>
-              <h4 className="text-xl font-bold font-display text-slate-900">
+              <h4 className="text-xl font-bold font-display text-foreground">
                 {isRtl ? 'تم تفعيل ترقية الاشتراك بنجاح!' : 'Plan Upgraded Successfully!'}
               </h4>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {isRtl
                   ? `أصبح حسابك الآن مفعلاً على خطة ${selectedTier}. يمكنك استخدام كافة الأدوات فوراً.`
                   : `Your practice account is now active under the ${selectedTier} tier. All features are fully unlocked.`}
@@ -437,17 +437,17 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
             </div>
 
             {/* Receipt Summary Card */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs font-mono text-slate-700 max-w-md mx-auto text-left rtl:text-right rtl:text-left space-y-2">
-              <div className="flex justify-between border-b border-slate-200 pb-2">
-                <span className="text-slate-400">{isRtl ? 'رقم الفاتورة الضريبية:' : 'Tax Invoice Ref:'}</span>
-                <span className="font-bold text-slate-900">{txInvoiceId}</span>
+            <div className="bg-card border border-border rounded-2xl p-4 text-xs font-mono text-foreground max-w-md mx-auto text-left rtl:text-right rtl:text-left space-y-2">
+              <div className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">{isRtl ? 'رقم الفاتورة الضريبية:' : 'Tax Invoice Ref:'}</span>
+                <span className="font-bold text-foreground">{txInvoiceId}</span>
               </div>
-              <div className="flex justify-between border-b border-slate-200 pb-2">
-                <span className="text-slate-400">{isRtl ? 'الخطة المفعّلة:' : 'Active Tier:'}</span>
-                <span className="text-indigo-600 font-bold">{selectedTier}</span>
+              <div className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">{isRtl ? 'الخطة المفعّلة:' : 'Active Tier:'}</span>
+                <span className="text-primary font-bold">{selectedTier}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">{isRtl ? 'تاريخ التجديد:' : 'Renewal Date:'}</span>
+                <span className="text-muted-foreground">{isRtl ? 'تاريخ التجديد:' : 'Renewal Date:'}</span>
                 <span>{user?.renewalDate}</span>
               </div>
             </div>
@@ -455,7 +455,7 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
             <div className="pt-3">
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer"
+                className="px-6 py-2.5 bg-foreground hover:bg-foreground text-white text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer"
               >
                 {isRtl ? 'العودة لممنظومة الميزان' : 'Return to Practice Workspace'}
               </button>
@@ -464,8 +464,8 @@ export default function SubscriptionPaywallModal({ isOpen, onClose, restrictedFe
         )}
 
         {/* Footer */}
-        <div className="bg-slate-50 border-t border-slate-100 p-4 text-center">
-          <p className="text-[11px] text-slate-400">
+        <div className="bg-card border-t border-border p-4 text-center">
+          <p className="text-[11px] text-muted-foreground">
             {isRtl
               ? 'الاشتراكات مغطاة بضمان الاسترداد الكامل خلال 14 يوماً مع إلغاء مرن في أي وقت.'
               : 'Subscriptions include a 14-day refund guarantee with seamless cancelation.'}

@@ -261,32 +261,32 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-sm space-y-4" id="warroom-module">
+    <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-sm space-y-4" id="warroom-module">
       {/* Header */}
-      <div className="flex flex-wrap justify-between items-center gap-3 border-b border-slate-100 pb-4">
+      <div className="flex flex-wrap justify-between items-center gap-3 border-b border-border pb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-rose-600 text-white rounded-2xl shadow-xs">
+          <div className="p-2.5 bg-primary/10 text-primary rounded-lg shadow-xs border border-primary/30">
             <Sword className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 font-display flex items-center gap-2">
+            <h3 className="text-base sm:text-lg font-bold text-foreground font-display flex items-center gap-2">
               <span>{isRtl ? 'غرفة عمليات المحاكمة والجلسات (Trial War Room)' : 'Trial War Room & Hearing Binder'}</span>
               <span className="px-2 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold rounded-md uppercase">
                 {isRtl ? 'مباشر' : 'Live Hearing Prep'}
               </span>
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               {isRtl ? 'إدارة أقوال الشهود، أدلة النزاع، واستراتيجيات الاستجواب المضاد' : 'Organize witness examination binders, exhibit ledgers, and rebuttal attack vectors'}
             </p>
           </div>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex flex-wrap items-center p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold font-display gap-1">
+        <div className="flex flex-wrap items-center p-1 bg-muted rounded-xl border border-border text-xs font-bold font-display gap-1">
           <button
             onClick={() => setActiveTab('chronology')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'chronology' ? 'bg-white text-rose-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              activeTab === 'chronology' ? 'bg-card text-primary shadow-xs' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
@@ -295,7 +295,7 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
           <button
             onClick={() => setActiveTab('witnesses')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'witnesses' ? 'bg-white text-rose-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              activeTab === 'witnesses' ? 'bg-card text-primary shadow-xs' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
@@ -304,7 +304,7 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
           <button
             onClick={() => setActiveTab('exhibits')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'exhibits' ? 'bg-white text-rose-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              activeTab === 'exhibits' ? 'bg-card text-primary shadow-xs' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
@@ -313,7 +313,7 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
           <button
             onClick={() => setActiveTab('ai-counter')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'ai-counter' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              activeTab === 'ai-counter' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -326,18 +326,18 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
       {activeTab === 'chronology' && (
         <div className="space-y-4 animate-in fade-in duration-200">
           {/* Controls Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-background border border-border p-3 rounded-xl">
             {/* Category Filters */}
             <div className="flex items-center gap-1.5 overflow-x-auto text-[11px] font-bold">
-              <span className="text-slate-400 font-sans mr-1 rtl:ml-1 shrink-0">{isRtl ? 'تصفية حسب:' : 'Filter:'}</span>
+              <span className="text-muted-foreground font-sans mr-1 rtl:ml-1 shrink-0">{isRtl ? 'تصفية حسب:' : 'Filter:'}</span>
               {['All', 'Filing', 'Evidence', 'Hearing', 'Milestone'].map(cat => (
                 <button
                   key={cat}
                   onClick={() => setTimelineCategoryFilter(cat)}
                   className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
                     timelineCategoryFilter === cat
-                      ? 'bg-rose-600 text-white shadow-2xs'
-                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                      ? 'bg-primary text-primary-foreground shadow-2xs'
+                      : 'bg-card text-muted-foreground hover:bg-muted border border-border'
                   }`}
                 >
                   {cat === 'All' ? (isRtl ? 'الكل' : 'All') : cat}
@@ -347,7 +347,7 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
 
             <button
               onClick={() => setShowAddEvent(true)}
-              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1 shrink-0"
+              className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg transition-all shadow-xs cursor-pointer flex items-center gap-1 shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isRtl ? 'إضافة محطة زمنية' : 'Add Event'}</span>
@@ -356,41 +356,41 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
 
           {/* Add Timeline Event Form */}
           {showAddEvent && (
-            <form onSubmit={handleAddEvent} className="bg-slate-900 text-white border border-slate-800 rounded-2xl p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+            <form onSubmit={handleAddEvent} className="bg-card border border-border rounded-xl p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
               <h4 className="text-xs font-bold font-display uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
                 <span>{isRtl ? 'إضافة محطة جديدة إلى التسلسل الزمني للنزاع' : 'Register New Case Milestone Event'}</span>
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">{isRtl ? 'عنوان الحدث / المذكرة:' : 'Event Title:'}</label>
+                  <label className="block text-[11px] font-bold text-muted-foreground mb-1">{isRtl ? 'عنوان الحدث / المذكرة:' : 'Event Title:'}</label>
                   <input
                     type="text"
                     value={newEventTitle}
                     onChange={e => setNewEventTitle(e.target.value)}
                     placeholder="e.g. Submissions of Rebuttal Expert Brief"
-                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring/50 transition-colors"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">{isRtl ? 'التاريخ:' : 'Event Date:'}</label>
+                  <label className="block text-[11px] font-bold text-muted-foreground mb-1">{isRtl ? 'التاريخ:' : 'Event Date:'}</label>
                   <input
                     type="date"
                     value={newEventDate}
                     onChange={e => setNewEventDate(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring/50 transition-colors"
                     required
                   />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">{isRtl ? 'نوع المحطة:' : 'Category:'}</label>
+                  <label className="block text-[11px] font-bold text-muted-foreground mb-1">{isRtl ? 'نوع المحطة:' : 'Category:'}</label>
                   <select
                     value={newEventCategory}
                     onChange={e => setNewEventCategory(e.target.value as any)}
-                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring/50 transition-colors"
                   >
                     <option value="Filing">Court Filing (إيداع قضائي)</option>
                     <option value="Evidence">Evidence Production (تقديم أدلة)</option>
@@ -400,13 +400,13 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">{isRtl ? 'الوصف / الأهمية القانونية:' : 'Summary / Legal Impact:'}</label>
+                  <label className="block text-[11px] font-bold text-muted-foreground mb-1">{isRtl ? 'الوصف / الأهمية القانونية:' : 'Summary / Legal Impact:'}</label>
                   <input
                     type="text"
                     value={newEventSummary}
                     onChange={e => setNewEventSummary(e.target.value)}
                     placeholder="Brief description of significance..."
-                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring/50 transition-colors"
                   />
                 </div>
               </div>
@@ -414,13 +414,13 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
                 <button
                   type="button"
                   onClick={() => setShowAddEvent(false)}
-                  className="px-3 py-1.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-700"
+                  className="px-3 py-1.5 bg-muted text-muted-foreground text-xs font-bold rounded-lg hover:bg-foreground/10"
                 >
                   {isRtl ? 'إلغاء' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+                  className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg transition-colors shadow-xs"
                 >
                   {isRtl ? 'حفظ الحدث' : 'Save Event'}
                 </button>
@@ -429,13 +429,13 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
           )}
 
           {/* Interactive Timeline Axis */}
-          <div className="bg-slate-900 text-white rounded-2xl p-4 sm:p-5 border border-slate-800 space-y-4">
-            <div className="flex justify-between items-center text-xs border-b border-slate-800 pb-3">
-              <span className="font-bold font-display text-slate-300 flex items-center gap-1.5">
+          <div className="bg-card border border-border rounded-xl p-4 md:p-5 space-y-4">
+            <div className="flex justify-between items-center text-xs border-b border-border pb-3">
+              <span className="font-bold font-display text-foreground flex items-center gap-1.5">
                 <Layers className="w-4 h-4 text-rose-400" />
                 <span>{isRtl ? 'المخطط الزمني لمجريات المحاكمة (Interactive Bird\'s-Eye Timeline)' : 'Interactive Bird\'s-Eye Case Timeline'}</span>
               </span>
-              <span className="text-[11px] text-slate-400 font-mono">
+              <span className="text-[11px] text-muted-foreground font-mono">
                 {timelineEvents.length} {isRtl ? 'محطات معتمدة' : 'Milestones'}
               </span>
             </div>
@@ -443,7 +443,7 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
             {/* Horizontal Scrollable Nodes Flow */}
             <div className="relative py-6 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700">
               {/* Central Connecting Line */}
-              <div className="absolute top-1/2 left-4 right-4 -translate-y-1/2 h-1 bg-slate-800 z-0" />
+              <div className="absolute top-1/2 left-4 right-4 -translate-y-1/2 h-1 bg-border z-0" />
 
               <div className="flex items-center justify-between gap-6 min-w-[600px] px-4 relative z-10">
                 {timelineEvents
@@ -460,7 +460,7 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
                       >
                         {/* Event Date Tag Above */}
                         <span className={`text-[10px] font-mono font-bold mb-2 px-2 py-0.5 rounded-md transition-colors ${
-                          isSelected ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-400'
+                          isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
                         }`}>
                           {ev.date}
                         </span>
@@ -468,12 +468,12 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
                         {/* Interactive Node Icon */}
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md ${
                           isSelected
-                            ? 'bg-rose-600 text-white ring-4 ring-rose-500/30'
+                            ? 'bg-primary text-primary-foreground ring-4 ring-primary/30'
                             : ev.status === 'Completed'
                             ? 'bg-emerald-600 text-white'
                             : ev.status === 'Pending'
                             ? 'bg-amber-500 text-white ring-2 ring-amber-400/40 animate-pulse'
-                            : 'bg-slate-800 border border-slate-700 text-slate-400'
+                            : 'bg-muted border border-border text-muted-foreground'
                         }`}>
                           {ev.category === 'Filing' && <FileCheck className="w-4 h-4" />}
                           {ev.category === 'Evidence' && <BookOpen className="w-4 h-4" />}
@@ -484,7 +484,7 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
 
                         {/* Event Title Below */}
                         <span className={`text-[11px] font-bold mt-2 max-w-[120px] text-center line-clamp-1 transition-colors ${
-                          isSelected ? 'text-white' : 'text-slate-400'
+                          isSelected ? 'text-white' : 'text-muted-foreground'
                         }`}>
                           {isRtl ? ev.titleAr : ev.title}
                         </span>
@@ -497,15 +497,15 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
 
           {/* Selected Event Detail Inspection Card */}
           {selectedEvent && (
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-3 animate-in fade-in duration-200">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+            <div className="bg-background border border-border rounded-xl p-4 md:p-5 space-y-3 animate-in fade-in duration-200">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
                 <div className="flex items-center gap-2">
                   <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
                     selectedEvent.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                   }`}>
                     {selectedEvent.status}
                   </span>
-                  <span className="px-2.5 py-1 bg-slate-200 text-slate-800 font-mono text-xs font-bold rounded-lg">
+                  <span className="px-2.5 py-1 bg-muted text-foreground font-mono text-xs font-bold rounded-lg">
                     {selectedEvent.date}
                   </span>
                   <span className="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold rounded-lg">
@@ -513,7 +513,7 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
                   </span>
                 </div>
                 {selectedEvent.linkedRef && (
-                  <span className="text-xs font-mono font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                  <span className="text-xs font-mono font-bold text-primary bg-accent border border-primary px-2.5 py-1 rounded-lg flex items-center gap-1">
                     <Bookmark className="w-3.5 h-3.5" />
                     <span>{isRtl ? 'مرتبط بالمستند:' : 'Linked Ref:'} {selectedEvent.linkedRef}</span>
                   </span>
@@ -521,10 +521,10 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
               </div>
 
               <div>
-                <h4 className="text-base font-bold text-slate-900 font-display">
+                <h4 className="text-base font-bold text-foreground font-display">
                   {isRtl ? selectedEvent.titleAr : selectedEvent.title}
                 </h4>
-                <p className="text-xs text-slate-600 mt-1.5 leading-relaxed bg-white border border-slate-200/80 rounded-xl p-3">
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed bg-card border border-border/80 rounded-xl p-3">
                   {isRtl ? selectedEvent.summaryAr : selectedEvent.summary}
                 </p>
               </div>
@@ -537,12 +537,12 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
       {activeTab === 'witnesses' && (
         <div className="space-y-4 animate-in fade-in duration-200">
           <div className="flex justify-between items-center">
-            <p className="text-xs text-slate-500 font-medium">
+            <p className="text-xs text-muted-foreground font-medium">
               {isRtl ? 'قائمة الشهود والخبراء المقيدين في الجلسات:' : 'Active witnesses and expert cross-examination binders:'}
             </p>
             <button
               onClick={() => setShowAddWitness(true)}
-              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1"
+              className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg transition-colors shadow-xs cursor-pointer flex items-center gap-1"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isRtl ? 'إضافة شاهد' : 'Add Witness'}</span>
@@ -551,26 +551,26 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
 
           {/* Add Witness Modal Form */}
           {showAddWitness && (
-            <form onSubmit={handleCreateWitness} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
-              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">{isRtl ? 'قيد شاهد جديد للجلسة' : 'Register Witness for Trial'}</h4>
+            <form onSubmit={handleCreateWitness} className="bg-background border border-border rounded-xl p-4 space-y-3 animate-in slide-in-top-2 duration-200">
+              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">{isRtl ? 'قيد شاهد جديد للجلسة' : 'Register Witness for Trial'}</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">{isRtl ? 'اسم الشاهد / الخبير:' : 'Witness Full Name:'}</label>
+                  <label className="block text-[11px] font-bold text-muted-foreground mb-1">{isRtl ? 'اسم الشاهد / الخبير:' : 'Witness Full Name:'}</label>
                   <input
                     type="text"
                     value={newWitnessName}
                     onChange={e => setNewWitnessName(e.target.value)}
                     placeholder="e.g. Dr. Sultan Al-Amri"
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring/50"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">{isRtl ? 'الصفة القانونية:' : 'Witness Role:'}</label>
+                  <label className="block text-[11px] font-bold text-muted-foreground mb-1">{isRtl ? 'الصفة القانونية:' : 'Witness Role:'}</label>
                   <select
                     value={newWitnessRole}
                     onChange={e => setNewWitnessRole(e.target.value as any)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring/50"
                   >
                     <option value="Fact Witness">Fact Witness (شاهد إثبات)</option>
                     <option value="Expert Witness">Expert Witness (خبير هندسي/مالي)</option>
@@ -579,26 +579,26 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
                 </div>
               </div>
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">{isRtl ? 'ملخص الشهادة أو الإقرار:' : 'Summary of Testimony / Deposition Highlight:'}</label>
+                <label className="block text-[11px] font-bold text-muted-foreground mb-1">{isRtl ? 'ملخص الشهادة أو الإقرار:' : 'Summary of Testimony / Deposition Highlight:'}</label>
                 <textarea
                   value={newWitnessTestimony}
                   onChange={e => setNewWitnessTestimony(e.target.value)}
                   rows={2}
                   placeholder={isRtl ? 'أدخل النقاط الجوهرية في شهادة الشاهد...' : 'Enter key admissions or expert points...'}
-                  className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  className="w-full bg-card border border-border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring/50"
                 />
               </div>
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowAddWitness(false)}
-                  className="px-3 py-1.5 bg-slate-200 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-300"
+                  className="px-3 py-1.5 bg-secondary text-secondary-foreground text-xs font-bold rounded-lg hover:bg-accent"
                 >
                   {isRtl ? 'إلغاء' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-rose-600 text-white text-xs font-bold rounded-xl hover:bg-rose-700 shadow-xs"
+                  className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg shadow-xs"
                 >
                   {isRtl ? 'حفظ الشاهد' : 'Save Witness'}
                 </button>
@@ -609,13 +609,13 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
           {/* Witness Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {witnesses.map(w => (
-              <div key={w.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3 relative hover:border-rose-300 transition-colors">
+              <div key={w.id} className="bg-background border border-border rounded-xl p-4 space-y-3 relative hover:border-primary transition-colors">
                 <div className="flex justify-between items-start gap-2">
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900 font-display flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-foreground font-display flex items-center gap-2">
                       <span>{w.name}</span>
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
-                        w.status === 'On Stand' ? 'bg-amber-100 text-amber-800 border border-amber-200 animate-pulse' : 'bg-slate-200 text-slate-700'
+                        w.status === 'On Stand' ? 'bg-amber-100 text-amber-800 border border-amber-200 animate-pulse' : 'bg-muted text-foreground'
                       }`}>
                         {w.status}
                       </span>
@@ -624,8 +624,8 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-200/80 rounded-xl p-3 text-xs text-slate-700 leading-relaxed">
-                  <span className="font-bold text-slate-900 block mb-1">{isRtl ? 'أقوال الشاهد الرئيسية:' : 'Key Testimony:'}</span>
+                <div className="bg-card border border-border/80 rounded-xl p-3 text-xs text-foreground leading-relaxed">
+                  <span className="font-bold text-foreground block mb-1">{isRtl ? 'أقوال الشاهد الرئيسية:' : 'Key Testimony:'}</span>
                   {w.keyTestimony}
                 </div>
 
@@ -634,7 +634,7 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
                   <span className="text-[11px] font-bold text-rose-900 uppercase tracking-wider block">
                     {isRtl ? 'محاور الاستجواب المضاد (Cross-Exam Attack Vectors):' : 'Cross-Exam Attack Vectors:'}
                   </span>
-                  <ul className="space-y-1 text-xs text-slate-600">
+                  <ul className="space-y-1 text-xs text-muted-foreground">
                     {w.attackPoints.map((ap, idx) => (
                       <li key={idx} className="flex items-start gap-1.5 bg-rose-50/50 p-2 rounded-lg border border-rose-100/50">
                         <ChevronRight className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5 rtl:rotate-180" />
@@ -652,13 +652,13 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
       {/* TAB 2: EXHIBIT LEDGER */}
       {activeTab === 'exhibits' && (
         <div className="space-y-3 animate-in fade-in duration-200">
-          <p className="text-xs text-slate-500 font-medium">
+          <p className="text-xs text-muted-foreground font-medium">
             {isRtl ? 'سجل الأدلة وحوافظ المستندات المقبولة والمستبعدة أمام المحكمة:' : 'Master trial exhibit ledger and court admission statuses:'}
           </p>
 
-          <div className="overflow-x-auto border border-slate-200 rounded-2xl">
+          <div className="overflow-x-auto border border-border rounded-xl">
             <table className="w-full text-left rtl:text-right rtl:text-left text-xs">
-              <thead className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold uppercase text-[10px]">
+              <thead className="bg-muted border-b border-border text-foreground font-bold uppercase text-[10px]">
                 <tr>
                   <th className="p-3">{isRtl ? 'رمز الدليل' : 'Exhibit Code'}</th>
                   <th className="p-3">{isRtl ? 'الوصف' : 'Description'}</th>
@@ -667,18 +667,18 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
                   <th className="p-3">{isRtl ? 'الحالة أمام المحكمة' : 'Court Status'}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+              <tbody className="divide-y divide-slate-100 font-medium text-foreground">
                 {exhibits.map(ex => (
-                  <tr key={ex.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-3 font-mono font-bold text-indigo-600">{ex.code}</td>
+                  <tr key={ex.id} className="hover:bg-background transition-colors">
+                    <td className="p-3 font-mono font-bold text-primary">{ex.code}</td>
                     <td className="p-3 max-w-xs">
                       <div className="font-bold">{ex.description}</div>
-                      <div className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{ex.relevanceNote}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{ex.relevanceNote}</div>
                     </td>
-                    <td className="p-3 font-mono text-[11px] text-slate-600">{ex.batesRange}</td>
+                    <td className="p-3 font-mono text-[11px] text-muted-foreground">{ex.batesRange}</td>
                     <td className="p-3">
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                        ex.offeredBy === 'Plaintiff' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        ex.offeredBy === 'Plaintiff' ? 'bg-primary/5 text-primary border border-primary/20' : 'bg-amber-50 text-amber-700 border border-amber-200'
                       }`}>
                         {ex.offeredBy}
                       </span>
@@ -702,12 +702,12 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
       {/* TAB 3: AI REBUTTAL ENGINE */}
       {activeTab === 'ai-counter' && (
         <div className="space-y-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl space-y-3">
+          <div className="bg-card border border-border rounded-xl p-4 md:p-5 space-y-3">
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-amber-400" />
               <h4 className="text-sm font-bold font-display">{isRtl ? 'مولد الردود القانونية الفورية للجلسة (AI Rebuttal Generator)' : 'Real-time Trial Rebuttal & Counter-Argument Engine'}</h4>
             </div>
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-muted-foreground">
               {isRtl ? 'أدخل دفوع محامي الخصم أثناء الجلسة لتوليد تفنيد قانوني فوري مدعوم بالقواعد والمبادئ:' : 'Paste opposing counsel\'s argument in real-time to generate immediate statutory counter-arguments:'}
             </p>
 
@@ -717,12 +717,12 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
                 onChange={e => setOpposingArgument(e.target.value)}
                 rows={3}
                 placeholder={isRtl ? 'مثال: يزعم الخصم أن إخطار التأخير لم يتضمن التفاصيل المالية المطلوبة في المادة 20.1...' : 'e.g. Opposing counsel argues that notice of claim was defective due to missing financial breakdown under Clause 20.1...'}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full bg-foreground/90 border border-border rounded-xl p-3 text-xs text-white placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 transition-colors"
               />
               <button
                 onClick={handleGenerateCounterStrategy}
                 disabled={isGenerating || !opposingArgument.trim()}
-                className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground text-xs font-bold rounded-lg transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2"
               >
                 {isGenerating ? (
                   <>
@@ -741,20 +741,20 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
 
           {/* AI Rebuttal Output */}
           {aiCounterStrategy && (
-            <div className="bg-rose-50/60 border border-rose-200 rounded-2xl p-4 sm:p-5 space-y-3 animate-in fade-in duration-300">
+            <div className="bg-accent border border-primary/30 rounded-xl p-4 md:p-5 space-y-3 animate-in fade-in duration-300">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-rose-900 font-display flex items-center gap-1.5">
-                  <Shield className="w-4 h-4 text-rose-600" />
+                <span className="text-xs font-bold text-primary font-display flex items-center gap-1.5">
+                  <Shield className="w-4 h-4 text-primary" />
                   <span>{isRtl ? 'خطة التفنيد والاستجواب الموصى بها:' : 'Recommended Trial Rebuttal Strategy:'}</span>
                 </span>
                 <button
                   onClick={() => navigator.clipboard.writeText(aiCounterStrategy)}
-                  className="px-2.5 py-1 bg-white hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold rounded-lg transition-colors cursor-pointer"
+                  className="px-2.5 py-1 bg-card hover:bg-accent text-primary border border-primary text-[11px] font-bold rounded-lg transition-colors cursor-pointer"
                 >
                   {isRtl ? 'نسخ النص' : 'Copy Text'}
                 </button>
               </div>
-              <div className="bg-white border border-rose-100 rounded-xl p-4 text-xs text-slate-800 whitespace-pre-line leading-relaxed font-sans shadow-2xs">
+              <div className="bg-card border border-rose-100 rounded-xl p-4 text-xs text-foreground whitespace-pre-line leading-relaxed font-sans shadow-2xs">
                 {aiCounterStrategy}
               </div>
             </div>

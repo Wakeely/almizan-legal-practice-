@@ -53,7 +53,7 @@ export default function OfflineBanner() {
         !isOnline
           ? "bg-amber-500 text-white"
           : isSyncing
-            ? "bg-indigo-600 text-white"
+            ? "bg-primary text-white"
             : lastError
               ? "bg-red-600 text-white"
               : "bg-emerald-600 text-white"
