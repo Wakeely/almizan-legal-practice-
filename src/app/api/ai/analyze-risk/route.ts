@@ -13,6 +13,10 @@ import { aiRateLimit, getClientIp } from "@/lib/rate-limit";
 import { dispatchAiText } from "@/lib/byok-dispatch";
 import { audit } from "@/lib/audit";
 import { assertAiQuota } from "@/lib/student-access";
+import {
+  resolveMatterJurisdiction,
+  buildJurisdictionAiContext,
+} from "@/lib/jurisdictions";
 
 export async function POST(req: Request) {
   const r = await requireUser();
@@ -34,17 +38,27 @@ export async function POST(req: Request) {
   const { matterId } = body ?? {};
   if (!matterId) return NextResponse.json({ error: "matterId required" }, { status: 400 });
 
-  const matter = await db.matter.findFirst({
-    where: { id: matterId, ...orgWhere(r.session) },
-  });
+  // Fetch matter + org in parallel so we can resolve the matter → org
+  // jurisdiction override chain via the catalog.
+  const [matter, organization] = await Promise.all([
+    db.matter.findFirst({ where: { id: matterId, ...orgWhere(r.session) } }),
+    db.organization.findUnique({
+      where: { id: r.session.organizationId },
+      select: { jurisdiction: true },
+    }),
+  ]);
   if (!matter) return NextResponse.json({ error: "Matter not found" }, { status: 404 });
+
+  const jurisdictionInfo = resolveMatterJurisdiction(matter, organization);
+  const { systemContext: jurisdictionSystemContext, enableJordanianLawTools } =
+    buildJurisdictionAiContext(jurisdictionInfo);
 
   const prompt = `You are a litigation risk analyst. Analyze the following matter and return a JSON object with risk assessment.
 
 Matter title: ${matter.title}
 Description: ${matter.description ?? "(no description provided)"}
 Client: ${matter.clientName}
-Jurisdiction: ${matter.jurisdiction}
+Jurisdiction: ${jurisdictionInfo.labelEn} (${jurisdictionInfo.labelAr})
 Opposing party: ${matter.opposingParty ?? "Unknown"}
 Opposing counsel: ${matter.opposingCounsel ?? "Unknown"}
 Risk level (lawyer's current assessment): ${matter.riskLevel}
@@ -65,17 +79,15 @@ Return a JSON object:
 
 Only return the JSON object.`;
 
-  // Use tool-enabled Gemini for Jordanian matters — lets the model call the
-  // Jordanian Law MCP to verify legal basis + check citation currency.
-  const isJordanMatter =
-    matter.jurisdiction?.toLowerCase().includes("jordan") ||
-    matter.jurisdiction?.toLowerCase().includes("الأردن") ||
-    matter.jurisdiction?.toLowerCase() === "jo";
+  // Jordanian matters still get MCP-grounded tool calls; other jurisdictions
+  // use the catalog's plain-text context.
+  const isJordanMatter = enableJordanianLawTools;
 
   const riskSystemPrompt =
-    "You are an enterprise litigation risk analyst specializing in GCC/MENA jurisdictions. " +
-    "When analyzing Jordanian matters, use the jordanian_law tools to verify the legal basis " +
-    "of claims and check whether cited provisions are still in force. Never invent citations.";
+    "You are an enterprise litigation risk analyst.\n\n" +
+    jurisdictionSystemContext + "\n\n" +
+    "When you cite a statute, prefer verified article numbers. Never invent citations — " +
+    "if you cannot verify one, state that it needs manual verification.";
 
   const result = await dispatchAiText({
     organizationId: r.session.organizationId,
@@ -116,6 +128,8 @@ Only return the JSON object.`;
     details: {
       riskScore: analysis.riskScore,
       winProbability: analysis.winProbability,
+      jurisdictionCode: jurisdictionInfo.code,
+      jurisdictionLabel: jurisdictionInfo.labelBilingual,
       _stub: result._stub,
     },
   }, req);

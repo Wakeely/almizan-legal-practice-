@@ -12,6 +12,10 @@ import { audit } from "@/lib/audit";
 import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
 import { assertAiQuota } from "@/lib/student-access";
+import {
+  resolveMatterJurisdiction,
+  buildJurisdictionAiContext,
+} from "@/lib/jurisdictions";
 
 /**
  * Strip HTML tags from text — simple regex-based sanitizer.
@@ -107,20 +111,38 @@ export async function POST(req: Request) {
     const directive = (data.directive ?? data.details ?? "").trim() ||
       `Generate a standard ${template.replace(/-/g, " ")} document based on the matter context above. Include all standard sections for this document type under applicable Jordanian / GCC / MENA law.`;
 
-    // Fetch matter context (org-scoped)
+    // Fetch matter context (org-scoped) + the organization for jurisdiction
+    // fallback. The matter's jurisdiction overrides the org's; when the
+    // matter doesn't have one, we use the org default (requirement 5).
     let matter = null;
+    let organization = null;
     if (data.matterId) {
-      matter = await db.matter.findFirst({
-        where: { id: data.matterId, ...orgWhere(r.session) },
+      [matter, organization] = await Promise.all([
+        db.matter.findFirst({ where: { id: data.matterId, ...orgWhere(r.session) } }),
+        db.organization.findUnique({
+          where: { id: r.session.organizationId },
+          select: { jurisdiction: true },
+        }),
+      ]);
+    } else {
+      // Even without a matter, we still want the org's jurisdiction context
+      // so "free-text" drafting adapts to the firm's default country.
+      organization = await db.organization.findUnique({
+        where: { id: r.session.organizationId },
+        select: { jurisdiction: true },
       });
     }
+
+    const jurisdictionInfo = resolveMatterJurisdiction(matter, organization);
+    const { systemContext: jurisdictionSystemContext, enableJordanianLawTools } =
+      buildJurisdictionAiContext(jurisdictionInfo);
 
     const templateInstruction = TEMPLATE_PROMPTS[template] ?? TEMPLATE_PROMPTS["free-text"];
     const langInstruction = data.lang === "ar"
       ? "Write the entire document in formal Arabic legal terminology (فصحى)."
       : "Write the entire document in formal English legal terminology.";
 
-    const prompt = `You are an enterprise legal drafting assistant for GCC/MENA jurisdictions.
+    const prompt = `You are an enterprise legal drafting assistant.
 
 TEMPLATE: ${template}
 ${templateInstruction}
@@ -131,38 +153,30 @@ ${directive}
 ${matter ? `MATTER CONTEXT:
 - Title: ${matter.title}
 - Client: ${matter.clientName}
-- Jurisdiction: ${matter.jurisdiction}
+- Jurisdiction: ${jurisdictionInfo.labelEn} (${jurisdictionInfo.labelAr})
 - Opposing party: ${matter.opposingParty ?? "Unknown"}
 - Opposing counsel: ${matter.opposingCounsel ?? "Unknown"}
 - Court: ${matter.court ?? "Unknown"}
-- Judge: ${matter.judge ?? "Unknown"}` : ""}
+- Judge: ${matter.judge ?? "Unknown"}` : `MATTER CONTEXT:
+- (No matter selected. Defaulting to organization jurisdiction: ${jurisdictionInfo.labelEn})`}
 
 ${langInstruction}
 
 Output ONLY the drafted document text. No commentary, no preamble, no closing notes.`;
 
-    // ─── Before: ungrounded callGemini ──────────────────────────────────
-    // const result = await callGemini(prompt, "You are an enterprise legal drafting assistant...");
-    //
-    // ─── After: grounded callGeminiWithTools ────────────────────────────
-    // When the matter jurisdiction is Jordan (or the user asks about Jordanian
-    // law), use callGeminiWithTools — this gives the model access to the
-    // Jordanian Law MCP tools (search, get_provision, validate_citation,
-    // check_currency) so it can retrieve verbatim statute text instead of
-    // hallucinating article numbers. Falls back to plain callGemini for
-    // non-Jordanian jurisdictions or if tools aren't available.
-    const isJordanMatter =
-      !matter ||
-      matter.jurisdiction?.toLowerCase().includes("jordan") ||
-      matter.jurisdiction?.toLowerCase().includes("الأردن") ||
-      matter.jurisdiction?.toLowerCase() === "jo";
-
+    // Build the system prompt from the catalog. The jurisdiction's
+    // `aiSystemContext` block tells the model which statutes / court hierarchy
+    // / citation style to use. Jordanian-law MCP tools are auto-enabled when
+    // the jurisdiction resolves to JO.
     const systemPrompt =
-      "You are an enterprise legal drafting assistant specializing in GCC/MENA jurisdictions " +
-      "(Jordan, UAE/DIFC/ADGM, Saudi, Kuwait). Output clean, professional, court-ready legal documents. " +
-      "When drafting for Jordan, use the jordanian_law tools to retrieve verbatim statute text and " +
-      "validate citations before including them. Never invent article numbers — if you can't verify " +
-      "a citation via the tools, state that the citation needs manual verification.";
+      "You are an enterprise legal drafting assistant. Output clean, professional, " +
+      "court-ready legal documents.\n\n" +
+      jurisdictionSystemContext + "\n\n" +
+      "When you cite a statute, prefer verified article numbers. Never invent " +
+      "citations — if you cannot verify one, state that it needs manual verification.";
+
+    // The catalog already tells us whether MCP tools apply (Jordan only).
+    const isJordanMatter = enableJordanianLawTools;
 
     const result = await dispatchAiText({
       organizationId: r.session.organizationId,
@@ -178,6 +192,8 @@ Output ONLY the drafted document text. No commentary, no preamble, no closing no
         template,
         type: rawTemplate,
         directiveLength: directive.length,
+        jurisdictionCode: jurisdictionInfo.code,
+        jurisdictionLabel: jurisdictionInfo.labelBilingual,
         _stub: result._stub,
         _provider: (result as any)._provider,
         _toolCalls: (result as any)._toolCalls ?? [],

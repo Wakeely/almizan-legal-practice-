@@ -248,6 +248,30 @@ export interface TranslationDict {
   ragSourcesTitle: string;                // "Sources"
   ragShowExcerpt: string;                 // "Show excerpt"
   ragHideExcerpt: string;                 // "Hide excerpt"
+
+  // ── Multi-Country / Jurisdiction selection ────────────────────────────
+  // Used by: organization settings card, matter intake form, signup form,
+  // court-rules deadline calculator, and audit log badges.
+  jurisdictionSettingsTitle: string;       // "Default Jurisdiction"
+  jurisdictionSettingsDesc: string;        // "Choose the country this firm primarily practices in. The AI adapts its drafting, citation style, and procedural assumptions to the selected jurisdiction."
+  jurisdictionSettingsCurrent: string;    // "Current jurisdiction"
+  jurisdictionSettingsCourt: string;      // "Court system"
+  jurisdictionSettingsProcedure: string;   // "Procedural ruleset"
+  jurisdictionSettingsLanguage: string;    // "Language of proceedings"
+  jurisdictionSettingsArbitration: string; // "Applicable arbitration rules"
+  jurisdictionSettingsSave: string;       // "Save Jurisdiction"
+  jurisdictionSettingsSaved: string;      // "Jurisdiction updated."
+  jurisdictionSettingsSaving: string;      // "Saving…"
+  jurisdictionSettingsError: string;       // "Could not update jurisdiction."
+  jurisdictionSettingsHelperOrg: string;  // "Applies to every new matter and AI request by default. Each matter can still override this individually."
+  jurisdictionMatterOverrideTitle: string;     // "Matter Jurisdiction Override"
+  jurisdictionMatterOverrideHelper: string;     // "Defaults to your organization's jurisdiction. Override here when this specific matter belongs to a different country."
+  jurisdictionMatterOverrideUseOrg: string;     // "Use organization default"
+  jurisdictionOther: string;              // "Other / Generic"
+  jurisdictionLanguageAr: string;          // "Arabic"
+  jurisdictionLanguageEn: string;          // "English"
+  jurisdictionLanguageArEn: string;        // "Arabic + English"
+  jurisdictionUnsupportedLegacy: string;   // "Custom value (not in the supported list)"
 }
 
 export const translations: Record<Language, TranslationDict> = {
@@ -498,6 +522,28 @@ export const translations: Record<Language, TranslationDict> = {
     ragSourcesTitle: "المصادر",
     ragShowExcerpt: "عرض المقتطف",
     ragHideExcerpt: "إخفاء المقتطف",
+
+    // ── Multi-Country / Jurisdiction selection ────────────────────────────
+    jurisdictionSettingsTitle: "الاختصاص القضائي الافتراضي",
+    jurisdictionSettingsDesc: "اختر الدولة التي يمارس فيها مكتبك نشاطه القانوني بشكل رئيسي. يقوم الذكاء الاصطناعي بتكييف الصياغة، ونمط الاستشهاد القانوني، والافتراضات الإجرائية وفقاً للولاية القضائية المختارة.",
+    jurisdictionSettingsCurrent: "الاختصاص الحالي",
+    jurisdictionSettingsCourt: "نظام المحاكم",
+    jurisdictionSettingsProcedure: "قواعد الإجراءات المدنية",
+    jurisdictionSettingsLanguage: "لغة الإجراءات",
+    jurisdictionSettingsArbitration: "قواعد التحكيم المعمول بها",
+    jurisdictionSettingsSave: "حفظ الاختصاص القضائي",
+    jurisdictionSettingsSaved: "تم تحديث الاختصاص القضائي.",
+    jurisdictionSettingsSaving: "جاري الحفظ…",
+    jurisdictionSettingsError: "تعذّر تحديث الاختصاص القضائي.",
+    jurisdictionSettingsHelperOrg: "يُطبَّق على كل قضية جديدة وطلب ذكاء اصطناعي افتراضياً. يمكن لكل قضية تجاوز هذا الإعداد بشكل فردي.",
+    jurisdictionMatterOverrideTitle: "تجاوز الاختصاص القضائي لهذه القضية",
+    jurisdictionMatterOverrideHelper: "يأخذ افتراضياً اختصاص المنظمة. يمكنك تجاوزه هنا عندما تنتمي هذه القضية تحديداً إلى دولة مختلفة.",
+    jurisdictionMatterOverrideUseOrg: "استخدم الاختصاص الافتراضي للمنظمة",
+    jurisdictionOther: "أخرى / عام",
+    jurisdictionLanguageAr: "العربية",
+    jurisdictionLanguageEn: "الإنجليزية",
+    jurisdictionLanguageArEn: "العربية + الإنجليزية",
+    jurisdictionUnsupportedLegacy: "قيمة مخصّصة (غير موجودة في قائمة الدول المدعومة)",
   },
   en: {
     appName: "Al Mizan",
@@ -746,6 +792,28 @@ export const translations: Record<Language, TranslationDict> = {
     ragSourcesTitle: "Sources",
     ragShowExcerpt: "Show excerpt",
     ragHideExcerpt: "Hide excerpt",
+
+    // ── Multi-Country / Jurisdiction selection ────────────────────────────
+    jurisdictionSettingsTitle: "Default Jurisdiction",
+    jurisdictionSettingsDesc: "Choose the country this firm primarily practices in. The AI adapts its drafting, citation style, and procedural assumptions to the selected jurisdiction.",
+    jurisdictionSettingsCurrent: "Current jurisdiction",
+    jurisdictionSettingsCourt: "Court system",
+    jurisdictionSettingsProcedure: "Procedural ruleset",
+    jurisdictionSettingsLanguage: "Language of proceedings",
+    jurisdictionSettingsArbitration: "Applicable arbitration rules",
+    jurisdictionSettingsSave: "Save Jurisdiction",
+    jurisdictionSettingsSaved: "Jurisdiction updated.",
+    jurisdictionSettingsSaving: "Saving…",
+    jurisdictionSettingsError: "Could not update jurisdiction.",
+    jurisdictionSettingsHelperOrg: "Applies to every new matter and AI request by default. Each matter can still override this individually.",
+    jurisdictionMatterOverrideTitle: "Matter Jurisdiction Override",
+    jurisdictionMatterOverrideHelper: "Defaults to your organization's jurisdiction. Override here when this specific matter belongs to a different country.",
+    jurisdictionMatterOverrideUseOrg: "Use organization default",
+    jurisdictionOther: "Other / Generic",
+    jurisdictionLanguageAr: "Arabic",
+    jurisdictionLanguageEn: "English",
+    jurisdictionLanguageArEn: "Arabic + English",
+    jurisdictionUnsupportedLegacy: "Custom value (not in the supported list)",
   }
 };
 

@@ -7,6 +7,12 @@ import {
 } from 'lucide-react';
 import { Matter, CourtRuleDeadline } from '@/lib/types';
 import { useLanguage } from '@/components/providers/language-provider';
+import {
+  JURISDICTION_LIST,
+  normalizeJurisdiction,
+  JURISDICTIONS,
+  type JurisdictionCode,
+} from '@/lib/jurisdictions';
 
 interface CourtRulesCalendaringModuleProps {
   activeMatter: Matter;
@@ -16,8 +22,11 @@ interface CourtRulesCalendaringModuleProps {
 export default function CourtRulesCalendaringModule({ activeMatter, onDeadlinesAdded }: CourtRulesCalendaringModuleProps) {
   const { isRtl } = useLanguage();
 
-  const [jurisdiction, setJurisdiction] = useState<string>(
-    activeMatter.jurisdiction || 'UAE Civil Procedure Law (Federal Law No. 42 / 2022)'
+  // Pre-select the matter's jurisdiction (normalized to a canonical code via
+  // the catalog). Legacy free-text values like "UAE Federal & DIFC Courts" are
+  // mapped to "AE" automatically; unrecognized values fall back to "OTHER".
+  const [jurisdictionCode, setJurisdictionCode] = useState<JurisdictionCode>(
+    normalizeJurisdiction(activeMatter.jurisdiction)
   );
   const [triggerEvent, setTriggerEvent] = useState<string>('Service of Summons / Statement of Claim');
   const [triggerDate, setTriggerDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -43,7 +52,11 @@ export default function CourtRulesCalendaringModule({ activeMatter, onDeadlinesA
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           matterId: activeMatter.id,
-          jurisdictionRuleset: jurisdiction,
+          // Send the canonical code so the AI route can resolve the right
+          // procedural ruleset via the jurisdiction catalog. The route also
+          // accepts the legacy `jurisdiction` field name for backward compat.
+          jurisdiction: jurisdictionCode,
+          jurisdictionRuleset: JURISDICTIONS[jurisdictionCode].proceduralRulesetEn,
           triggeringEvent: triggerEvent,
           triggerDate: triggerDate,
           lang: isRtl ? 'ar' : 'en'
@@ -129,16 +142,21 @@ export default function CourtRulesCalendaringModule({ activeMatter, onDeadlinesA
               {isRtl ? 'نظام وقانون الإجراءات القضائية:' : 'Jurisdiction / Court Ruleset:'}
             </label>
             <select
-              value={jurisdiction}
-              onChange={(e) => setJurisdiction(e.target.value)}
+              value={jurisdictionCode}
+              onChange={(e) => setJurisdictionCode(e.target.value as JurisdictionCode)}
               className="w-full bg-white border border-border rounded-xl p-2.5 text-xs text-foreground font-medium focus:outline-none focus:border-teal-700"
             >
-              <option value="UAE Civil Procedure Law (Federal Law No. 42 / 2022)">{isRtl ? 'قانون الإجراءات المدنية الإماراتي (قانون اتحادي ٤٢ / ٢٠٢٢)' : 'UAE Civil Procedure Law (Federal Law 42/2022)'}</option>
-              <option value="Saudi Arabia Commercial Courts Law (Royal Decree M/93)">{isRtl ? 'نظام المحاكم التجارية السعودي (مرسوم ملكي م/٩٣)' : 'Saudi Commercial Courts Law (Royal Decree M/93)'}</option>
-              <option value="DIFC Courts Rules (RDC 2014)">{isRtl ? 'قواعد محاكم مركز دبي المالي العالمي (DIFC RDC)' : 'DIFC Courts Rules (RDC 2014)'}</option>
-              <option value="ADGM Courts Civil Evidence Rules">{isRtl ? 'قواعد محاكم سوق أبوظبي العالمي (ADGM Courts)' : 'ADGM Courts Rules'}</option>
-              <option value="US Federal Rules of Civil Procedure (FRCP)">{isRtl ? 'القواعد الفيدرالية للإجراءات المدنية الأمريكية (FRCP)' : 'US Federal Rules of Civil Procedure (FRCP)'}</option>
+              {JURISDICTION_LIST.map((info) => (
+                <option key={info.code} value={info.code}>
+                  {isRtl ? info.labelAr : info.labelEn} — {isRtl ? info.labelEn : info.labelAr}
+                </option>
+              ))}
             </select>
+            <p className="mt-1 text-[10px] text-muted-foreground leading-snug">
+              {isRtl
+                ? JURISDICTIONS[jurisdictionCode].proceduralRulesetAr
+                : JURISDICTIONS[jurisdictionCode].proceduralRulesetEn}
+            </p>
           </div>
 
           {/* Triggering Procedural Event */}
@@ -217,7 +235,10 @@ export default function CourtRulesCalendaringModule({ activeMatter, onDeadlinesA
                 {isRtl ? 'المرجعية النظامية واحتساب مدد المواعيد:' : 'Statutory Basis & Calculation Advice:'}
               </div>
               <span className="text-[10px] font-mono font-bold bg-teal-800 px-2.5 py-0.5 rounded-full text-teal-100">
-                {results.applicableCodeRef || jurisdiction}
+                {results.applicableCodeRef ||
+                  (isRtl
+                    ? JURISDICTIONS[jurisdictionCode].proceduralRulesetAr
+                    : JURISDICTIONS[jurisdictionCode].proceduralRulesetEn)}
               </span>
             </div>
             <p className="text-xs text-teal-100/90 leading-relaxed font-medium">

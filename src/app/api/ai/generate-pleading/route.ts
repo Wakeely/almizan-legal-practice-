@@ -12,6 +12,10 @@ import { audit } from "@/lib/audit";
 import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
 import { assertAiQuota } from "@/lib/student-access";
+import {
+  resolveMatterJurisdiction,
+  buildJurisdictionAiContext,
+} from "@/lib/jurisdictions";
 
 const rebuttalSchema = z.object({
   matterId: z.string().optional(),
@@ -42,12 +46,20 @@ export async function POST(req: Request) {
   if (parsed.ok === false) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const data = parsed.data;
 
-  let matter = null;
-  if (data.matterId) {
-    matter = await db.matter.findFirst({
-      where: { id: data.matterId, ...orgWhere(r.session) },
-    });
-  }
+  // Fetch matter + org in parallel to resolve the jurisdiction override chain.
+  const [matter, organization] = await Promise.all([
+    data.matterId
+      ? db.matter.findFirst({ where: { id: data.matterId, ...orgWhere(r.session) } })
+      : Promise.resolve(null),
+    db.organization.findUnique({
+      where: { id: r.session.organizationId },
+      select: { jurisdiction: true },
+    }),
+  ]);
+
+  const jurisdictionInfo = resolveMatterJurisdiction(matter, organization);
+  const { systemContext: jurisdictionSystemContext } =
+    buildJurisdictionAiContext(jurisdictionInfo);
 
   const langInstruction = data.lang === "ar"
     ? "Write the entire rebuttal in formal Arabic legal terminology."
@@ -60,8 +72,9 @@ ${data.opposingArgument}
 
 ${matter ? `MATTER CONTEXT:
 - Title: ${matter.title}
-- Jurisdiction: ${matter.jurisdiction}
-- Opposing party: ${matter.opposingParty ?? "Unknown"}` : ""}
+- Jurisdiction: ${jurisdictionInfo.labelEn} (${jurisdictionInfo.labelAr})
+- Opposing party: ${matter.opposingParty ?? "Unknown"}` : `MATTER CONTEXT:
+- (No matter selected. Using organization default jurisdiction: ${jurisdictionInfo.labelEn})`}
 
 ${data.witnessName ? `WITNESS UNDER EXAMINATION: ${data.witnessName}` : ""}
 ${data.exhibitNumber ? `RELATED EXHIBIT: ${data.exhibitNumber}` : ""}
@@ -80,7 +93,9 @@ Output ONLY the structured rebuttal text. No commentary.`;
   const result = await dispatchAiText({
     organizationId: r.session.organizationId,
     prompt,
-    systemInstruction: "You are a senior trial advocacy strategist with expertise in GCC/MENA civil procedure and commercial litigation.",
+    systemInstruction:
+      "You are a senior trial advocacy strategist.\n\n" +
+      jurisdictionSystemContext,
   });
 
   await audit({

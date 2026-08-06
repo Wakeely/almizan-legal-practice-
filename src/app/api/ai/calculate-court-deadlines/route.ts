@@ -13,6 +13,12 @@ import { audit } from "@/lib/audit";
 import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
 import { assertAiQuota } from "@/lib/student-access";
+import {
+  JURISDICTIONS,
+  normalizeJurisdiction,
+  proceduralRulesetFor,
+  buildJurisdictionAiContext,
+} from "@/lib/jurisdictions";
 
 const courtDeadlineSchema = z.object({
   triggeringEvent: z.string().min(2).max(500),
@@ -57,20 +63,34 @@ export async function POST(req: Request) {
   const parsed = parseBody(courtDeadlineSchema, body);
   if (parsed.ok === false) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const data = parsed.data;
-  // The reference UI sends `jurisdictionRuleset` — accept either field name
-  const jurisdiction = data.jurisdiction ?? data.jurisdictionRuleset ?? "";
+  // The reference UI sends `jurisdictionRuleset` — accept either field name.
+  // The new UI sends the canonical code in `jurisdiction` plus the long-form
+  // ruleset name in `jurisdictionRuleset`. We normalize to a canonical code so
+  // the catalog drives the legal context + system prompt.
+  const rawJurisdiction = data.jurisdiction ?? data.jurisdictionRuleset ?? "";
+  const jurisdictionCode = normalizeJurisdiction(rawJurisdiction);
+  const lang = data.lang ?? "en";
+  // Resolve the procedural ruleset name to display / use in the prompt.
+  // proceduralRulesetFor returns the catalog value when normalized, or falls
+  // back to the verbatim legacy string (so existing UI labels keep working).
+  const ruleset =
+    proceduralRulesetFor(rawJurisdiction, lang) ||
+    JURISDICTION_RULESETS[rawJurisdiction] ||
+    `applicable procedural rules for ${rawJurisdiction}`;
+  const jurisdictionInfo = JURISDICTIONS[jurisdictionCode];
+  const { systemContext: jurisdictionSystemContext } =
+    buildJurisdictionAiContext(jurisdictionInfo);
 
-  const ruleset = JURISDICTION_RULESETS[jurisdiction] ?? `applicable procedural rules for ${jurisdiction} (${jurisdiction})`;
-
-  const langInstruction = data.lang === "ar"
+  const langInstruction = lang === "ar"
     ? "Write all titles and descriptions in Arabic."
     : "Write all titles and descriptions in English.";
 
   const prompt = `You are a court rules expert. Calculate 4-6 procedural deadlines based on the triggering event below.
 
 Triggering event: ${data.triggeringEvent}
-Jurisdiction: ${jurisdiction}
+Jurisdiction: ${jurisdictionInfo.labelEn} (${jurisdictionInfo.labelAr})
 Applicable ruleset: ${ruleset}
+Court system: ${lang === "ar" ? jurisdictionInfo.courtSystemAr : jurisdictionInfo.courtSystemEn}
 Trigger date: ${data.triggerDate}
 
 ${langInstruction}
@@ -91,7 +111,9 @@ Only return the JSON array, nothing else. All dates must be calculated from the 
   const result = await dispatchAiText({
     organizationId: r.session.organizationId,
     prompt,
-    systemInstruction: "You are an enterprise court rules analyst specializing in GCC/MENA jurisdictions.",
+    systemInstruction:
+      "You are an enterprise court rules analyst.\n\n" +
+      jurisdictionSystemContext,
   });
 
   let deadlines: any[] = [];
@@ -125,7 +147,9 @@ Only return the JSON array, nothing else. All dates must be calculated from the 
     action: "ai.calculate-court-deadlines",
     matterId: data.matterId,
     details: {
-      jurisdiction,
+      jurisdiction: jurisdictionInfo.labelEn,
+      jurisdictionCode,
+      rawJurisdiction,
       triggeringEvent: data.triggeringEvent.slice(0, 100),
       deadlineCount: deadlines.length,
       _stub: result._stub,

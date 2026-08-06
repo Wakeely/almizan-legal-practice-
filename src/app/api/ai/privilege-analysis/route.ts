@@ -12,6 +12,10 @@ import { audit } from "@/lib/audit";
 import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
 import { assertAiQuota } from "@/lib/student-access";
+import {
+  resolveMatterJurisdiction,
+  buildJurisdictionAiContext,
+} from "@/lib/jurisdictions";
 
 const privilegeAnalysisSchema = z.object({
   matterId: z.string().optional(),
@@ -45,11 +49,27 @@ export async function POST(req: Request) {
   if (parsed.ok === false) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const data = parsed.data;
 
+  // Resolve jurisdiction (matter → org → OTHER) so privilege rules adapt to
+  // the right country (e.g. Jordanian bar secrecy vs. UAE federal banking
+  // confidentiality vs. Saudi Sharia professional secrecy).
+  const [matter, organization] = await Promise.all([
+    data.matterId
+      ? db.matter.findFirst({ where: { id: data.matterId, ...orgWhere(r.session) } })
+      : Promise.resolve(null),
+    db.organization.findUnique({
+      where: { id: r.session.organizationId },
+      select: { jurisdiction: true },
+    }),
+  ]);
+  const jurisdictionInfo = resolveMatterJurisdiction(matter, organization);
+  const { systemContext: jurisdictionSystemContext } =
+    buildJurisdictionAiContext(jurisdictionInfo);
+
   const langInstruction = data.lang === "ar"
     ? "Write the analysis in formal Arabic legal terminology."
     : "Write the analysis in formal English legal terminology.";
 
-  const prompt = `You are a legal privilege analyst. Analyze the following document for the most appropriate privilege claim under GCC/MENA legal ethics rules.
+  const prompt = `You are a legal privilege analyst. Analyze the following document for the most appropriate privilege claim under the applicable legal ethics rules for ${jurisdictionInfo.labelEn}.
 
 DOCUMENT:
 - Control Number: ${data.docControlNum}
@@ -81,7 +101,9 @@ Only return the JSON object.`;
   const result = await dispatchAiText({
     organizationId: r.session.organizationId,
     prompt,
-    systemInstruction: "You are an enterprise legal privilege analyst specializing in GCC/MENA jurisdictions.",
+    systemInstruction:
+      "You are an enterprise legal privilege analyst.\n\n" +
+      jurisdictionSystemContext,
   });
 
   let analysis: any = {

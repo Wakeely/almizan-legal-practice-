@@ -11,6 +11,10 @@ import { aiRateLimit, getClientIp } from "@/lib/rate-limit";
 import { dispatchAiText } from "@/lib/byok-dispatch";
 import { audit } from "@/lib/audit";
 import { assertAiQuota } from "@/lib/student-access";
+import {
+  resolveMatterJurisdiction,
+  buildJurisdictionAiContext,
+} from "@/lib/jurisdictions";
 
 export async function POST(req: Request) {
   const r = await requireUser();
@@ -32,12 +36,24 @@ export async function POST(req: Request) {
   const { documentId } = body ?? {};
   if (!documentId) return NextResponse.json({ error: "documentId required" }, { status: 400 });
 
-  // Fetch the document (org-scoped)
-  const doc = await db.document.findFirst({
-    where: { id: documentId, ...orgWhere(r.session) },
-    include: { matter: true },
-  });
+  // Fetch the document (org-scoped) + the org's jurisdiction so we can resolve
+  // the matter → org fallback chain via the catalog.
+  const [doc, organization] = await Promise.all([
+    db.document.findFirst({
+      where: { id: documentId, ...orgWhere(r.session) },
+      include: { matter: true },
+    }),
+    db.organization.findUnique({
+      where: { id: r.session.organizationId },
+      select: { jurisdiction: true },
+    }),
+  ]);
   if (!doc) return NextResponse.json({ error: "Document not found" }, { status: 404 });
+
+  // Resolve the canonical jurisdiction (matter → org → OTHER).
+  const jurisdictionInfo = resolveMatterJurisdiction(doc.matter, organization);
+  const { systemContext: jurisdictionSystemContext } =
+    buildJurisdictionAiContext(jurisdictionInfo);
 
   // Build a prompt — note that we don't have the actual file contents, only metadata
   const prompt = `You are a legal document analyst. Generate a concise 2-3 paragraph summary and 3-5 semantic tags for the following document, in the same language as the document name (Arabic or English).
@@ -46,7 +62,7 @@ Document name: ${doc.name}
 Category: ${doc.category}
 Matter title: ${doc.matter.title}
 Client: ${doc.matter.clientName}
-Jurisdiction: ${doc.matter.jurisdiction}
+Jurisdiction: ${jurisdictionInfo.labelEn} (${jurisdictionInfo.labelAr})
 
 Return a JSON object with this exact shape:
 {
@@ -59,7 +75,9 @@ Only return the JSON object, nothing else.`;
   const result = await dispatchAiText({
     organizationId: r.session.organizationId,
     prompt,
-    systemInstruction: "You are an enterprise legal document analyst specializing in GCC/MENA jurisdictions.",
+    systemInstruction:
+      "You are an enterprise legal document analyst.\n\n" +
+      jurisdictionSystemContext,
   });
 
   let summary = result.text;

@@ -14,6 +14,7 @@ import { useLanguage } from "@/components/providers/language-provider";
 import { useMatters } from "@/components/providers/matters-provider";
 import { workspaceHref } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
+import { JURISDICTION_LIST, type JurisdictionCode } from "@/lib/jurisdictions";
 import type { Matter } from "@/lib/types";
 
 const inputCls =
@@ -34,7 +35,9 @@ export default function NewMatterModal() {
     description: "",
     clientName: "",
     clientEmail: "",
-    jurisdiction: "",
+    // Default to "" until /api/organization/jurisdiction resolves; the user
+    // can still override per-matter using the dropdown.
+    jurisdiction: "" as JurisdictionCode | "",
     opposingParty: "",
     opposingCounsel: "",
     judge: "",
@@ -44,6 +47,33 @@ export default function NewMatterModal() {
     budget: "0",
     riskLevel: "Medium" as "High" | "Medium" | "Low",
   });
+
+  // ── Pre-fill the matter's jurisdiction from the organization's default ──
+  // Falls back to "OTHER" if the API call fails (offline, 401, etc.) so the
+  // form still opens. The user can always pick a different country from the
+  // dropdown — the override is a first-class UI affordance.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/organization/jurisdiction");
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          current: { code: JurisdictionCode };
+        };
+        if (!cancelled && data.current?.code) {
+          setForm((prev) =>
+            prev.jurisdiction === "" ? { ...prev, jurisdiction: data.current.code } : prev,
+          );
+        }
+      } catch {
+        // Silent — non-blocking. The dropdown still shows "Other / Generic".
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const listener = () => setOpen(true);
@@ -71,6 +101,10 @@ export default function NewMatterModal() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          // Backend requires jurisdiction.min(2); canonical codes are 2-5
+          // chars. The empty-string placeholder from before-org-fetch resolves
+          // falls back to "OTHER" so the matter is still created.
+          jurisdiction: form.jurisdiction || "OTHER",
           budget: form.budget === "" ? 0 : Number(form.budget),
           description: form.description || undefined,
           opposingParty: form.opposingParty || undefined,
@@ -137,8 +171,32 @@ export default function NewMatterModal() {
             <input type="email" className={inputCls} value={form.clientEmail} onChange={set("clientEmail")} />
           </div>
           <div>
-            <label className={labelCls}>{t.jurisdiction} *</label>
-            <input className={inputCls} value={form.jurisdiction} onChange={set("jurisdiction")} />
+            <label className={labelCls}>
+              {t.jurisdictionMatterOverrideTitle}
+              <span className="text-destructive"> *</span>
+            </label>
+            <select
+              className={inputCls}
+              value={form.jurisdiction}
+              onChange={set("jurisdiction")}
+            >
+              {/* Placeholder while the org default is still being fetched */}
+              {!form.jurisdiction && (
+                <option value="">
+                  {isRtl ? "جارٍ تحميل الاختصاص الافتراضي…" : "Loading default…"}
+                </option>
+              )}
+              {JURISDICTION_LIST.map((info) => (
+                <option key={info.code} value={info.code}>
+                  {isRtl ? info.labelAr : info.labelEn}
+                  {" — "}
+                  {isRtl ? info.labelEn : info.labelAr}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-[10px] text-muted-foreground leading-snug">
+              {t.jurisdictionMatterOverrideHelper}
+            </p>
           </div>
           <div>
             <label className={labelCls}>{t.riskLevel}</label>

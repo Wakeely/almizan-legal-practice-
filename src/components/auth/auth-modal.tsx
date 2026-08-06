@@ -21,6 +21,7 @@ import {
 import { useAuth } from '@/components/providers/auth-provider';
 import { useLanguage } from '@/components/providers/language-provider';
 import { cn } from '@/lib/utils';
+import { JURISDICTION_LIST } from '@/lib/jurisdictions';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -175,7 +176,7 @@ export default function AuthModal({
   const [fullName, setFullName] = useState('');
   const [firmName, setFirmName] = useState('');
   const [barId, setBarId] = useState('');
-  const [jurisdiction, setJurisdiction] = useState('Jordan Courts & Arbitration');
+  const [jurisdiction, setJurisdiction] = useState('JO');
   const [accountType, setAccountType] = useState<
     'Law Firm' | 'Solo Practitioner' | 'Corporate Counsel' | 'Client'
   >('Law Firm');
@@ -846,18 +847,13 @@ export default function AuthModal({
                           onChange={(e) => setJurisdiction(e.target.value)}
                           className={cn(inputBase, 'appearance-none')}
                         >
-                          <option value="Jordan Courts & Arbitration">
-                            Jordan Courts & Arbitration (الأردن)
-                          </option>
-                          <option value="Saudi Commercial Courts (SCCA)">
-                            Saudi Commercial Courts & SCCA (السعودية)
-                          </option>
-                          <option value="UAE Federal & DIFC Courts">
-                            UAE Federal & DIFC Courts (الإمارات)
-                          </option>
-                          <option value="International Tribunals (ICC/LCIA)">
-                            International Tribunals (تحكيم دولي)
-                          </option>
+                          {JURISDICTION_LIST.map((info) => (
+                            <option key={info.code} value={info.code}>
+                              {isRtl ? info.labelAr : info.labelEn}
+                              {' — '}
+                              {isRtl ? info.labelEn : info.labelAr}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div>
