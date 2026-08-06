@@ -2,30 +2,26 @@
 
 import React, { useState } from 'react';
 import {
-  BarChart3,
-  Briefcase,
-  FileText,
-  Sparkles,
   Plus,
   Bell,
   Search,
   Menu,
-  X,
-  ChevronRight,
-  Calendar,
-  Sword,
-  Receipt,
   Landmark,
 } from 'lucide-react';
 import { useLanguage } from '@/components/providers/language-provider';
 import type { Matter } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import {
+  NAV_ITEMS,
+  getNavItem,
+  type WorkspaceView,
+} from '@/lib/navigation';
 
 interface MobileBottomNavProps {
   currentMode: 'Lawyer' | 'Client';
   onModeChange: (mode: 'Lawyer' | 'Client') => void;
-  activeMobileTab: 'all' | 'analytics' | 'tasks' | 'docs' | 'ai';
-  onSelectMobileTab: (tab: 'all' | 'analytics' | 'tasks' | 'docs' | 'ai') => void;
+  activeView: WorkspaceView;
+  onViewChange: (view: WorkspaceView) => void;
   unreadNotificationsCount: number;
   onOpenNotifications: () => void;
   onOpenSearch?: () => void;
@@ -36,31 +32,19 @@ interface MobileBottomNavProps {
 }
 
 /* ------------------------------------------------------------------ */
-/*  4 PRIMARY TABS — clear, touch-friendly, no clutter                 */
+/*  4 PRIMARY TABS — derived from the single source of truth           */
 /* ------------------------------------------------------------------ */
-const PRIMARY_TABS = [
-  { key: 'all' as const, icon: BarChart3, labelAr: 'الكل', labelEn: 'Home' },
-  { key: 'tasks' as const, icon: Briefcase, labelAr: 'القضايا', labelEn: 'Cases' },
-  { key: 'docs' as const, icon: FileText, labelAr: 'المستندات', labelEn: 'Docs' },
-  { key: 'ai' as const, icon: Sparkles, labelAr: 'الذكاء', labelEn: 'AI' },
-];
+const PRIMARY_TAB_IDS: WorkspaceView[] = ['overview', 'matter', 'documents', 'ai'];
+const PRIMARY_TABS = PRIMARY_TAB_IDS.map(getNavItem);
 
-/* All sections available in the "more" drawer */
-const ALL_SECTIONS = [
-  { key: 'analytics', icon: BarChart3, labelAr: 'نظرة عامة', labelEn: 'Overview' },
-  { key: 'tasks', icon: Briefcase, labelAr: 'القضايا والمهام', labelEn: 'Matters & Tasks' },
-  { key: 'docs', icon: FileText, labelAr: 'المستندات', labelEn: 'Documents' },
-  { key: 'calendar', icon: Calendar, labelAr: 'التقويم', labelEn: 'Calendar' },
-  { key: 'ai', icon: Sparkles, labelAr: 'مساعد الذكاء', labelEn: 'AI Assistant' },
-  { key: 'warroom', icon: Sword, labelAr: 'غرفة العمليات', labelEn: 'War Room' },
-  { key: 'billing', icon: Receipt, labelAr: 'الفواتير', labelEn: 'Billing' },
-];
+/* The "More" drawer shows EVERY main navigation item. */
+const MORE_SECTIONS = NAV_ITEMS;
 
 export default function MobileBottomNav({
   currentMode,
   onModeChange,
-  activeMobileTab,
-  onSelectMobileTab,
+  activeView,
+  onViewChange,
   unreadNotificationsCount,
   onOpenNotifications,
   onOpenSearch,
@@ -75,8 +59,8 @@ export default function MobileBottomNav({
 
   const activeMatter = matters.find((m) => m.id === activeMatterId);
 
-  const handleTabClick = (tabKey: 'all' | 'analytics' | 'tasks' | 'docs' | 'ai') => {
-    onSelectMobileTab(tabKey);
+  const selectView = (view: WorkspaceView) => {
+    onViewChange(view);
     setShowMoreDrawer(false);
   };
 
@@ -148,11 +132,11 @@ export default function MobileBottomNav({
         <div className="flex items-center justify-around h-16 px-2">
           {PRIMARY_TABS.map((tab) => {
             const Icon = tab.icon;
-            const isActive = activeMobileTab === tab.key;
+            const isActive = activeView === tab.id;
             return (
               <button
-                key={tab.key}
-                onClick={() => handleTabClick(tab.key)}
+                key={tab.id}
+                onClick={() => selectView(tab.id)}
                 className={cn(
                   'flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-xl transition-colors cursor-pointer min-h-[44px]',
                   isActive ? 'text-primary' : 'text-muted-foreground'
@@ -167,7 +151,10 @@ export default function MobileBottomNav({
           {/* More button */}
           <button
             onClick={() => setShowMoreDrawer(true)}
-            className="flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-xl text-muted-foreground hover:text-foreground transition-colors cursor-pointer min-h-[44px]"
+            className={cn(
+              'flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-xl transition-colors cursor-pointer min-h-[44px]',
+              !PRIMARY_TABS.some((t) => t.id === activeView) ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            )}
           >
             <Menu className="w-5 h-5" />
             <span className="text-[10px] font-semibold">{isRtl ? 'المزيد' : 'More'}</span>
@@ -175,32 +162,32 @@ export default function MobileBottomNav({
         </div>
       </div>
 
-      {/* ── MORE DRAWER (slide-up sheet) ── */}
+      {/* ── MORE DRAWER (slide-up sheet) — lists EVERY main tool ── */}
       {showMoreDrawer && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div
             className="absolute inset-0 bg-black/40"
             onClick={() => setShowMoreDrawer(false)}
           />
-          <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl border-t border-border p-4 pb-8 animate-in slide-in-from-bottom duration-200">
+          <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl border-t border-border p-4 pb-8 animate-in slide-in-from-bottom duration-200 max-h-[80vh] overflow-y-auto">
             <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-4" />
             <h3 className="text-sm font-bold mb-3">
               {isRtl ? 'جميع الأقسام' : 'All Sections'}
             </h3>
             <div className="grid grid-cols-4 gap-2">
-              {ALL_SECTIONS.map((section) => {
+              {MORE_SECTIONS.map((section) => {
                 const Icon = section.icon;
+                const isActive = activeView === section.id;
                 return (
                   <button
-                    key={section.key}
-                    onClick={() => {
-                      const tabKey = section.key as 'all' | 'analytics' | 'tasks' | 'docs' | 'ai';
-                      onSelectMobileTab(tabKey);
-                      setShowMoreDrawer(false);
-                    }}
-                    className="flex flex-col items-center gap-1.5 p-3 rounded-xl hover:bg-accent transition-colors cursor-pointer"
+                    key={section.id}
+                    onClick={() => selectView(section.id)}
+                    className={cn(
+                      'flex flex-col items-center gap-1.5 p-3 rounded-xl hover:bg-accent transition-colors cursor-pointer',
+                      isActive && 'bg-primary/10'
+                    )}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', isActive ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary')}>
                       <Icon className="w-5 h-5" />
                     </div>
                     <span className="text-[10px] font-semibold text-center leading-tight">

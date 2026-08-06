@@ -5,57 +5,23 @@ import { cn } from '@/lib/utils';
 import { useLanguage } from '@/components/providers/language-provider';
 import type { Matter, UserProfile } from '@/lib/types';
 import {
-  BarChart3,
   Briefcase,
-  CheckSquare,
-  FileText,
-  Calendar,
-  Sparkles,
-  Sword,
-  Receipt,
-  Search,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   LogOut,
   User,
-  Shield,
   Scale,
-  Landmark,
   Users,
-  BookOpen,
-  Fingerprint,
 } from 'lucide-react';
+import {
+  NAV_SECTIONS,
+  getNavItem,
+  type WorkspaceView,
+} from '@/lib/navigation';
 
-/* ------------------------------------------------------------------ */
-/*  TYPES                                                              */
-/* ------------------------------------------------------------------ */
-
-export type WorkspaceView =
-  | 'overview'
-  | 'matter'
-  | 'documents'
-  | 'calendar'
-  | 'ai'
-  | 'warroom'
-  | 'billing'
-  | 'investigation';
-
-interface NavItem {
-  id: WorkspaceView;
-  labelAr: string;
-  labelEn: string;
-  icon: React.ElementType;
-  /** FIX 2: priority weight — 'primary' gets full visual weight, 'secondary' is visually de-emphasized */
-  priority?: 'primary' | 'secondary';
-}
-
-interface NavSection {
-  id: string;
-  labelAr: string;
-  labelEn: string;
-  items: NavItem[];
-}
+// Re-export the shared view type for compatibility with existing imports.
+export type { WorkspaceView } from '@/lib/navigation';
 
 interface WorkspaceSidebarProps {
   activeView: WorkspaceView;
@@ -68,56 +34,6 @@ interface WorkspaceSidebarProps {
   currentMode: 'Lawyer' | 'Client';
   onModeChange: (mode: 'Lawyer' | 'Client') => void;
 }
-
-/* ------------------------------------------------------------------ */
-/*  NAV SECTIONS — grouped logically                                   */
-/* ------------------------------------------------------------------ */
-
-const SECTIONS: NavSection[] = [
-  {
-    id: 'core',
-    labelAr: 'الرئيسية',
-    labelEn: 'Core',
-    items: [
-      { id: 'overview', labelAr: 'نظرة عامة', labelEn: 'Overview', icon: BarChart3, priority: 'primary' },
-      { id: 'matter', labelAr: 'القضايا والمهام', labelEn: 'Matters & Tasks', icon: Briefcase, priority: 'primary' },
-    ],
-  },
-  {
-    id: 'documents',
-    labelAr: 'المستندات',
-    labelEn: 'Documents',
-    items: [
-      { id: 'documents', labelAr: 'ملفات القضية', labelEn: 'Case Files', icon: FileText, priority: 'primary' },
-    ],
-  },
-  {
-    id: 'deadlines',
-    labelAr: 'المواعيد والتقويم',
-    labelEn: 'Calendar & Deadlines',
-    items: [
-      { id: 'calendar', labelAr: 'التقويم', labelEn: 'Calendar', icon: Calendar, priority: 'primary' },
-    ],
-  },
-  {
-    id: 'intelligence',
-    labelAr: 'الذكاء الاصطناعي والتحليل',
-    labelEn: 'AI & Analysis',
-    items: [
-      { id: 'ai', labelAr: 'مساعد الذكاء', labelEn: 'AI Assistant', icon: Sparkles, priority: 'primary' },
-      { id: 'warroom', labelAr: 'غرفة العمليات', labelEn: 'War Room', icon: Sword, priority: 'secondary' },
-      { id: 'investigation', labelAr: 'التحقيق', labelEn: 'Investigation', icon: Search, priority: 'secondary' },
-    ],
-  },
-  {
-    id: 'financial',
-    labelAr: 'المالية',
-    labelEn: 'Financial',
-    items: [
-      { id: 'billing', labelAr: 'الفواتير والفوترة', labelEn: 'Billing & Invoices', icon: Receipt, priority: 'secondary' },
-    ],
-  },
-];
 
 /* ------------------------------------------------------------------ */
 /*  SIDEBAR COMPONENT                                                  */
@@ -256,8 +172,9 @@ export default function WorkspaceSidebar({
 
       {/* ── NAV SECTIONS ── */}
       <nav className="flex-1 overflow-y-auto py-2" aria-label="Workspace navigation">
-        {SECTIONS.map((section) => {
+        {NAV_SECTIONS.map((section) => {
           const isCollapsed = collapsedSections.has(section.id);
+          const items = section.itemIds.map(getNavItem);
           return (
             <div key={section.id} className="mb-1">
               {/* Section header */}
@@ -276,13 +193,12 @@ export default function WorkspaceSidebar({
                 </button>
               )}
 
-              {/* Section items — FIX 2: secondary items are visually de-emphasized */}
+              {/* Section items — every item has equal visual weight */}
               {!isCollapsed && (
                 <div className="space-y-0.5 px-2">
-                  {section.items.map((item) => {
+                  {items.map((item) => {
                     const Icon = item.icon;
                     const isActive = activeView === item.id;
-                    const isSecondary = item.priority === 'secondary';
                     return (
                       <button
                         key={item.id}
@@ -291,14 +207,12 @@ export default function WorkspaceSidebar({
                           'w-full flex items-center gap-2.5 rounded-lg px-3 py-2 transition-all cursor-pointer',
                           isActive
                             ? 'bg-primary/10 text-primary font-semibold'
-                            : isSecondary
-                              ? 'text-muted-foreground/70 hover:bg-accent/50 hover:text-muted-foreground text-[11px]'
-                              : 'text-foreground hover:bg-accent hover:text-foreground font-semibold text-xs',
+                            : 'text-foreground hover:bg-accent hover:text-foreground font-semibold text-xs',
                           collapsed && 'justify-center px-0'
                         )}
                         title={collapsed ? (isRtl ? item.labelAr : item.labelEn) : undefined}
                       >
-                        <Icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-primary' : isSecondary ? 'opacity-60' : '')} />
+                        <Icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
                         {!collapsed && (
                           <span>{isRtl ? item.labelAr : item.labelEn}</span>
                         )}
@@ -308,13 +222,12 @@ export default function WorkspaceSidebar({
                 </div>
               )}
 
-              {/* Collapsed: show icons — FIX 2: secondary icons smaller */}
+              {/* Collapsed: show icons */}
               {collapsed && !isCollapsed && (
                 <div className="space-y-0.5 px-2">
-                  {section.items.map((item) => {
+                  {items.map((item) => {
                     const Icon = item.icon;
                     const isActive = activeView === item.id;
-                    const isSecondary = item.priority === 'secondary';
                     return (
                       <button
                         key={item.id}
@@ -323,12 +236,10 @@ export default function WorkspaceSidebar({
                           'w-full flex items-center justify-center rounded-lg py-2 transition-all cursor-pointer',
                           isActive
                             ? 'bg-primary/10 text-primary'
-                            : isSecondary
-                              ? 'text-muted-foreground/50 hover:bg-accent/30'
-                              : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                         )}
                       >
-                        <Icon className={cn('w-4 h-4', isActive ? 'text-primary' : isSecondary ? 'w-3.5 h-3.5 opacity-50' : '')} />
+                        <Icon className={cn('w-4 h-4', isActive ? 'text-primary' : '')} />
                       </button>
                     );
                   })}

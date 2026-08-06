@@ -13,7 +13,8 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import LandingPage from "@/components/landing/landing-page";
 import AuthModal from "@/components/auth/auth-modal";
 import Header from "@/components/header/header";
-import WorkspaceSidebar, { type WorkspaceView } from "@/components/workspace/workspace-sidebar";
+import WorkspaceSidebar from "@/components/workspace/workspace-sidebar";
+import { type WorkspaceView, WORKSPACE_VIEWS } from "@/lib/navigation";
 import AnalyticsModule from "@/components/analytics/analytics-module";
 import MattersModule from "@/components/matters/matters-module";
 import TasksModule from "@/components/tasks/tasks-module";
@@ -41,11 +42,7 @@ import {
   Briefcase, BarChart3,
 } from "lucide-react";
 
-// ── Valid workspace view keys ──
-const VALID_VIEWS: WorkspaceView[] = [
-  "overview", "matter", "documents", "calendar",
-  "ai", "warroom", "billing", "investigation",
-];
+// ── Valid workspace view keys (single source of truth in @/lib/navigation) ──
 
 type AppView = "landing" | "workspace";
 
@@ -63,7 +60,7 @@ function parseHash(): { view: WorkspaceView; matterId: string; mode: "Lawyer" | 
   const rawMode = (parts[2] as "Lawyer" | "Client") || "Lawyer";
 
   return {
-    view: VALID_VIEWS.includes(rawView) ? rawView : "overview",
+    view: WORKSPACE_VIEWS.includes(rawView) ? rawView : "overview",
     matterId: rawMatter,
     mode: rawMode === "Client" ? "Client" : "Lawyer",
   };
@@ -253,7 +250,6 @@ export default function Page() {
   const [activeMatterId, setActiveMatterId] = useState<string>("");
   const [mattersLoading, setMattersLoading] = useState(true);
   const [activeView, setActiveView] = useState<WorkspaceView>("overview");
-  const [mobileTab, setMobileTab] = useState<'all' | 'analytics' | 'tasks' | 'docs' | 'ai'>('all');
 
   // FIX 1: Track if state was restored from URL
   const urlRestored = useRef(false);
@@ -328,14 +324,26 @@ export default function Page() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [view]);
 
-  // Mobile tab events
+  // Mobile tab events (used by triage quick actions + global search results)
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as string | undefined;
       if (!detail) return;
+      // Map legacy/alias tab names to the unified workspace views. Every
+      // view id is also accepted directly so mobile + desktop stay in sync.
       const tabMap: Record<string, WorkspaceView> = {
-        analytics: "overview", tasks: "matter", docs: "documents",
-        ai: "ai", all: "overview", calendar: "calendar",
+        all: "overview",
+        analytics: "overview",
+        overview: "overview",
+        tasks: "matter",
+        matter: "matter",
+        docs: "documents",
+        documents: "documents",
+        calendar: "calendar",
+        ai: "ai",
+        warroom: "warroom",
+        billing: "billing",
+        investigation: "investigation",
       };
       setActiveView(tabMap[detail] ?? "overview");
     };
@@ -461,11 +469,8 @@ export default function Page() {
           <MobileBottomNav
             currentMode={mode}
             onModeChange={setMode}
-            activeMobileTab={mobileTab}
-            onSelectMobileTab={(tab) => {
-              setMobileTab(tab);
-              window.dispatchEvent(new CustomEvent('mobile-tab-changed', { detail: tab }));
-            }}
+            activeView={activeView}
+            onViewChange={setActiveView}
             unreadNotificationsCount={0}
             onOpenNotifications={() => {}}
             onOpenSearch={() => window.dispatchEvent(new CustomEvent('open-search-modal'))}
@@ -539,12 +544,27 @@ export default function Page() {
                   )}
 
                   {activeView === "matter" && (
-                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                      <div className="xl:col-span-5">
-                        <MattersModule activeMatter={activeMatter} onMatterUpdated={handleMatterUpdated} />
+                    <div>
+                      {/* Clear page-level label: this view holds BOTH the case
+                          profile AND the tasks/kanban for the active matter. */}
+                      <div className="flex items-center gap-2 mb-1">
+                        <Briefcase className="w-4 h-4 text-primary shrink-0" />
+                        <h2 className="text-base font-bold">
+                          {isRtl ? "ملف القضية والمهام" : "Case Profile & Tasks"}
+                        </h2>
                       </div>
-                      <div className="xl:col-span-7">
-                        <TasksModule matterId={activeMatter.id} matters={matters} />
+                      <p className="text-xs text-muted-foreground mb-5">
+                        {isRtl
+                          ? "الملف التعريفي للقضية والمهام المترتبة عليها (كانبان) في مكان واحد."
+                          : "Manage the case profile and its tasks/kanban in one place."}
+                      </p>
+                      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                        <div className="xl:col-span-5">
+                          <MattersModule activeMatter={activeMatter} onMatterUpdated={handleMatterUpdated} />
+                        </div>
+                        <div className="xl:col-span-7">
+                          <TasksModule matterId={activeMatter.id} matters={matters} />
+                        </div>
                       </div>
                     </div>
                   )}
