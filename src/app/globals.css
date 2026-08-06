@@ -126,47 +126,54 @@
 
 /* ----------------------------------------------------------------------- */
 /* DARK THEME — Deep teal-navy, NO indigo                                  */
+/* ------------------------------------------------------------------------- */
+/* Token design: surfaces step UP toward the viewer (background → card →   */
+/* popover), text steps DOWN from foreground → muted-foreground, and     */
+/* borders use a brighter teal-tinted alpha so cards stay visible against */
+/* the dark background. Previous values used overly-saturated card colors*/
+/* that washed out against the deep background and borders with alpha so  */
+/* low (0.12) that panels visually disappeared in dark mode.              */
 /* ----------------------------------------------------------------------- */
 .dark {
-  --background: #041e28;              /* deep teal-navy */
-  --foreground: #e8f0f2;              /* soft white with teal tint */
-  --card: #0a3240;                    /* elevated teal-dark surface */
-  --card-foreground: #e8f0f2;
-  --popover: #0a3240;
-  --popover-foreground: #e8f0f2;
-  --primary: #008fc0;                 /* lighter teal-blue for contrast */
+  --background: #051a23;              /* deep teal-navy (slightly darker than card for separation) */
+  --foreground: #eaf3f5;              /* near-white with cool tint — AA contrast on background */
+  --card: #0d3340;                    /* elevated teal surface, ~2 shades lighter than bg */
+  --card-foreground: #eaf3f5;
+  --popover: #103a49;                /* slightly lighter than card so popovers float above */
+  --popover-foreground: #eaf3f5;
+  --primary: #4dd0e1;                 /* teal-300 — soft but readable, less harsh than sky-400 */
   --primary-foreground: #041e28;
-  --secondary: #0c3a4a;
-  --secondary-foreground: #e8f0f2;
-  --muted: #0c3a4a;
-  --muted-foreground: #8fb8c8;       /* sage-muted for readability */
-  --accent: #0f4558;
-  --accent-foreground: #7ccde4;
+  --secondary: #14455a;              /* tinted card surface for secondary panels */
+  --secondary-foreground: #eaf3f5;
+  --muted: #14455a;                  /* matches secondary — subtle differentiation */
+  --muted-foreground: #c0d8e0;       /* brighter sage — AA contrast on card (was #8fb8c8) */
+  --accent: #1a5266;                 /* active state bg — clearly distinct from card */
+  --accent-foreground: #7dd3fc;      /* sky-300 — bright readable accent text */
   --destructive: #fb7185;
-  --border: rgba(0, 140, 192, 0.12); /* teal-tinted border */
-  --input: rgba(0, 140, 192, 0.15);  /* teal-tinted input bg */
-  --ring: #008fc0;
+  --border: rgba(77, 208, 225, 0.22);  /* brighter teal border — was 0.12, made panels invisible */
+  --input: rgba(77, 208, 225, 0.18);   /* matching input bg — visible field boundaries */
+  --ring: #4dd0e1;
 
   /* Form input text — light on dark in dark mode */
-  --input-text: #e8f0f2;
-  --input-placeholder: #5a8a9a;
+  --input-text: #eaf3f5;
+  --input-placeholder: #7ba0b0;
 
   /* Chart palette — lightened for dark backgrounds, NO indigo */
-  --chart-1: #008fc0;
+  --chart-1: #4dd0e1;
   --chart-2: #fbbf24;
   --chart-3: #34d399;                 /* emerald-400 */
   --chart-4: #fb7185;
-  --chart-5: #38bdf8;                 /* sky-400 */
+  --chart-5: #38bdf8;                 /* sky-400 — accent color for chart variety */
 
   /* Sidebar */
-  --sidebar: #0a3240;
-  --sidebar-foreground: #e8f0f2;
-  --sidebar-primary: #008fc0;
+  --sidebar: #0a2a35;                /* slightly darker than main bg so sidebar recedes */
+  --sidebar-foreground: #eaf3f5;
+  --sidebar-primary: #4dd0e1;
   --sidebar-primary-foreground: #041e28;
-  --sidebar-accent: #0f4558;
-  --sidebar-accent-foreground: #7ccde4;
-  --sidebar-border: rgba(0, 140, 192, 0.12);
-  --sidebar-ring: #008fc0;
+  --sidebar-accent: #1a5266;
+  --sidebar-accent-foreground: #7dd3fc;
+  --sidebar-border: rgba(77, 208, 225, 0.18);
+  --sidebar-ring: #4dd0e1;
 }
 
 /* ----------------------------------------------------------------------- */
@@ -259,10 +266,10 @@ html[lang="en"] .font-serif {
   background: rgba(0, 108, 142, 0.45);
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: rgba(0, 143, 192, 0.3);
+  background: rgba(77, 208, 225, 0.3);
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 143, 192, 0.5);
+  background: rgba(77, 208, 225, 0.5);
 }
 
 /* ----------------------------------------------------------------------- */
@@ -273,7 +280,129 @@ html[lang="en"] .font-serif {
   min-height: 100vh;
 }
 .dark .app-theme-wrapper {
-  background: linear-gradient(160deg, #041e28 0%, #062a36 40%, #072e3b 100%);
+  background: linear-gradient(160deg, #051a23 0%, #072633 40%, #082b3a 100%);
+}
+
+/* ----------------------------------------------------------------------- */
+/* DARK MODE — safety-net overrides for hardcoded light-only utility classes*/
+/* ----------------------------------------------------------------------- */
+/* Many workspace components were authored against the light theme and use  */
+/* `bg-white`, `text-slate-*`, `bg-slate-*` directly. In dark mode these   */
+/* create invisible / unreadable surfaces. Rather than rewriting every     */
+/* component in one pass, we provide scoped overrides here:               */
+/*                                                                         */
+/*   1. `.bg-white` → `--card`  (panels/cards)                             */
+/*   2. `.text-slate-900 / 800 / 700` → `--foreground`                     */
+/*   3. `.text-slate-600 / 500 / 400` → `--muted-foreground`                */
+/*   4. `.bg-slate-50 / 100` → `--secondary`                                */
+/*   5. `.border-slate-300 / 200` → `--border`                              */
+/*                                                                         */
+/* Scope: `.dark .app-theme-wrapper` — the workspace shell wraps every     */
+/* workspace page in `.app-theme-wrapper` (see WorkspaceShell). The        */
+/* landing page does NOT have this class (it uses `.bg-ivory` for its      */
+/* marketing palette), so these overrides never affect the landing page.   */
+/* The print/redaction modals opt out via `.print-only-court-summary` so  */
+/* the printed docket summary stays pure white as required for paper.      */
+/* ----------------------------------------------------------------------- */
+
+/* 1. `.bg-white` → themed card surface in dark mode */
+.dark .app-theme-wrapper .bg-white:not(.print-only-court-summary):not(.print-only-court-summary .bg-white) {
+  background-color: var(--card);
+}
+
+/* 2. Headings / strong text — dark text becomes light in dark mode */
+.dark .app-theme-wrapper .text-slate-900,
+.dark .app-theme-wrapper .text-slate-800,
+.dark .app-theme-wrapper .text-slate-700 {
+  color: var(--foreground);
+}
+
+/* 3. Secondary / muted text */
+.dark .app-theme-wrapper .text-slate-600,
+.dark .app-theme-wrapper .text-slate-500,
+.dark .app-theme-wrapper .text-slate-400 {
+  color: var(--muted-foreground);
+}
+
+/* 4. Slate backgrounds (subtle panels, table headers, code blocks) */
+.dark .app-theme-wrapper .bg-slate-50,
+.dark .app-theme-wrapper .bg-slate-100,
+.dark .app-theme-wrapper .bg-slate-50\/50 {
+  background-color: var(--secondary);
+}
+
+/* 5. Slate borders (input fields, dividers, table rows) */
+.dark .app-theme-wrapper .border-slate-300,
+.dark .app-theme-wrapper .border-slate-200,
+.dark .app-theme-wrapper .border-slate-100 {
+  border-color: var(--border);
+}
+
+/* 6. Slate placeholder text in form inputs (legacy class) */
+.dark .app-theme-wrapper .placeholder-slate-400::placeholder {
+  color: var(--input-placeholder);
+  opacity: 1;
+}
+
+/* 7. Pastel callout backgrounds — keep subtle in dark mode                */
+/* Components use bg-rose-100, bg-emerald-100, bg-amber-100, etc. for      */
+/* success / warning / danger callouts. In dark mode these pastel          */
+/* backgrounds stay bright and wash out dark text written over them.       */
+/* We override to a translucent tint that matches the dark theme and let   */
+/* the text token handle contrast.                                          */
+.dark .app-theme-wrapper .bg-emerald-50  { background-color: rgba(52, 211, 153, 0.10); }
+.dark .app-theme-wrapper .bg-emerald-100 { background-color: rgba(52, 211, 153, 0.14); }
+.dark .app-theme-wrapper .bg-rose-50     { background-color: rgba(251, 113, 133, 0.10); }
+.dark .app-theme-wrapper .bg-rose-100    { background-color: rgba(251, 113, 133, 0.14); }
+.dark .app-theme-wrapper .bg-amber-50    { background-color: rgba(251, 191, 36, 0.10); }
+.dark .app-theme-wrapper .bg-amber-100   { background-color: rgba(251, 191, 36, 0.14); }
+.dark .app-theme-wrapper .bg-teal-50     { background-color: rgba(77, 208, 225, 0.10); }
+.dark .app-theme-wrapper .bg-teal-100    { background-color: rgba(77, 208, 225, 0.14); }
+.dark .app-theme-wrapper .bg-blue-50     { background-color: rgba(56, 189, 248, 0.10); }
+.dark .app-theme-wrapper .bg-blue-100    { background-color: rgba(56, 189, 248, 0.14); }
+.dark .app-theme-wrapper .bg-indigo-50   { background-color: rgba(77, 208, 225, 0.10); }
+.dark .app-theme-wrapper .bg-indigo-100  { background-color: rgba(77, 208, 225, 0.14); }
+
+/* 8. Dark-tinted text on light pastel backgrounds — switch to bright variants */
+.dark .app-theme-wrapper .text-emerald-950 { color: #6ee7b7; }
+.dark .app-theme-wrapper .text-rose-950    { color: #fda4af; }
+.dark .app-theme-wrapper .text-amber-950   { color: #fcd34d; }
+.dark .app-theme-wrapper .text-teal-950    { color: #4dd0e1; }
+.dark .app-theme-wrapper .text-emerald-700 { color: #6ee7b7; }
+.dark .app-theme-wrapper .text-rose-700    { color: #fda4af; }
+.dark .app-theme-wrapper .text-amber-700   { color: #fcd34d; }
+.dark .app-theme-wrapper .text-teal-700    { color: #4dd0e1; }
+.dark .app-theme-wrapper .text-amber-800   { color: #fde68a; }
+.dark .app-theme-wrapper .text-blue-700    { color: #7dd3fc; }
+.dark .app-theme-wrapper .text-indigo-700  { color: #4dd0e1; }
+
+/* 9. Borders on pastel callout cards */
+.dark .app-theme-wrapper .border-rose-100,
+.dark .app-theme-wrapper .border-rose-200   { border-color: rgba(251, 113, 133, 0.25); }
+.dark .app-theme-wrapper .border-emerald-100,
+.dark .app-theme-wrapper .border-emerald-200 { border-color: rgba(52, 211, 153, 0.25); }
+.dark .app-theme-wrapper .border-amber-200,
+.dark .app-theme-wrapper .border-amber-300   { border-color: rgba(251, 191, 36, 0.30); }
+.dark .app-theme-wrapper .border-teal-200,
+.dark .app-theme-wrapper .border-teal-300    { border-color: rgba(77, 208, 225, 0.25); }
+
+/* 10. Inputs marked with bg-white inside the workspace get the card bg in   */
+/* dark mode. The catch-all `.bg-white` rule above already covers most, but  */
+/* some inputs have other classes that re-apply white — we re-theme input /  */
+/* textarea / select backgrounds explicitly here too.                        */
+.dark .app-theme-wrapper input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.dark .app-theme-wrapper textarea,
+.dark .app-theme-wrapper select {
+  background-color: var(--card);
+}
+
+/* 11. OS-rendered <option> dropdown list — without this, opening a <select> */
+/* in dark mode shows a blinding white dropdown. We hint a dark bg so the    */
+/* list matches the surrounding select. Light mode keeps the original rule. */
+.dark .app-theme-wrapper option,
+.dark .app-theme-wrapper select option {
+  color: #eaf3f5;
+  background: #0d3340;
 }
 
 /* ----------------------------------------------------------------------- */
