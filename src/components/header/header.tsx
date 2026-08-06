@@ -51,7 +51,12 @@ export default function Header({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setShowSearch(p => !p); } };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    const onOpenSearch = () => setShowSearch(true);
+    window.addEventListener('open-search-modal', onOpenSearch);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('open-search-modal', onOpenSearch);
+    };
   }, []);
 
   // ── Notifications ────────────────────────────────────────
@@ -78,8 +83,17 @@ export default function Header({
   };
 
   useEffect(() => {
-    if (matters.length > 0) buildNotifications();
     const refresh = () => buildNotifications();
+    if (matters.length > 0) {
+      // Deferred so the notification state update isn't a synchronous setState
+      // within the effect body.
+      const t = setTimeout(buildNotifications, 0);
+      ['tasks-updated', 'docs-updated', 'messages-updated'].forEach(ev => window.addEventListener(ev, refresh));
+      return () => {
+        ['tasks-updated', 'docs-updated', 'messages-updated'].forEach(ev => window.removeEventListener(ev, refresh));
+        clearTimeout(t);
+      };
+    }
     ['tasks-updated', 'docs-updated', 'messages-updated'].forEach(ev => window.addEventListener(ev, refresh));
     return () => ['tasks-updated', 'docs-updated', 'messages-updated'].forEach(ev => window.removeEventListener(ev, refresh));
   }, [matters, activeMatterId]);
