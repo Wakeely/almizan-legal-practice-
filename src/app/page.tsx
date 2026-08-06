@@ -36,10 +36,11 @@ import {
   getAllFromOfflineStore,
   STORES,
 } from "@/lib/offline-storage";
+import { cn } from "@/lib/utils";
 import {
   RefreshCw, Lock, FolderOpen, Plus, ChevronRight,
   AlertTriangle, Clock, FileText, Calendar, Sparkles,
-  Briefcase, BarChart3,
+  Briefcase, BarChart3, Shield,
 } from "lucide-react";
 
 // ── Valid workspace view keys (single source of truth in @/lib/navigation) ──
@@ -502,13 +503,28 @@ export default function Page() {
               <div className="max-w-4xl mx-auto page-enter">
                 {/* Client header banner */}
                 <div className="flex items-center gap-3 mb-6 p-4 bg-primary/5 border border-primary/10 rounded-xl">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <Briefcase className="w-5 h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h1 className="text-sm font-bold truncate">{activeMatter.title}</h1>
                     <p className="text-xs text-muted-foreground">{activeMatter.clientName}</p>
                   </div>
+
+                  {/* Always-visible way back to Lawyer mode (desktop + mobile) */}
+                  <button
+                    onClick={() => setMode("Lawyer")}
+                    className={cn(
+                      'shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-bold transition-colors cursor-pointer',
+                      'border-border bg-card text-foreground hover:bg-accent'
+                    )}
+                    title={isRtl ? 'العودة إلى وضع المحامي' : 'Back to Lawyer Mode'}
+                  >
+                    <Shield className="w-4 h-4 text-primary shrink-0" />
+                    <span className="whitespace-nowrap">
+                      {isRtl ? 'وضع المحامي' : 'Lawyer View'}
+                    </span>
+                  </button>
                 </div>
                 <ClientPortal activeMatter={activeMatter} onRefreshMatter={handleRefreshMatter} />
               </div>
