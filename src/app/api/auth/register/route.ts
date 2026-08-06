@@ -18,6 +18,7 @@ import { hashPassword, validatePasswordStrength } from "@/lib/password";
 import { parseBody, registerSchema } from "@/lib/validation/auth";
 import { authRateLimit, getClientIp } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
+import { validateStudentCode, redeemStudentCode, promoProfileFields } from "@/lib/student-access";
 
 function slugify(s: string): string {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || `firm-${Date.now()}`;
@@ -42,6 +43,7 @@ function publicUser(user: any, org: any) {
     billingCycle: user.billingCycle,
     renewalDate: user.renewalDate ?? "",
     biometricEnabled: user.biometricEnabled,
+    ...promoProfileFields(user),
   };
 }
 
@@ -70,6 +72,13 @@ export async function POST(req: Request) {
 
   const existing = await db.user.findUnique({ where: { email: data.email.toLowerCase() } });
   if (existing) return NextResponse.json({ error: "Email is already registered" }, { status: 409 });
+
+  // Validate the promo code BEFORE creating anything so an invalid code can't
+  // leave orphan accounts behind.
+  if (data.studentCode) {
+    const pre = await validateStudentCode(data.studentCode);
+    if (pre.ok === false) return NextResponse.json({ error: pre.error }, { status: 400 });
+  }
 
   const slug = slugify(data.firmName);
   const slugUnique = await db.organization.findUnique({ where: { slug } });
@@ -105,6 +114,26 @@ export async function POST(req: Request) {
   });
 
   const user = org.users[0];
+
+  // Apply the promo code (atomically consumes it + snapshots limits onto user).
+  // If it unexpectedly fails after the account was created (e.g. a race where
+  // the code was consumed between our pre-check and now), roll the account back.
+  if (data.studentCode) {
+    const redeemed = await redeemStudentCode(data.studentCode, user.id);
+    if (redeemed.ok === false) {
+      await db.organization.delete({ where: { id: org.id } }).catch((): void => undefined);
+      return NextResponse.json({ error: redeemed.error }, { status: 400 });
+    }
+  }
+
+  const updatedUser = await db.user.findUnique({
+    where: { id: user.id },
+    include: { organization: true },
+  });
+  if (!updatedUser) {
+    return NextResponse.json({ error: "Account created but could not be loaded" }, { status: 500 });
+  }
+
   // Pass explicit ctx — session does not exist yet at register time.
   await audit(
     { action: "auth.register", entity: "user", entityId: user.id, details: { email: user.email } },
@@ -112,5 +141,5 @@ export async function POST(req: Request) {
     { userId: user.id, organizationId: org.id },
   );
 
-  return NextResponse.json({ user: publicUser(user, org) }, { status: 201 });
+  return NextResponse.json({ user: publicUser(updatedUser, updatedUser.organization) }, { status: 201 });
 }

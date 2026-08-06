@@ -13,6 +13,7 @@ import { verifyPassword } from "@/lib/password";
 import { parseBody, loginSchema } from "@/lib/validation/auth";
 import { authRateLimit, getClientIp } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
+import { promoProfileFields } from "@/lib/student-access";
 
 function publicUser(user: any, org: any) {
   return {
@@ -33,6 +34,7 @@ function publicUser(user: any, org: any) {
     billingCycle: user.billingCycle,
     renewalDate: user.renewalDate ?? "",
     biometricEnabled: user.biometricEnabled,
+    ...promoProfileFields(user),
   };
 }
 

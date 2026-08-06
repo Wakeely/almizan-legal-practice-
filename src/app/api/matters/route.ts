@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { requireUser, orgWhere } from "@/lib/org";
 import { parseBody, matterCreateSchema } from "@/lib/validation/auth";
 import { audit } from "@/lib/audit";
+import { assertCanCreateMatter } from "@/lib/student-access";
 
 export async function GET(req: Request) {
   const r = await requireUser();
@@ -59,6 +60,10 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const r = await requireUser();
   if (r.ok === false) return r.response;
+
+  // Promo (student) accounts are capped on the number of matters they can hold.
+  const gate = await assertCanCreateMatter(r.session);
+  if (gate.ok === false) return gate.response;
 
   const body = await req.json().catch((): null => null);
   const parsed = parseBody(matterCreateSchema, body);

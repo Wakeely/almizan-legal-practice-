@@ -41,6 +41,7 @@ export const registerSchema = z.object({
   jurisdiction: z.string().min(2).max(120),
   accountType: z.enum(ACCOUNT_TYPE_VALUES),
   role: z.enum(ROLE_VALUES).optional(),
+  studentCode: z.string().trim().min(3).max(80).optional().or(z.literal("")),
 });
 
 export const loginSchema = z.object({
@@ -55,6 +56,18 @@ export const resetPasswordSchema = z.object({
 export const subscriptionSchema = z.object({
   tier: z.enum(SUBSCRIPTION_TIER_VALUES),
   billingCycle: z.enum(BILLING_CYCLE_VALUES),
+});
+
+export const redeemStudentCodeSchema = z.object({
+  code: z.string().trim().min(3).max(80),
+});
+
+export const generateStudentCodeSchema = z.object({
+  maxMatters: z.number().int().min(0).max(1000).default(3),
+  aiQuota: z.number().int().min(0).max(100000).default(20),
+  aiQuotaPeriod: z.enum(["total", "monthly"]).default("total"),
+  expiresAt: z.string().optional().nullable(),
+  count: z.number().int().min(1).max(100).default(1),
 });
 
 // -----------------------------------------------------------------------------

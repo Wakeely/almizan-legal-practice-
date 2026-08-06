@@ -8,6 +8,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { db } from "@/lib/db";
+import { promoProfileFields } from "@/lib/student-access";
 import type { UserProfile } from "@/lib/types";
 
 export interface SessionUser {
@@ -69,6 +70,7 @@ export async function getFullUserProfile(): Promise<UserProfile | null> {
     billingCycle: user.billingCycle as UserProfile["billingCycle"],
     renewalDate: user.renewalDate ?? "",
     biometricEnabled: user.biometricEnabled,
+    ...promoProfileFields(user),
     // Paid add-on toggles — mirror Organization columns so the client can
     // decide whether to show the module or an upgrade CTA without an extra
     // round-trip. The API still enforces the gate server-side.

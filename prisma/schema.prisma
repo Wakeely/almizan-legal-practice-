@@ -107,6 +107,20 @@ model User {
   renewalDate      String?
   biometricEnabled Boolean @default(false)
 
+  // ── Student / promo codes — free limited access for marketing ──────────
+  // accessKind: 'free' (default trial) | 'paid' (subscription) | 'promo' (student)
+  // When 'promo', the limits below are enforced server-side. Promo values are
+  // snapshotted onto the user from the redeemed StudentCode so they survive
+  // later edits to the code row. Upgrading to a paid tier clears them.
+  accessKind        String  @default("free") // 'free' | 'paid' | 'promo'
+  promoCode         String? // redacted/snapshot code text (e.g. "STUDENT-AB12-CD34")
+  promoMaxMatters   Int     @default(0) // 0 = no matter creation allowed
+  promoAiQuota      Int     @default(0) // 0 = no AI usage allowed
+  promoAiQuotaPeriod String  @default("monthly") // 'total' | 'monthly'
+  promoAiUsed       Int     @default(0)
+  promoAiPeriodStart String? // 'YYYY-MM' — reference month for a monthly quota
+  promoExpiresAt    String? // ISO date; null = no expiry
+
   // Multi-tenancy
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -124,6 +138,29 @@ model User {
   investigationReviews  InvestigationReview[]
 
   @@index([deletedAt])
+}
+
+// -----------------------------------------------------------------------------
+// Student / Promo codes — free limited access for marketing
+// -----------------------------------------------------------------------------
+// A redeemable token giving a freshly registered (or existing) account limited
+// free access. Platform-issued (NOT tenant-owned): the same code can be shared
+// across organizations, so this model intentionally has no organizationId.
+// Codes are consumed by redeemStudentCode() with optimistic atomic increment.
+model StudentCode {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  maxMatters     Int      @default(3) // max active matters the account may hold
+  aiQuota        Int      @default(20) // AI calls allowed
+  aiQuotaPeriod  String   @default("total") // 'total' | 'monthly'
+  isActive       Boolean  @default(true)
+  expiresAt      DateTime? // null = never expires
+  usedCount      Int      @default(0)
+  generatedBy    String?  // user id of whoever created it (null = system/seed)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([isActive])
 }
 
 // NextAuth standard models — kept org-scoped for isolation

@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/org";
 import { parseBody, subscriptionSchema } from "@/lib/validation/auth";
 import { audit } from "@/lib/audit";
+import { promoProfileFields, setPaidAccess } from "@/lib/student-access";
 
 function publicUser(user: any, org: any) {
   return {
@@ -27,6 +28,7 @@ function publicUser(user: any, org: any) {
     billingCycle: user.billingCycle,
     renewalDate: user.renewalDate ?? "",
     biometricEnabled: user.biometricEnabled,
+    ...promoProfileFields(user),
   };
 }
 
@@ -38,6 +40,13 @@ export async function POST(req: Request) {
   const parsed = parseBody(subscriptionSchema, body);
   if (parsed.ok === false) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const { tier, billingCycle } = parsed.data;
+
+  // Upgrading to a PAID tier supersedes any limited promo access (the extra
+  // `tier !== "Free Trial"` guard never downgrades a promo account back to a
+  // restricted tier when the user only toggles the default trial).
+  if (tier !== "Free Trial") {
+    await setPaidAccess(r.session.id);
+  }
 
   const updated = await db.user.update({
     where: { id: r.session.id },

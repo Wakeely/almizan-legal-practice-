@@ -12,6 +12,7 @@ import { callGemini } from "@/lib/gemini";
 import { audit } from "@/lib/audit";
 import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
+import { assertAiQuota } from "@/lib/student-access";
 
 const courtDeadlineSchema = z.object({
   triggeringEvent: z.string().min(2).max(500),
@@ -39,6 +40,9 @@ const JURISDICTION_RULESETS: Record<string, string> = {
 export async function POST(req: Request) {
   const r = await requireUser();
   if (r.ok === false) return r.response;
+
+  const quota = await assertAiQuota(r.session.id);
+  if (quota.ok === false) return quota.response;
 
   const ip = getClientIp(req);
   const limit = await aiRateLimit(ip, r.session.organizationId);

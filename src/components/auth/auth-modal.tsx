@@ -181,6 +181,7 @@ export default function AuthModal({
   >('Law Firm');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
+  const [promoCode, setPromoCode] = useState('');
   const [agreedTerms, setAgreedTerms] = useState(true);
   const [signupStep, setSignupStep] = useState<SignupStep>(1);
 
@@ -301,6 +302,7 @@ export default function AuthModal({
           barAssociationId: barId || 'BAR-2026-PENDING',
           jurisdiction,
           accountType,
+          studentCode: promoCode.trim() || undefined,
         },
         signupPassword,
       );
@@ -870,6 +872,30 @@ export default function AuthModal({
                           className={inputBase}
                         />
                       </div>
+                    </div>
+
+                    {/* Promo / student code (optional) */}
+                    <div>
+                      <label className={labelCls}>
+                        {isRtl ? 'رمز الطالب (اختياري)' : 'Student / Promo Code (optional)'}
+                      </label>
+                      <div className="relative">
+                        <LeadingIcon icon={Key} />
+                        <input
+                          type="text"
+                          value={promoCode}
+                          onChange={(e) => setPromoCode(e.target.value)}
+                          placeholder="STUDENT-ABCD-1234"
+                          className={inputWithLeadingIcon}
+                          autoComplete="off"
+                          spellCheck={false}
+                        />
+                      </div>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {isRtl
+                          ? 'سيتم تطبيق حدود الاستخدام المجاني تلقائياً. الترقية إلى خطة مدفوعة ترفع الحدود.'
+                          : 'Free limited-access codes from your instructor. Redeem to start — upgrade anytime to lift limits.'}
+                      </p>
                     </div>
 
                     {/* Terms checkbox */}

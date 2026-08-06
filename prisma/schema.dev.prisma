@@ -94,6 +94,16 @@ model User {
   renewalDate      String?
   biometricEnabled Boolean @default(false)
 
+  // ── Student / promo codes — free limited access for marketing ──────────
+  accessKind        String  @default("free") // 'free' | 'paid' | 'promo'
+  promoCode         String?
+  promoMaxMatters   Int     @default(0)
+  promoAiQuota      Int     @default(0)
+  promoAiQuotaPeriod String  @default("monthly") // 'total' | 'monthly'
+  promoAiUsed       Int     @default(0)
+  promoAiPeriodStart String?
+  promoExpiresAt    String?
+
   // Multi-tenancy
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -108,6 +118,24 @@ model User {
   // Case Investigation Agent back-relations.
   startedInvestigations CaseInvestigation[]
   investigationReviews  InvestigationReview[]
+}
+
+// Student / Promo codes — free limited access for marketing.
+// Platform-issued (not tenant-owned), shared across organizations.
+model StudentCode {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  maxMatters     Int      @default(3)
+  aiQuota        Int      @default(20)
+  aiQuotaPeriod  String   @default("total") // 'total' | 'monthly'
+  isActive       Boolean  @default(true)
+  expiresAt      DateTime?
+  usedCount      Int      @default(0)
+  generatedBy    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([isActive])
 }
 
 // NextAuth standard models — kept org-scoped for isolation

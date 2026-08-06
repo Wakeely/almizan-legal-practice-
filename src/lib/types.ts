@@ -16,6 +16,8 @@ export type SubscriptionTier = "Free Trial" | "Solo Practice" | "Pro Practice" |
 
 export type PlanStatus = "Active" | "Trial" | "Expired";
 export type BillingCycle = "Monthly" | "Annual";
+export type AccessKind = "free" | "paid" | "promo";
+export type AiQuotaPeriod = "total" | "monthly";
 
 export interface UserProfile {
   id: string;
@@ -36,6 +38,15 @@ export interface UserProfile {
   billingCycle: BillingCycle;
   renewalDate: string;
   biometricEnabled: boolean;
+  // ── Student / promo access (optional for backward compat with older
+  //    profile constructors; populated by /api/auth/me) ───────────────────
+  accessKind?: AccessKind;
+  promoCode?: string;
+  promoMaxMatters?: number;
+  promoAiQuota?: number;
+  promoAiQuotaPeriod?: AiQuotaPeriod;
+  promoAiUsed?: number;
+  promoExpiresAt?: string;
   // ── Paid add-on toggles (mirrors Organization columns) ─────────────────
   // When false, the UI shows an upgrade CTA instead of the module, and the
   // API returns 402. Phase 2: Case Investigation Agent.
@@ -64,7 +75,30 @@ export interface Matter {
   aiStrategy?: string;
 }
 
-export interface Document {
+/** Represents a StudentCode row as returned by the admin generate/list API. */
+export interface StudentCode {
+  id: string;
+  code: string;
+  maxMatters: number;
+  aiQuota: number;
+  aiQuotaPeriod: AiQuotaPeriod;
+  isActive: boolean;
+  expiresAt: string | null;
+  usedCount: number;
+  createdAt: string;
+}
+
+/** Client-facing promo usage summary (returned by /api/student-codes). */
+export interface PromoAllowance {
+  accessKind: AccessKind;
+  mattersUsed: number;
+  mattersMax: number | null;
+  aiUsed: number;
+  aiQuota: number | null;
+  aiQuotaPeriod?: AiQuotaPeriod;
+  expiresAt?: string | null;
+  upgradeRequired?: boolean;
+}export interface Document {
   id: string;
   organizationId: string;
   matterId: string;

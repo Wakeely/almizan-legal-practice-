@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/org";
 import { aiRateLimit, getClientIp } from "@/lib/rate-limit";
 import { callGemini } from "@/lib/gemini";
 import { audit } from "@/lib/audit";
+import { assertAiQuota } from "@/lib/student-access";
 
 const UTBMS_TASK_CODES = [
   "L100 (Case Assessment, Development, Review)",
@@ -38,6 +39,9 @@ const UTBMS_ACTIVITY_CODES = [
 export async function POST(req: Request) {
   const r = await requireUser();
   if (r.ok === false) return r.response;
+
+  const quota = await assertAiQuota(r.session.id);
+  if (quota.ok === false) return quota.response;
 
   const ip = getClientIp(req);
   const limit = await aiRateLimit(ip, r.session.organizationId);

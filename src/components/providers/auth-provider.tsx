@@ -28,6 +28,7 @@ interface AuthContextValue {
     barAssociationId?: string;
     jurisdiction: string;
     accountType: "Law Firm" | "Solo Practitioner" | "Corporate Counsel" | "Client";
+    studentCode?: string;
   }, password?: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
