@@ -39,6 +39,14 @@ model Organization {
   // Phase 1: Case Investigation Agent.
   investigationAgentEnabled Boolean @default(false)
 
+  // ── Bring Your Own AI Key (BYOK) — paid add-on ────────────────────────
+  aiKeyProvider         String? // preferred provider: 'openai' | 'xai' | 'gemini'
+  aiKeyOpenaiEncrypted  String? // AES-256-GCM encrypted OpenAI key
+  aiKeyXaiEncrypted     String? // AES-256-GCM encrypted xAI/Grok key
+  aiKeyGeminiEncrypted  String? // AES-256-GCM encrypted Gemini key
+  aiKeyUpdatedAt        DateTime?
+  aiKeyLastVerifiedAt   DateTime?
+
   // Relations — every tenant-owned model lives here
   users                             User[]
   matters                           Matter[]

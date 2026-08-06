@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser, orgWhere } from "@/lib/org";
 import { aiRateLimit, getClientIp } from "@/lib/rate-limit";
-import { callGemini } from "@/lib/gemini";
+import { dispatchAiText } from "@/lib/byok-dispatch";
 import { audit } from "@/lib/audit";
 import { assertAiQuota } from "@/lib/student-access";
 
@@ -56,7 +56,11 @@ Return a JSON object with this exact shape:
 
 Only return the JSON object, nothing else.`;
 
-  const result = await callGemini(prompt, "You are an enterprise legal document analyst specializing in GCC/MENA jurisdictions.");
+  const result = await dispatchAiText({
+    organizationId: r.session.organizationId,
+    prompt,
+    systemInstruction: "You are an enterprise legal document analyst specializing in GCC/MENA jurisdictions.",
+  });
 
   let summary = result.text;
   let tags: string[] = [];

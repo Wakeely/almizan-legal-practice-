@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/org";
 import { aiRateLimit, getClientIp } from "@/lib/rate-limit";
-import { callGemini } from "@/lib/gemini";
+import { dispatchAiText } from "@/lib/byok-dispatch";
 import { audit } from "@/lib/audit";
 import { assertAiQuota } from "@/lib/student-access";
 
@@ -78,7 +78,11 @@ Return a JSON object:
 
 Only return the JSON object.`;
 
-  const result = await callGemini(prompt, "You are an enterprise legal e-billing code classifier trained on UTBMS standards.");
+  const result = await dispatchAiText({
+    organizationId: r.session.organizationId,
+    prompt,
+    systemInstruction: "You are an enterprise legal e-billing code classifier trained on UTBMS standards.",
+  });
 
   let classification: any = {
     taskCode: "",

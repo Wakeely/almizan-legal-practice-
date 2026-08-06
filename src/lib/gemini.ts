@@ -9,13 +9,26 @@ import {
 
 let _client: GoogleGenAI | null = null;
 
-function getClient(): GoogleGenAI | null {
-  const key = process.env.GEMINI_API_KEY;
+function getClient(apiKey?: string): GoogleGenAI | null {
+  const key = apiKey ?? process.env.GEMINI_API_KEY;
   if (!key) return null;
+  // A caller-supplied org key always gets a fresh client (never reuse the
+  // platform singleton, which could hold a different key).
+  if (apiKey) return new GoogleGenAI({ apiKey: key });
   if (!_client) {
     _client = new GoogleGenAI({ apiKey: key });
   }
   return _client;
+}
+
+/** Options for a single Gemini call — allows supplying an org (BYOK) key. */
+export interface AiCallOpts {
+  /** Per-call API key (an organization's own key). Falls back to platform key when omitted. */
+  apiKey?: string;
+  /** Where the key came from, surfaced on the result for status/debugging. */
+  keySource?: "org" | "platform";
+  /** Override the primary model for this call. */
+  model?: string;
 }
 
 export interface GeminiMessage {
@@ -27,7 +40,9 @@ export interface GeminiResult {
   text: string;
   _stub: boolean;
   /** Set when the answer came from a fallback provider (for debugging). */
-  _provider?: "gemini" | "openai" | "groq";
+  _provider?: "gemini" | "openai" | "groq" | "xai";
+  /** Whether this call used the org's own key or the platform key. */
+  _keySource?: "org" | "platform";
 }
 
 // The primary text-generation model. Overridable via GEMINI_TEXT_MODEL env var
@@ -84,20 +99,23 @@ function isQuotaError(err: any): boolean {
 export async function callGemini(
   prompt: string,
   systemInstruction?: string,
+  opts?: AiCallOpts,
 ): Promise<GeminiResult> {
-  const client = getClient();
+  const client = getClient(opts?.apiKey);
   if (!client) {
     return {
       text:
         "[AI DISABLED — GEMINI_API_KEY not set on server]\n\nThis is a stub response. Set the GEMINI_API_KEY environment variable on your Vercel project to enable real AI generation.\n\nYour prompt was:\n" +
         prompt.slice(0, 500),
       _stub: true,
+      _keySource: opts?.keySource,
     };
   }
 
   // Build the ordered list of models to try: primary first, then fallbacks
   // (deduplicated, excluding the primary if it's already in the list).
-  const modelsToTry = Array.from(new Set([PRIMARY_MODEL, ...FALLBACK_MODELS]));
+  const primaryModel = opts?.model ?? PRIMARY_MODEL;
+  const modelsToTry = Array.from(new Set([primaryModel, ...FALLBACK_MODELS]));
 
   const failures: Array<{ model: string; error: string }> = [];
   let lastError: any = null;
@@ -115,7 +133,7 @@ export async function callGemini(
       });
 
       const text = result.text ?? "";
-      return { text, _stub: false };
+      return { text, _stub: false, _keySource: opts?.keySource };
     } catch (err: any) {
       lastError = err;
       const errSummary = summarizeError(err);
@@ -136,12 +154,13 @@ export async function callGemini(
   // As long as ANY provider has available quota, the RAG answer generates.
   if (process.env.OPENAI_API_KEY) {
     console.warn("[gemini] all Gemini models failed, falling back to OpenAI...");
-    const openaiResult = await callOpenAI(prompt, systemInstruction);
+    const openaiResult = await callOpenAI(prompt, systemInstruction, { keySource: opts?.keySource });
     if (!openaiResult._stub) {
       return {
         text: openaiResult.text,
         _stub: false,
         _provider: "openai",
+        _keySource: opts?.keySource,
       };
     }
     // OpenAI also failed (e.g. no credits) — fall through to Groq.
@@ -155,6 +174,7 @@ export async function callGemini(
       text: groqResult.text,
       _stub: groqResult._stub,
       _provider: "groq",
+      _keySource: opts?.keySource,
     };
   }
 
@@ -181,6 +201,7 @@ export async function callGemini(
         "Note: RAG retrieval still works — only the final answer text is blocked.",
       _stub: true,
       _provider: "gemini",
+      _keySource: opts?.keySource,
     };
   }
 
@@ -193,6 +214,7 @@ export async function callGemini(
       "set OPENAI_API_KEY in Vercel environment variables.",
     _stub: true,
     _provider: "gemini",
+    _keySource: opts?.keySource,
   };
 }
 
@@ -245,13 +267,15 @@ const MAX_TOOL_ROUNDS = 5;
 export async function callGeminiWithTools(
   prompt: string,
   systemInstruction?: string,
+  opts?: AiCallOpts,
 ): Promise<GeminiWithToolsResult> {
-  const client = getClient();
+  const client = getClient(opts?.apiKey);
   if (!client) {
     // No key — fall back to stub mode via callGemini.
-    return callGemini(prompt, systemInstruction);
+    return callGemini(prompt, systemInstruction, opts);
   }
 
+  const model = opts?.model ?? PRIMARY_MODEL;
   const tools = getAvailableLawTools();
   const toolCallLog: GeminiWithToolsResult["_toolCalls"] = [];
 
@@ -262,7 +286,7 @@ export async function callGeminiWithTools(
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     try {
       const result = await client.models.generateContent({
-        model: PRIMARY_MODEL,
+        model,
         contents,
         config: {
           systemInstruction: systemInstruction ?? undefined,
@@ -281,6 +305,7 @@ export async function callGeminiWithTools(
           text: result.text ?? "",
           _stub: false,
           _provider: "gemini",
+          _keySource: opts?.keySource,
           _toolCalls: toolCallLog,
         };
       }
@@ -311,7 +336,7 @@ export async function callGeminiWithTools(
       // If Gemini fails mid-tool-loop, fall back to plain callGemini (which
       // handles the OpenAI/Groq fallback chain).
       console.warn("[gemini/tools] tool loop failed, falling back:", err?.message?.substring(0, 200));
-      const fallback = await callGemini(prompt, systemInstruction);
+      const fallback = await callGemini(prompt, systemInstruction, opts);
       return { ...fallback, _toolCalls: toolCallLog };
     }
   }
@@ -321,6 +346,7 @@ export async function callGeminiWithTools(
     text: "Legal research completed but the tool-call limit was reached. The answer above reflects the information retrieved.",
     _stub: true,
     _provider: "gemini",
+    _keySource: opts?.keySource,
     _toolCalls: toolCallLog,
   };
 }

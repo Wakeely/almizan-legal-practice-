@@ -10,7 +10,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser, orgWhere } from "@/lib/org";
 import { aiRateLimit, getClientIp } from "@/lib/rate-limit";
-import { callGemini, callGeminiWithTools } from "@/lib/gemini";
+import { dispatchAiText } from "@/lib/byok-dispatch";
 import { audit } from "@/lib/audit";
 import { assertAiQuota } from "@/lib/student-access";
 
@@ -77,9 +77,12 @@ Only return the JSON object.`;
     "When analyzing Jordanian matters, use the jordanian_law tools to verify the legal basis " +
     "of claims and check whether cited provisions are still in force. Never invent citations.";
 
-  const result = isJordanMatter
-    ? await callGeminiWithTools(prompt, riskSystemPrompt)
-    : await callGemini(prompt, riskSystemPrompt);
+  const result = await dispatchAiText({
+    organizationId: r.session.organizationId,
+    prompt,
+    systemInstruction: riskSystemPrompt,
+    tools: isJordanMatter,
+  });
 
   let analysis: any = {
     riskSummary: result.text,

@@ -19,6 +19,29 @@ export type BillingCycle = "Monthly" | "Annual";
 export type AccessKind = "free" | "paid" | "promo";
 export type AiQuotaPeriod = "total" | "monthly";
 
+// ── Bring Your Own API Key (BYOK) ──────────────────────────────────────────
+export type AiProvider = "openai" | "xai" | "gemini";
+/** Where the resolved key comes from — the org's stored key or the platform env key. */
+export type AiKeySource = "org" | "platform";
+
+/** Decrypted org AI keys (server-side only — never sent to the browser). */
+export interface OrgAiKeys {
+  /** Preferred provider for AI calls, or null when unset. */
+  provider: AiProvider | null;
+  openai: string | null;
+  xai: string | null;
+  gemini: string | null;
+  updatedAt: string | null;
+  lastVerifiedAt: string | null;
+}
+
+/** A single resolved key chosen for an AI call. */
+export interface ResolvedAiKey {
+  provider: AiProvider;
+  apiKey: string;
+  keySource: AiKeySource;
+}
+
 export interface UserProfile {
   id: string;
   name: string;

@@ -8,7 +8,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/org";
 import { aiRateLimit, getClientIp } from "@/lib/rate-limit";
-import { callGemini } from "@/lib/gemini";
+import { dispatchAiText } from "@/lib/byok-dispatch";
 import { audit } from "@/lib/audit";
 import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
@@ -88,7 +88,11 @@ Return a JSON array of 4-6 deadlines. Each deadline object must have:
 
 Only return the JSON array, nothing else. All dates must be calculated from the trigger date (${data.triggerDate}) using the ruleset.`;
 
-  const result = await callGemini(prompt, "You are an enterprise court rules analyst specializing in GCC/MENA jurisdictions.");
+  const result = await dispatchAiText({
+    organizationId: r.session.organizationId,
+    prompt,
+    systemInstruction: "You are an enterprise court rules analyst specializing in GCC/MENA jurisdictions.",
+  });
 
   let deadlines: any[] = [];
 

@@ -16,12 +16,16 @@
 // =============================================================================
 
 import OpenAI from "openai";
+import type { AiKeySource } from "@/lib/types";
 
 let _client: OpenAI | null = null;
 
-function getClient(): OpenAI | null {
-  const key = process.env.OPENAI_API_KEY;
+function getClient(apiKey?: string): OpenAI | null {
+  const key = apiKey ?? process.env.OPENAI_API_KEY;
   if (!key) return null;
+  // A caller-supplied org key always gets a fresh client (never reuse the
+  // platform singleton, which could hold a different key).
+  if (apiKey) return new OpenAI({ apiKey });
   if (!_client) {
     _client = new OpenAI({ apiKey: key });
   }
@@ -33,10 +37,21 @@ export function isOpenAIConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
 }
 
+/** Options for a single OpenAI call — allows supplying an org (BYOK) key. */
+export interface AiCallOpts {
+  /** Per-call API key (an organization's own key). Falls back to platform key when omitted. */
+  apiKey?: string;
+  /** Where the key came from, surfaced on the result for status/debugging. */
+  keySource?: "org" | "platform";
+  /** Override the model for this call. */
+  model?: string;
+}
+
 export interface OpenAIResult {
   text: string;
   _stub: boolean;
   _provider: "openai";
+  _keySource?: "org" | "platform";
 }
 
 // The primary OpenAI model. GPT-4o-mini is the cheapest production-quality
@@ -59,8 +74,9 @@ const FALLBACK_MODELS = ["gpt-4o-mini", "gpt-4o"];
 export async function callOpenAI(
   prompt: string,
   systemInstruction?: string,
+  opts?: AiCallOpts,
 ): Promise<OpenAIResult> {
-  const client = getClient();
+  const client = getClient(opts?.apiKey);
   if (!client) {
     return {
       text:
@@ -71,10 +87,12 @@ export async function callOpenAI(
         prompt.slice(0, 500),
       _stub: true,
       _provider: "openai",
+      _keySource: opts?.keySource,
     };
   }
 
-  const modelsToTry = Array.from(new Set([PRIMARY_MODEL, ...FALLBACK_MODELS]));
+  const primary = opts?.model ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+  const modelsToTry = Array.from(new Set([primary, ...FALLBACK_MODELS]));
   const failures: Array<{ model: string; error: string }> = [];
 
   for (const model of modelsToTry) {
@@ -95,7 +113,7 @@ export async function callOpenAI(
       if (!text) {
         throw new Error("Empty response from OpenAI");
       }
-      return { text, _stub: false, _provider: "openai" };
+      return { text, _stub: false, _provider: "openai", _keySource: opts?.keySource };
     } catch (err: any) {
       const errSummary = summarizeError(err);
       failures.push({ model, error: errSummary });
@@ -128,6 +146,7 @@ export async function callOpenAI(
       "https://platform.openai.com/usage.",
     _stub: true,
     _provider: "openai",
+    _keySource: opts?.keySource,
   };
 }
 

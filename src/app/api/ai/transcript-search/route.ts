@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser, orgWhere } from "@/lib/org";
 import { aiRateLimit, getClientIp } from "@/lib/rate-limit";
-import { callGemini } from "@/lib/gemini";
+import { dispatchAiText } from "@/lib/byok-dispatch";
 import { audit } from "@/lib/audit";
 import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
@@ -83,7 +83,11 @@ Return a JSON object with:
 
 Only return the JSON object. If no admissions are found, return an empty array for keyAdmissions.`;
 
-  const result = await callGemini(prompt, "You are an enterprise deposition transcript analyst.");
+  const result = await dispatchAiText({
+    organizationId: r.session.organizationId,
+    prompt,
+    systemInstruction: "You are an enterprise deposition transcript analyst.",
+  });
 
   let analysis: any = {
     keyAdmissions: [],

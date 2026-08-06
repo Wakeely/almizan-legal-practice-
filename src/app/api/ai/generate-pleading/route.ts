@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser, orgWhere } from "@/lib/org";
 import { aiRateLimit, getClientIp } from "@/lib/rate-limit";
-import { callGemini } from "@/lib/gemini";
+import { dispatchAiText } from "@/lib/byok-dispatch";
 import { audit } from "@/lib/audit";
 import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
@@ -77,7 +77,11 @@ Structure your rebuttal as:
 
 Output ONLY the structured rebuttal text. No commentary.`;
 
-  const result = await callGemini(prompt, "You are a senior trial advocacy strategist with expertise in GCC/MENA civil procedure and commercial litigation.");
+  const result = await dispatchAiText({
+    organizationId: r.session.organizationId,
+    prompt,
+    systemInstruction: "You are a senior trial advocacy strategist with expertise in GCC/MENA civil procedure and commercial litigation.",
+  });
 
   await audit({
     action: "ai.generate-rebuttal",

@@ -18,7 +18,7 @@
 //   6. Return the canonical RagAnswer shape.
 // =============================================================================
 
-import { callGemini, callGeminiWithTools } from "@/lib/gemini";
+import { dispatchAiText } from "@/lib/byok-dispatch";
 import { generateEmbedding } from "./embed";
 import { isVectorSearchAvailable, retrieveMatterChunks, matchLegalCorpus } from "./retrieve";
 import type { AnswerOptions, Citation, RetrievedChunk, RagAnswer } from "./types";
@@ -140,10 +140,12 @@ If you cannot answer from the context, return:
   // Jordanian Law MCP to verify/retrieve additional provisions beyond what
   // our local corpus holds. This is especially useful when the question
   // references articles not yet in our curated 31-article seed set.
-  const result = await callGeminiWithTools(
-    `Question: ${opts.question}`,
-    systemPrompt,
-  );
+  const result = await dispatchAiText({
+    organizationId: opts.organizationId,
+    prompt: `Question: ${opts.question}`,
+    systemInstruction: systemPrompt,
+    tools: true,
+  });
 
   // 6. Parse the JSON response.
   let parsed: { answer?: string; cited_source_ids?: number[]; confidence?: number } = {};

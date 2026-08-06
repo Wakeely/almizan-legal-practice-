@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser, orgWhere } from "@/lib/org";
 import { aiRateLimit, getClientIp } from "@/lib/rate-limit";
-import { callGemini, callGeminiWithTools } from "@/lib/gemini";
+import { dispatchAiText } from "@/lib/byok-dispatch";
 import { audit } from "@/lib/audit";
 import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
@@ -164,9 +164,12 @@ Output ONLY the drafted document text. No commentary, no preamble, no closing no
       "validate citations before including them. Never invent article numbers — if you can't verify " +
       "a citation via the tools, state that the citation needs manual verification.";
 
-    const result = isJordanMatter
-      ? await callGeminiWithTools(prompt, systemPrompt)
-      : await callGemini(prompt, systemPrompt);
+    const result = await dispatchAiText({
+      organizationId: r.session.organizationId,
+      prompt,
+      systemInstruction: systemPrompt,
+      tools: isJordanMatter,
+    });
 
     await audit({
       action: "ai.draft",

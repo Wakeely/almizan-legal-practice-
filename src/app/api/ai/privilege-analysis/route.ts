@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser, orgWhere } from "@/lib/org";
 import { aiRateLimit, getClientIp } from "@/lib/rate-limit";
-import { callGemini } from "@/lib/gemini";
+import { dispatchAiText } from "@/lib/byok-dispatch";
 import { audit } from "@/lib/audit";
 import { z } from "zod";
 import { parseBody } from "@/lib/validation/auth";
@@ -78,7 +78,11 @@ Available privilege types:
 
 Only return the JSON object.`;
 
-  const result = await callGemini(prompt, "You are an enterprise legal privilege analyst specializing in GCC/MENA jurisdictions.");
+  const result = await dispatchAiText({
+    organizationId: r.session.organizationId,
+    prompt,
+    systemInstruction: "You are an enterprise legal privilege analyst specializing in GCC/MENA jurisdictions.",
+  });
 
   let analysis: any = {
     recommendedPrivilege: "Attorney-Client Privilege",

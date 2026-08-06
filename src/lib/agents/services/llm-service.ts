@@ -24,7 +24,7 @@
 //     (that's the orchestrator's job).
 // =============================================================================
 
-import { callGemini } from "@/lib/gemini";
+import { dispatchAiText } from "@/lib/byok-dispatch";
 
 export interface LlmCallResult<T> {
   /** Parsed JSON object when the model returned valid JSON, else null. */
@@ -49,13 +49,18 @@ export interface LlmCallResult<T> {
  * @param systemInstruction  The system prompt. Should include the JSON schema.
  * @param userPrompt         The user prompt. Should include the actual input.
  * @param schemaName         A short label for the audit trace (e.g. "intake").
+ * @param organizationId     Tenant whose BYOK key (if any) should be used.
  */
 export async function callLlmForJson<T>(
   systemInstruction: string,
   userPrompt: string,
   schemaName: string,
+  organizationId?: string,
 ): Promise<LlmCallResult<T>> {
-  const result = await callGemini(userPrompt, systemInstruction);
+  const result = organizationId
+    ? await dispatchAiText({ organizationId, prompt: userPrompt, systemInstruction })
+    : await dispatchAiText({ organizationId: "", prompt: userPrompt, systemInstruction });
+  const provider = (result._provider as LlmCallResult<T>["_provider"]) ?? "gemini";
 
   if (result._stub) {
     // Stub mode — no LLM answer available. Return cleanly.
@@ -63,7 +68,7 @@ export async function callLlmForJson<T>(
       data: null,
       raw: result.text,
       _stub: true,
-      _provider: result._provider,
+      _provider: provider,
     };
   }
 
@@ -80,14 +85,14 @@ export async function callLlmForJson<T>(
       data,
       raw: result.text,
       _stub: false,
-      _provider: result._provider,
+      _provider: provider,
     };
   } catch (err: any) {
     return {
       data: null,
       raw: result.text,
       _stub: false,
-      _provider: result._provider,
+      _provider: provider,
       parseError: `JSON parse failed for ${schemaName}: ${err?.message ?? String(err)}`,
     };
   }
