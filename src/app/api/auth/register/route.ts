@@ -31,6 +31,28 @@ function slugify(s: string): string {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || `firm-${Date.now()}`;
 }
 
+/**
+ * Map account type to role.
+ *
+ * Every registration creates a NEW Organization — the user is always the
+ * owner of that new firm workspace. Role names reflect their position within
+ * THEIR organization only (not a global "site admin" concept).
+ */
+function roleForAccountType(accountType: string): string {
+  switch (accountType) {
+    case "Law Firm":
+      return "Managing Partner";        // Owner of this law firm
+    case "Solo Practitioner":
+      return "Managing Partner";        // Single-lawyer firm owner
+    case "Corporate Counsel":
+      return "In-House Counsel";        // Legal team member at a company
+    case "Client":
+      return "Client Representative";   // Client portal user
+    default:
+      return "Managing Partner";        // Safe default for unknown types
+  }
+}
+
 function publicUser(user: any, org: any) {
   return {
     id: user.id,
@@ -108,7 +130,7 @@ export async function POST(req: Request) {
             barAssociationId: data.barAssociationId || null,
             jurisdiction: data.jurisdiction,
             accountType: data.accountType,
-            role: data.role ?? "Managing Partner",
+            role: roleForAccountType(data.accountType),
             subscriptionTier: "Free Trial",
             planStatus: "Active",
             trialDaysLeft: 0,

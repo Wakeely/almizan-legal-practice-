@@ -7,7 +7,15 @@
 // The reference stored a JWT in localStorage and sent it as a Bearer header.
 // This port uses NextAuth's HttpOnly + SameSite + Secure cookie session — the
 // token NEVER touches JavaScript. The client only knows whether a session
-// exists and who the user is.
+// exists and who they are.
+//
+// SESSION IDENTITY FIX (v2):
+// - login() ALWAYS signs out first to clear stale session cookies before
+//   signing in. This prevents the "previous admin session" bug where an old
+//   almizan.session-token cookie survives and the client sees the wrong user.
+// - After refresh, we verify the loaded identity matches the requested email.
+// - signup() returns { requiresVerification } without auto-login; if verification
+//   is skipped or already done, caller can invoke login() which is now hardened.
 // =============================================================================
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
@@ -63,14 +71,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refresh();
   }, [refresh]);
 
+  // ── Hardened login: clear old session FIRST, then sign in ──────────────
+  // BUG FIX: Without signOut first, an existing almizan.session-token cookie
+  // from a previous session can cause NextAuth to return the OLD user's JWT.
+  // The client then shows the admin dashboard to a newly registered solo attorney.
   const login = useCallback(async (email: string, password: string) => {
-    // Use next-auth signIn to set the HttpOnly cookie — no token in JS.
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // STEP 1: Destroy ANY existing session cookie before attempting login.
+    // This ensures no stale identity bleeds into the new session.
+    const { signOut } = await import("next-auth/react");
+    await signOut({ redirect: false }).catch(() => {});
+    // Clear local state immediately so UI doesn't flash old user data
+    setUser(null);
+
+    // STEP 2: Perform credentials login with clean slate
     const { signIn } = await import("next-auth/react");
     const res = await signIn("credentials", {
-      email,
+      email: normalizedEmail,
       password,
       redirect: false,
     });
+
     if (!res || res.error) {
       // Distinguish between bad credentials and unverified email
       // NextAuth returns generic error for both cases
@@ -78,9 +100,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         "Invalid credentials or email not verified. Check your inbox for the verification link."
       );
     }
-    await refresh();
-  }, [refresh]);
 
+    // STEP 3: Refresh session from server — this reads the NEW cookie
+    await refresh();
+
+    // STEP 4: Verify the session actually bound to the requested account.
+    // Race condition / cookie collision can still cause wrong user to load.
+    if (!user || !user.email) {
+      throw new Error("Login succeeded but session did not bind. Please try again.");
+    }
+    if (user.email.toLowerCase() !== normalizedEmail) {
+      // Wrong identity loaded — clear everything and fail hard
+      setUser(null);
+      await signOut({ redirect: false }).catch(() => {});
+      throw new Error(
+        `Login succeeded but session bound to wrong account (${user.email}). Please clear cookies and retry.`
+      );
+    }
+  }, [refresh]); // Note: intentionally NOT including user in deps to avoid stale closure
+
+  // ── Signup: register + optionally login (with hardened flow above) ───────
   const signup = useCallback(async (data: any, passwordArg?: string): Promise<{ requiresVerification?: boolean; email?: string }> => {
     // The reference AuthModal calls signup({ ...fields }, password) — i.e.
     // password as the SECOND argument. We accept both forms: data.password OR
@@ -105,10 +144,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // ── Logout: belt-and-suspenders cleanup ─────────────────────────────────
   const logout = useCallback(async () => {
     const { signOut } = await import("next-auth/react");
-    await signOut({ redirect: false });
-    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    // Attempt both cleanup paths; ensure setUser(null) runs regardless
+    try {
+      await signOut({ redirect: false });
+    } catch {
+      // signOut may fail if no session exists — that's fine
+    }
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Server logout endpoint may be unreachable — still clear local state
+    }
+    // ALWAYS clear local state, even if network calls failed
     setUser(null);
   }, []);
 

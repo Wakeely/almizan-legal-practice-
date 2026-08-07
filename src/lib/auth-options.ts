@@ -4,10 +4,17 @@
 // SECURITY:
 // - JWT session strategy with HttpOnly + Secure + SameSite=Lax cookies.
 // - Credentials provider verifies password via bcrypt.
-// - JWT callback injects organizationId + role into the token.
-// - Session callback exposes organizationId + role to the client.
+// - JWT callback injects FULL identity (id, email, name, org, role) into token.
+// - Session callback exposes complete identity to client — no stale data.
 // - NEXTAUTH_SECRET must be set in env (validated at boot).
 // - NEXTAUTH_URL is auto-detected in dev; set explicitly in prod.
+//
+// IDENTITY FIX (v2):
+// - authorize() returns COMPLETE identity object (email, name, id, org, role)
+// - jwt() binds ALL fields on sign-in, preserves them on token refresh
+// - session() exposes ALL identity fields to client
+// - Rejects soft-deleted users (deletedAt != null)
+// - Logs authenticated identity for diagnostics
 // =============================================================================
 
 import type { NextAuthOptions } from "next-auth";
@@ -69,6 +76,13 @@ export const authOptions: NextAuthOptions = {
         });
         if (!user || !user.organization) return null;
 
+        // ── Soft-delete gate ──────────────────────────────────────────────
+        // Reject users who have been soft-deleted. Their session must not revive.
+        if (user.deletedAt) {
+          console.log(`[auth] Login rejected: user ${user.id} is soft-deleted`);
+          return null;
+        }
+
         // ── Email verification gate ──────────────────────────────────────
         // Users MUST verify their email before they can log in.
         // Returning null here causes NextAuth to reject the login with a
@@ -81,32 +95,51 @@ export const authOptions: NextAuthOptions = {
         const ok = await verifyPassword(parsed.data.password, user.passwordHash);
         if (!ok) return null;
 
+        // ── Diagnostic log (identity proof) ───────────────────────────────
+        console.log(
+          `[auth] authorize success: email=${user.email} userId=${user.id} ` +
+          `orgId=${user.organizationId} role=${user.role}`
+        );
+
+        // Return COMPLETE identity — all fields needed for JWT binding
         return {
           id: user.id,
           email: user.email,
           name: user.name,
-          // Custom fields carried via JWT callback
           organizationId: user.organizationId,
           role: user.role,
-        } as any;
+        };
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
+      // On FIRST sign-in (user object present): bind ALL identity fields
       if (user) {
-        // First sign-in: persist org + role
-        token.organizationId = (user as any).organizationId;
-        token.role = (user as any).role;
-        token.userId = (user as any).id ?? user.id;
+        const u = user as any;
+        token.sub = u.id;                    // JWT standard subject = user ID
+        token.userId = u.id;                 // Explicit userId for easy access
+        token.email = u.email;               // Bind email for mismatch detection
+        token.name = u.name;                 // Bind display name
+        token.organizationId = u.organizationId; // Multi-tenant isolation
+        token.role = u.role;                 // Authorization context
       }
+
+      // SAFETY: Ensure userId is never undefined if sub exists
+      // This can happen if a stale token lacks our custom fields
+      token.userId = token.userId ?? token.sub;
+
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.userId;
-        (session.user as any).organizationId = token.organizationId;
-        (session.user as any).role = token.role;
+        const su = session.user as any;
+        // Expose COMPLETE identity from JWT to client
+        su.id = token.userId ?? token.sub;   // User's database ID
+        su.email = token.email;              // For email-mismatch guard in auth-provider
+        su.name = token.name;                // Display name
+        su.organizationId = token.organizationId; // Multi-tenant scope
+        su.role = token.role;                // Role-based UI/authorization
       }
       return session;
     },
@@ -115,7 +148,7 @@ export const authOptions: NextAuthOptions = {
     // Fires after NextAuth successfully authenticates a user (Credentials provider).
     // This is the ONLY reliable place to audit logins — the client-side signIn()
     // helper posts to /api/auth/callback/credentials, bypassing any custom route.
-    async signIn({ user, account, }) {
+    async signIn({ user, account }) {
       try {
         const { db } = await import("@/lib/db");
         const u = user as any;
@@ -128,7 +161,6 @@ export const authOptions: NextAuthOptions = {
             action: "auth.login",
             entity: "user",
             entityId: u.id,
-            // SQLite has no Json type — serialize to String (same as audit() helper).
             details: JSON.stringify({ provider: account?.provider ?? "credentials", email: u.email }),
           },
         });
