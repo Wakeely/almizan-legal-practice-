@@ -71,6 +71,7 @@ model Organization {
   warRoomExhibits                   WarRoomExhibit[]
   conflictChecks                    ConflictCheck[]
   auditLogs                         AuditLog[]
+  aiUsageLogs                       AiUsageLog[]
   sessions                          Session[]
   accounts                          Account[]
   investigations                    CaseInvestigation[]
@@ -609,7 +610,39 @@ model PlatformAdmin {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  auditLogs AuditLog[]
+  auditLogs     AuditLog[]
+  recoveryCodes PlatformAdminRecoveryCode[]
+}
+
+model PlatformAdminRecoveryCode {
+  id              String   @id @default(cuid())
+  platformAdminId String
+  platformAdmin   PlatformAdmin @relation(fields: [platformAdminId], references: [id], onDelete: Cascade)
+  codeHash        String   @unique
+  usedAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([platformAdminId])
+}
+
+model AiUsageLog {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId          String?
+  provider        String
+  model           String
+  feature         String?
+  tokensIn        Int      @default(0)
+  tokensOut       Int      @default(0)
+  estimatedCostUsd Float  @default(0)
+  keySource       String   @default("platform")
+  stub            Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([provider, createdAt])
+  @@index([createdAt])
 }
 
 // -----------------------------------------------------------------------------

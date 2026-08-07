@@ -17,10 +17,11 @@
 // =============================================================================
 
 import "server-only";
-import { resolveAiKey } from "@/lib/ai-keys";
+import { resolveAiKey, defaultModelForProvider } from "@/lib/ai-keys";
 import { callGemini, callGeminiWithTools, type GeminiWithToolsResult } from "@/lib/gemini";
 import { callOpenAI } from "@/lib/openai";
 import { callXai } from "@/lib/xai";
+import { logAiUsage } from "@/lib/ai-usage";
 import type { AiProvider, AiKeySource } from "@/lib/types";
 
 export interface DispatchOptions {
@@ -30,6 +31,10 @@ export interface DispatchOptions {
   systemInstruction?: string;
   /** Use tool-enabled calls (Jordanian law MCP). Only honored for Gemini. */
   tools?: boolean;
+  /** The tenant user who triggered the call (for AI usage logging). */
+  userId?: string;
+  /** Route or feature label for AI usage logging (e.g. 'ai.summarize'). */
+  feature?: string;
 }
 
 export interface DispatchResult {
@@ -49,7 +54,10 @@ export async function dispatchAiText(opts: DispatchOptions): Promise<DispatchRes
   const resolved = await resolveAiKey(opts.organizationId);
   const apiKey = resolved?.apiKey;
   const keySource: AiKeySource = resolved?.keySource ?? "platform";
+  const provider = resolved?.provider ?? "gemini";
+  const model = defaultModelForProvider(provider);
 
+  let result: DispatchResult;
   switch (resolved?.provider) {
     case "openai": {
       const r = await callOpenAI(opts.prompt, opts.systemInstruction, {
@@ -57,14 +65,16 @@ export async function dispatchAiText(opts: DispatchOptions): Promise<DispatchRes
         keySource,
         model: undefined,
       });
-      return { text: r.text, _stub: r._stub, _provider: "openai", _keySource: r._keySource ?? keySource };
+      result = { text: r.text, _stub: r._stub, _provider: "openai", _keySource: r._keySource ?? keySource };
+      break;
     }
     case "xai": {
       const r = await callXai(opts.prompt, opts.systemInstruction, {
         apiKey,
         keySource,
       });
-      return { text: r.text, _stub: r._stub, _provider: "xai", _keySource: r._keySource ?? keySource };
+      result = { text: r.text, _stub: r._stub, _provider: "xai", _keySource: r._keySource ?? keySource };
+      break;
     }
     case "gemini":
     default: {
@@ -80,15 +90,36 @@ export async function dispatchAiText(opts: DispatchOptions): Promise<DispatchRes
             apiKey,
             keySource,
           });
-      return {
+      result = {
         text: r.text,
         _stub: r._stub,
         _provider: (r._provider as DispatchResult["_provider"]) ?? "gemini",
         _keySource: r._keySource ?? keySource,
         _toolCalls: (r as GeminiWithToolsResult)._toolCalls,
       };
+      break;
     }
   }
+
+  // ── AI usage logging (Phase 2 §2.4) ─────────────────────────────────────
+  // Best-effort, fire-and-forget. Never blocks the response. The actual model
+  // that answered may differ from the resolved provider (Gemini falls back to
+  // OpenAI/Groq internally) — we log the resolved provider + its default
+  // model as a reasonable approximation. Stub calls (no real provider) are
+  // logged with stub=true and $0 cost.
+  void logAiUsage({
+    organizationId: opts.organizationId,
+    userId: opts.userId,
+    provider: result._provider,
+    model,
+    feature: opts.feature,
+    promptText: opts.prompt,
+    outputText: result.text,
+    keySource: result._keySource ?? keySource,
+    stub: result._stub,
+  }).catch(() => {});
+
+  return result;
 }
 
 // Re-exported for callers that want the resolved key for status/UI purposes.

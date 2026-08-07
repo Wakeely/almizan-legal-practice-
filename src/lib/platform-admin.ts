@@ -52,6 +52,7 @@ export interface PlatformAdminSession {
   email: string;
   name: string;
   role: string; // 'super_admin' | 'ops_admin'
+  mfaEnabled: boolean; // Phase 2 §2.1 — gates impersonation / break-glass
 }
 
 interface TokenPayload extends PlatformAdminSession {
@@ -116,6 +117,7 @@ function verifySession(token: string): PlatformAdminSession | null {
     email: payload.email,
     name: payload.name,
     role: payload.role,
+    mfaEnabled: payload.mfaEnabled ?? false,
   };
 }
 
@@ -183,7 +185,7 @@ export async function requirePlatformAdmin(): Promise<
   // disabled flag, but this guards against deleted-admin token reuse.)
   const admin = await db.platformAdmin.findUnique({
     where: { id: payload.adminId },
-    select: { id: true, email: true, role: true },
+    select: { id: true, email: true, role: true, mfaEnabled: true },
   });
   if (!admin || admin.email.toLowerCase() !== payload.email.toLowerCase()) {
     return {
@@ -202,8 +204,38 @@ export async function requirePlatformAdmin(): Promise<
       email: admin.email,
       name: payload.name,
       role: admin.role,
+      mfaEnabled: admin.mfaEnabled,
     },
   };
+}
+
+/**
+ * requirePlatformAdminWithMfa()
+ *
+ * Stricter gate for impersonation + break-glass routes (Phase 2 §2.5, §2.6).
+ * Returns 403 if the acting admin does not have MFA enabled. This is the
+ * "force-enrollment" mechanism from PRD §2.1 — basic dashboard ops remain
+ * available while MFA is being rolled out, but the dangerous routes are
+ * blocked until the admin completes TOTP enrollment.
+ */
+export async function requirePlatformAdminWithMfa(): Promise<
+  { ok: true; session: PlatformAdminSession } | { ok: false; response: NextResponse }
+> {
+  const r = await requirePlatformAdmin();
+  if (r.ok === false) return r;
+  if (!r.session.mfaEnabled) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        {
+          error:
+            "MFA required. Complete TOTP enrollment in the dashboard before using impersonation or break-glass access.",
+        },
+        { status: 403 },
+      ),
+    };
+  }
+  return r;
 }
 
 /**
@@ -217,7 +249,7 @@ export async function getPlatformAdminSession(): Promise<PlatformAdminSession | 
   if (!payload) return null;
   const admin = await db.platformAdmin.findUnique({
     where: { id: payload.adminId },
-    select: { id: true, email: true, name: true, role: true },
+    select: { id: true, email: true, name: true, role: true, mfaEnabled: true },
   });
   if (!admin) return null;
   return {
@@ -225,6 +257,7 @@ export async function getPlatformAdminSession(): Promise<PlatformAdminSession | 
     email: admin.email,
     name: admin.name,
     role: admin.role,
+    mfaEnabled: admin.mfaEnabled,
   };
 }
 
@@ -242,4 +275,75 @@ export async function getBootstrapState(): Promise<BootstrapState> {
     process.env.PLATFORM_ADMIN_BOOTSTRAP_TOKEN.length >= 16;
   const count = await db.platformAdmin.count();
   return { enabled, tokenConfigured, firstAdminExists: count > 0 };
+}
+
+// ── Impersonation cookie (Phase 2 §2.5) ────────────────────────────────────
+// A SEPARATE cookie from the platform-admin session cookie. When present, the
+// tenant app renders with an impersonation banner and the server treats the
+// request as the impersonated user (scoped to that user's org). The cookie is
+// time-boxed to 30 minutes and carries the platform-admin id (for audit) +
+// the target user id + expiry.
+//
+// The impersonation cookie does NOT replace the tenant NextAuth session —
+// instead, the tenant app checks for it and, if present + valid, loads the
+// impersonated user's identity instead of the normal session. This keeps the
+// two auth paths cleanly separated.
+export const PLATFORM_ADMIN_IMPERSONATION_COOKIE = "almizan.platform-admin-impersonation";
+const IMPERSONATION_MAX_AGE_SECONDS = 60 * 30; // 30 minutes
+
+export interface ImpersonationPayload {
+  adminId: string;
+  targetUserId: string;
+  targetEmail: string;
+  targetName: string;
+  targetOrgId: string;
+  reason: string | null;
+  expiresAt: number; // unix seconds
+}
+
+export async function setImpersonationCookie(payload: Omit<ImpersonationPayload, "expiresAt">): Promise<void> {
+  const full: ImpersonationPayload = {
+    ...payload,
+    expiresAt: Math.floor(Date.now() / 1000) + IMPERSONATION_MAX_AGE_SECONDS,
+  };
+  const token = signSession(full as unknown as PlatformAdminSession);
+  const store = await cookies();
+  store.set(PLATFORM_ADMIN_IMPERSONATION_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: IMPERSONATION_MAX_AGE_SECONDS,
+  });
+}
+
+export async function clearImpersonationCookie(): Promise<void> {
+  const store = await cookies();
+  store.delete(PLATFORM_ADMIN_IMPERSONATION_COOKIE);
+}
+
+export async function getImpersonation(): Promise<ImpersonationPayload | null> {
+  const store = await cookies();
+  const token = store.get(PLATFORM_ADMIN_IMPERSONATION_COOKIE)?.value;
+  if (!token) return null;
+  const parts = token.split(".");
+  if (parts.length !== 2) return null;
+  const [payloadB64, sigB64] = parts;
+  const expectedSig = createHmac("sha256", SECRET).update(payloadB64).digest();
+  let providedSig: Buffer;
+  try {
+    providedSig = Buffer.from(sigB64, "base64url");
+  } catch {
+    return null;
+  }
+  if (providedSig.length !== expectedSig.length) return null;
+  if (!timingSafeEqual(providedSig, expectedSig)) return null;
+  try {
+    const json = Buffer.from(payloadB64, "base64url").toString("utf8");
+    const payload = JSON.parse(json) as ImpersonationPayload;
+    if (Math.floor(Date.now() / 1000) >= payload.expiresAt) return null;
+    return payload;
+  } catch {
+    return null;
+  }
 }

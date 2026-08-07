@@ -89,6 +89,7 @@ model Organization {
   warRoomExhibits                   WarRoomExhibit[]
   conflictChecks                    ConflictCheck[]
   auditLogs                         AuditLog[]
+  aiUsageLogs                       AiUsageLog[]
   sessions                          Session[]
   accounts                          Account[]
   investigations                    CaseInvestigation[]
@@ -698,7 +699,54 @@ model PlatformAdmin {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  auditLogs AuditLog[]
+  auditLogs     AuditLog[]
+  recoveryCodes PlatformAdminRecoveryCode[]
+}
+
+// -----------------------------------------------------------------------------
+// PlatformAdminRecoveryCode — single-use TOTP recovery codes (Phase 2 §2.1)
+// -----------------------------------------------------------------------------
+// Hashed at rest (SHA-256) — the plaintext is shown ONCE at enrollment and
+// never stored. Marked usedAt when consumed so a code can't be replayed.
+// -----------------------------------------------------------------------------
+model PlatformAdminRecoveryCode {
+  id              String   @id @default(cuid())
+  platformAdminId String
+  platformAdmin   PlatformAdmin @relation(fields: [platformAdminId], references: [id], onDelete: Cascade)
+  codeHash        String   @unique // SHA-256 hash of the recovery code
+  usedAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([platformAdminId])
+}
+
+// -----------------------------------------------------------------------------
+// AiUsageLog — per-call AI cost tracking (Phase 2 §2.4)
+// -----------------------------------------------------------------------------
+// Written at the point where dispatchAiText() returns. Best-effort, async —
+// never blocks the AI response. organizationId is the tenant that initiated
+// the call (NOT null — AI usage is always tenant-scoped). userId is the
+// tenant user who triggered the call (null for system/agent-initiated calls).
+// estimatedCostUsd is computed from token counts × a per-model rate table.
+// -----------------------------------------------------------------------------
+model AiUsageLog {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId          String?
+  provider        String   // 'gemini' | 'openai' | 'xai' | 'groq'
+  model           String
+  feature         String?  // route or feature label, e.g. 'ai.summarize', 'ai.rag_query'
+  tokensIn        Int      @default(0)
+  tokensOut       Int      @default(0)
+  estimatedCostUsd Float  @default(0)
+  keySource       String   @default("platform") // 'org' | 'platform'
+  stub            Boolean  @default(false) // true if the call returned a stub (no real provider)
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([provider, createdAt])
+  @@index([createdAt])
 }
 
 // -----------------------------------------------------------------------------
