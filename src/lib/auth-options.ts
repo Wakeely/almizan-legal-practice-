@@ -83,6 +83,22 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        // ── Suspended-org gate (PRD v0.3 §7) ──────────────────────────────
+        // Reject logins for users whose organization is not 'active'. This
+        // complements the runtime gate in requireUser() (src/lib/org.ts) which
+        // catches sessions issued BEFORE the org was suspended.
+        //
+        // The Organization.status column is added in migration 0001. The select
+        // below is defensive: if the column doesn't exist yet (pre-migration),
+        // the optional chaining returns undefined and we treat it as active.
+        const orgStatus = (user.organization as any)?.status;
+        if (orgStatus && orgStatus !== "active") {
+          console.log(
+            `[auth] Login rejected: org ${user.organizationId} status=${orgStatus}`,
+          );
+          return null;
+        }
+
         // ── Email verification gate ──────────────────────────────────────
         // Users MUST verify their email before they can log in.
         // Returning null here causes NextAuth to reject the login with a

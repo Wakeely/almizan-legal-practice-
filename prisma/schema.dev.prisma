@@ -47,6 +47,14 @@ model Organization {
   aiKeyUpdatedAt        DateTime?
   aiKeyLastVerifiedAt   DateTime?
 
+  // ── Suspension / archival (PRD v0.3 §7) ─────────────────────────────────
+  // 'active' | 'suspended' | 'archived'. Default 'active'.
+  // Suspended orgs: tenant users cannot log in; requireUser() fails with a
+  // clear error. Platform admin can suspend/restore via the dashboard.
+  status              String    @default("active")
+  suspendedAt         DateTime?
+  suspendedReason     String?
+
   // Relations — every tenant-owned model lives here
   users                             User[]
   matters                           Matter[]
@@ -583,21 +591,50 @@ model LegalCorpus {
 }
 
 // -----------------------------------------------------------------------------
+// PlatformAdmin — separate identity for the Super Admin Dashboard.
+// (PRD v0.3 §1, §2) — NOT a tenant User with a special role.
+// MFA fields exist for future rollout; not active in Phase 1 (PRD v0.3 §4).
+// -----------------------------------------------------------------------------
+model PlatformAdmin {
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  name               String
+  passwordHash       String
+  role               String   @default("super_admin")
+  mfaEnabled         Boolean  @default(false)
+  mfaSecretEncrypted String?
+  lastLoginAt        DateTime?
+  lastLoginIp        String?
+  createdByBootstrap Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  auditLogs AuditLog[]
+}
+
+// -----------------------------------------------------------------------------
 // Audit Log — APPEND ONLY. Never expose update/delete endpoints.
+// -----------------------------------------------------------------------------
+// PRD v0.3 §6: organizationId is NULLABLE so platform-only actions don't
+// fake a tenant. actorType discriminates; platformAdminId carries the actor
+// when actorType === 'platform_admin'.
 // -----------------------------------------------------------------------------
 
 model AuditLog {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  userId         String?
-  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id              String         @id @default(cuid())
+  organizationId  String?
+  organization    Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  actorType       String         @default("tenant_user")
+  userId          String?
+  user            User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  platformAdminId String?
+  platformAdmin   PlatformAdmin? @relation(fields: [platformAdminId], references: [id], onDelete: SetNull)
 
-  action    String // e.g. 'matter.create', 'auth.login', 'document.redact'
-  entity    String? // 'matter' | 'document' | 'task' | ...
+  action    String
+  entity    String?
   entityId  String?
   matterId  String?
-  details   String? // JSON-encoded
+  details   String?
   ipAddress String?
   userAgent String?
 
@@ -605,6 +642,8 @@ model AuditLog {
 
   @@index([organizationId, createdAt])
   @@index([userId])
+  @@index([platformAdminId, createdAt])
+  @@index([actorType])
 }
 
 // =============================================================================

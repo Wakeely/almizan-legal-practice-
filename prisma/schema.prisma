@@ -65,6 +65,14 @@ model Organization {
   aiKeyUpdatedAt        DateTime?
   aiKeyLastVerifiedAt   DateTime?
 
+  // ── Suspension / archival (PRD v0.3 §7) ─────────────────────────────────
+  // 'active' | 'suspended' | 'archived'. Default 'active'.
+  // Suspended orgs: tenant users cannot log in; requireUser() fails with a
+  // clear error. Platform admin can suspend/restore via the dashboard.
+  status              String    @default("active")
+  suspendedAt         DateTime?
+  suspendedReason     String?
+
   // Relations — every tenant-owned model lives here
   users                             User[]
   matters                           Matter[]
@@ -662,18 +670,60 @@ model LegalCorpus {
 }
 
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// PlatformAdmin — separate identity for the Super Admin Dashboard.
+// (PRD v0.3 §1, §2)
+// -----------------------------------------------------------------------------
+// NOT a tenant User with a special role. Own table + own auth path.
+// The first row is created via a one-shot token-gated bootstrap endpoint,
+// then the bootstrap kill-switch is disabled. After that, only an existing
+// Super Admin can create/disable additional admins from inside the dashboard.
+//
+// MFA (mfaEnabled / mfaSecretEncrypted) is NOT active in Phase 1 — the fields
+// exist so a future TOTP rollout doesn't require another migration. The login
+// screen shows a 6-digit placeholder field but does NOT verify a real TOTP.
+// Real MFA is mandatory before impersonation / break-glass ship (PRD v0.3 §4).
+// -----------------------------------------------------------------------------
+model PlatformAdmin {
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  name               String
+  passwordHash       String
+  role               String   @default("super_admin") // 'super_admin' | 'ops_admin'
+  mfaEnabled         Boolean  @default(false)
+  mfaSecretEncrypted String?  // AES-256-GCM, populated when MFA is rolled out
+  lastLoginAt        DateTime?
+  lastLoginIp        String?
+  createdByBootstrap Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  auditLogs AuditLog[]
+}
+
+// -----------------------------------------------------------------------------
 // Audit Log — APPEND ONLY. Never expose update/delete endpoints.
+// -----------------------------------------------------------------------------
+// PRD v0.3 §6: organizationId is NULLABLE so platform-only actions
+// (e.g. platform_admin.login, student_code.create, bootstrap) don't fake a
+// tenant. The actorType discriminator distinguishes tenant-user actions from
+// platform-admin actions; platformAdminId carries the actor when
+// actorType === 'platform_admin'. Existing tenant rows get the default
+// actorType 'tenant_user' and null platformAdminId — no data loss.
 // -----------------------------------------------------------------------------
 
 model AuditLog {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  userId         String?
-  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id              String         @id @default(cuid())
+  organizationId  String?
+  organization    Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  actorType       String         @default("tenant_user") // 'tenant_user' | 'platform_admin' | 'system'
+  userId          String?
+  user            User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  platformAdminId String?
+  platformAdmin   PlatformAdmin? @relation(fields: [platformAdminId], references: [id], onDelete: SetNull)
 
-  action    String // e.g. 'matter.create', 'auth.login', 'document.redact'
-  entity    String? // 'matter' | 'document' | 'task' | ...
+  action    String // e.g. 'matter.create', 'auth.login', 'platform_admin.org_suspend'
+  entity    String? // 'matter' | 'document' | 'organization' | 'platform_admin' | ...
   entityId  String?
   matterId  String?
   details   String? // JSON-encoded
@@ -684,6 +734,8 @@ model AuditLog {
 
   @@index([organizationId, createdAt])
   @@index([userId])
+  @@index([platformAdminId, createdAt])
+  @@index([actorType])
 }
 
 // =============================================================================

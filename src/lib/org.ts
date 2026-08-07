@@ -17,6 +17,33 @@ export async function requireUser(): Promise<
       response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
     };
   }
+
+  // ── Suspended-org gate (PRD v0.3 §7) ────────────────────────────────────
+  // If the caller's organization is suspended or archived, every tenant API
+  // call must fail with a clear error. This catches sessions issued BEFORE
+  // the org was suspended (the login route also rejects new logins for
+  // suspended orgs — see src/lib/auth-options.ts authorize()).
+  //
+  // This is an ADDITIVE guard. It does NOT bypass orgWhere() — it adds a
+  // status check on top of the existing organizationId scoping. The existing
+  // tenant /api/* handlers continue to use orgWhere() exactly as before.
+  const org = await db.organization.findUnique({
+    where: { id: session.organizationId },
+    select: { status: true },
+  });
+  if (!org || org.status !== "active") {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        {
+          error:
+            "Your organization is not active. Contact your platform administrator.",
+        },
+        { status: 403 },
+      ),
+    };
+  }
+
   return { ok: true, session };
 }
 
