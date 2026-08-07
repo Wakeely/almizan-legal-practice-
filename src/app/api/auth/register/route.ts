@@ -86,60 +86,94 @@ export async function POST(req: Request) {
 
   const passwordHash = await hashPassword(data.password);
 
-  const org = await db.organization.create({
-    data: {
-      name: data.firmName,
-      slug: finalSlug,
-      barAssociationId: data.barAssociationId || null,
-      jurisdiction: data.jurisdiction,
-      users: {
-        create: {
-          email: data.email.toLowerCase(),
-          name: data.name,
-          passwordHash,
-          barAssociationId: data.barAssociationId || null,
-          jurisdiction: data.jurisdiction,
-          accountType: data.accountType,
-          role: data.role ?? "Managing Partner",
-          subscriptionTier: "Free Trial",
-          planStatus: "Trial",
-          trialDaysLeft: 14,
-          seats: 1,
-          maxSeats: 10,
-          billingCycle: "Monthly",
+  try {
+    const org = await db.organization.create({
+      data: {
+        name: data.firmName,
+        slug: finalSlug,
+        barAssociationId: data.barAssociationId || null,
+        jurisdiction: data.jurisdiction,
+        users: {
+          create: {
+            email: data.email.toLowerCase(),
+            name: data.name,
+            passwordHash,
+            barAssociationId: data.barAssociationId || null,
+            jurisdiction: data.jurisdiction,
+            accountType: data.accountType,
+            role: data.role ?? "Managing Partner",
+            subscriptionTier: "Free Trial",
+            planStatus: "Trial",
+            trialDaysLeft: 14,
+            seats: 1,
+            maxSeats: 10,
+            billingCycle: "Monthly",
+          },
         },
       },
-    },
-    include: { users: true },
-  });
+      include: { users: true },
+    });
 
-  const user = org.users[0];
+    const user = org.users[0];
 
-  // Apply the promo code (atomically consumes it + snapshots limits onto user).
-  // If it unexpectedly fails after the account was created (e.g. a race where
-  // the code was consumed between our pre-check and now), roll the account back.
-  if (data.studentCode) {
-    const redeemed = await redeemStudentCode(data.studentCode, user.id);
-    if (redeemed.ok === false) {
-      await db.organization.delete({ where: { id: org.id } }).catch((): void => undefined);
-      return NextResponse.json({ error: redeemed.error }, { status: 400 });
+    if (data.studentCode) {
+      const redeemed = await redeemStudentCode(data.studentCode, user.id);
+      if (redeemed.ok === false) {
+        await db.organization.delete({ where: { id: org.id } }).catch((): void => undefined);
+        return NextResponse.json({ error: redeemed.error }, { status: 400 });
+      }
     }
+
+    const updatedUser = await db.user.findUnique({
+      where: { id: user.id },
+      include: { organization: true },
+    });
+    if (!updatedUser) {
+      return NextResponse.json(
+        { error: "Account created but could not be loaded" },
+        { status: 500 },
+      );
+    }
+
+    await audit(
+      { action: "auth.register", entity: "user", entityId: user.id, details: { email: user.email } },
+      req,
+      { userId: user.id, organizationId: org.id },
+    );
+
+    return NextResponse.json(
+      { user: publicUser(updatedUser, updatedUser.organization) },
+      { status: 201 },
+    );
+  } catch (dbError: unknown) {
+    console.error("[REGISTER] Database error:", dbError);
+
+    if (
+      dbError &&
+      typeof dbError === "object" &&
+      "code" in dbError &&
+      (dbError as { code: string }).code === "P2002"
+    ) {
+      const meta = (dbError as { meta?: { target?: string[] } }).meta;
+      const target = (meta?.target ?? []).join(" ");
+      if (target.includes("email")) {
+        return NextResponse.json({ error: "Email is already registered" }, { status: 409 });
+      }
+      if (target.includes("slug")) {
+        return NextResponse.json(
+          { error: "Organization name is already taken. Try a different firm name." },
+          { status: 409 },
+        );
+      }
+      return NextResponse.json(
+        { error: "A record with this information already exists" },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Registration failed. Please try again." },
+      { status: 500 },
+    );
   }
-
-  const updatedUser = await db.user.findUnique({
-    where: { id: user.id },
-    include: { organization: true },
-  });
-  if (!updatedUser) {
-    return NextResponse.json({ error: "Account created but could not be loaded" }, { status: 500 });
-  }
-
-  // Pass explicit ctx — session does not exist yet at register time.
-  await audit(
-    { action: "auth.register", entity: "user", entityId: user.id, details: { email: user.email } },
-    req,
-    { userId: user.id, organizationId: org.id },
-  );
-
-  return NextResponse.json({ user: publicUser(updatedUser, updatedUser.organization) }, { status: 201 });
 }

@@ -46,7 +46,7 @@ export async function POST(req: Request) {
   //    Accept both forms because the codebase is inconsistent: the Prisma
   //    schema defaults to "MANAGING_PARTNER" (underscore) but the register
   //    route writes "Managing Partner" (spaced). Both are the same role.
-  const r = await requireRole(["MANAGING_PARTNER", "Managing Partner"]);
+  const r = await requireRole(["Managing Partner"]);
   if (r.ok === false) return r.response;
 
   // 2. Kill-switch — env flag must be explicitly set to "1".
@@ -205,7 +205,7 @@ export async function POST(req: Request) {
 // GET — returns whether the seed endpoint is enabled + current corpus count.
 // Useful for the UI to decide whether to show the seed button.
 export async function GET(req: Request) {
-  const r = await requireRole(["MANAGING_PARTNER", "Managing Partner"]);
+  const r = await requireRole(["Managing Partner"]);
   if (r.ok === false) return r.response;
 
   let count = 0;

@@ -47,7 +47,7 @@ export async function POST(req: Request) {
   const steps: MigrationStep[] = [];
 
   // 1. Auth — Managing Partner only.
-  const r = await requireRole(["MANAGING_PARTNER", "Managing Partner"]);
+  const r = await requireRole(["Managing Partner"]);
   if (r.ok === false) return r.response;
 
   // 2. Kill-switch — env flag must be set.
@@ -242,7 +242,7 @@ export async function POST(req: Request) {
 
 // GET — returns whether migration is needed (checks if columns exist)
 export async function GET(req: Request) {
-  const r = await requireRole(["MANAGING_PARTNER", "Managing Partner"]);
+  const r = await requireRole(["Managing Partner"]);
   if (r.ok === false) return r.response;
 
   // Check if the new columns exist by trying a query that uses them.

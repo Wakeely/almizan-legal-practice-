@@ -108,7 +108,8 @@ model User {
   barAssociationId String?
   jurisdiction     String?
   accountType      String  @default("Law Firm") // 'Law Firm' | 'Solo Practitioner' | 'Corporate Counsel' | 'Client'
-  role             String  @default("MANAGING_PARTNER") // enum Role, validated server-side
+  // Allowed: "Managing Partner" | "Senior Associate" | "In-House Counsel" | "Legal Executive" | "Client Representative"
+  role             String  @default("Managing Partner")
   avatarUrl        String?
 
   // Subscription fields

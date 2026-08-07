@@ -43,7 +43,7 @@ interface StepResult {
 
 export async function POST(req: Request) {
   // 1. Auth — Managing Partner only.
-  const r = await requireRole(["MANAGING_PARTNER", "Managing Partner"]);
+  const r = await requireRole(["Managing Partner"]);
   if (r.ok === false) return r.response;
 
   // 2. Kill-switch.
@@ -517,7 +517,7 @@ async function finish(
 
 // GET — returns whether setup is needed + current state.
 export async function GET(req: Request) {
-  const r = await requireRole(["MANAGING_PARTNER", "Managing Partner"]);
+  const r = await requireRole(["Managing Partner"]);
   if (r.ok === false) return r.response;
 
   // Check each component's existence.

@@ -316,10 +316,14 @@ export default function AuthModal({
         onClose();
         onSuccess?.();
       }, 600);
-    } catch {
-      setError(
-        isRtl ? 'تعذر إنشاء الحساب حالياً.' : 'Failed to create account.',
-      );
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error && err.message
+          ? err.message
+          : isRtl
+            ? 'تعذر إنشاء الحساب حالياً.'
+            : 'Failed to create account.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -700,6 +704,11 @@ export default function AuthModal({
                           )}
                         </button>
                       </div>
+                      <p className={`text-[11px] leading-relaxed mt-1.5 ${isRtl ? 'text-right' : 'text-left'} text-muted-foreground/70`}>
+                        {isRtl
+                          ? 'يجب أن تحتوي على: 12 حرفًا على الأقل، حرف كبير، حرف صغير، رقم، ورمز خاص (!@#$%...)'
+                          : 'Must include: 12+ characters, uppercase, lowercase, digit, and special character (!@#$%...)'}
+                      </p>
                     </div>
 
                     <button

@@ -85,7 +85,7 @@ async function testGroq(key: string): Promise<string> {
 }
 
 export async function GET() {
-  const r = await requireRole(["MANAGING_PARTNER", "Managing Partner"]);
+  const r = await requireRole(["Managing Partner"]);
   if (r.ok === false) return r.response;
 
   const geminiKey = process.env.GEMINI_API_KEY;
