@@ -52,8 +52,7 @@ export default function JurisdictionSettings({ user }: { user?: UserProfileLite 
   // Pull the role from the auth provider if the caller didn't pass it.
   // We avoid importing useAuth here so this card can be reused on pages that
   // don't sit inside the AuthProvider subtree (none today, but defensive).
-  const isManagingPartner =
-    user?.role === 'Managing Partner' || user?.role === 'MANAGING_PARTNER';
+  const isManagingPartner = user?.role === 'Managing Partner';
 
   const load = async () => {
     setLoading(true);

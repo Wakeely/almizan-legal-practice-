@@ -15,7 +15,7 @@ import { requireRole } from "@/lib/org";
 import { parseBody, generateStudentCodeSchema } from "@/lib/validation/auth";
 import { audit } from "@/lib/audit";
 
-const ADMIN_ROLES = ["MANAGING_PARTNER", "Managing Partner"];
+const ADMIN_ROLES = ["Managing Partner"];
 
 function serializeCode(c: {
   id: string;

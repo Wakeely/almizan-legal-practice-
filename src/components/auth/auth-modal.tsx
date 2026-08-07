@@ -309,7 +309,7 @@ export default function AuthModal({
       );
       setSuccessMsg(
         isRtl
-          ? 'تم إنشاء حسابك التجريبي بنجاح! جاري توجيهك...'
+          ? 'تم إنشاء حسابك بنجاح! جاري توجيهك...'
           : 'Account created successfully! Redirecting...',
       );
       setTimeout(() => {
@@ -393,6 +393,24 @@ export default function AuthModal({
       );
       return;
     }
+
+    // Client-side password strength validation
+    const pwd = signupPassword;
+    if (
+      pwd.length < 12 ||
+      !/[a-z]/.test(pwd) ||
+      !/[A-Z]/.test(pwd) ||
+      !/[0-9]/.test(pwd) ||
+      !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd)
+    ) {
+      setError(
+        isRtl
+          ? 'كلمة المرور ضعيفة: 12 حرفًا على الأقل، حرف كبير، صغير، رقم، ورمز خاص (!@#$%...)'
+          : 'Weak password: 12+ characters, uppercase, lowercase, digit, and special character (!@#$%...) required',
+      );
+      return;
+    }
+
     clearMessages();
     setSignupStep(2);
   };
@@ -949,8 +967,8 @@ export default function AuthModal({
                             <Award className="h-4 w-4" />
                             <span>
                               {isRtl
-                                ? 'بدء التجربة المجانية (14 يوماً)'
-                                : 'Start 14-Day Free Trial'}
+                                ? 'إنشاء الحساب'
+                                : 'Create Account'}
                             </span>
                           </>
                         )}

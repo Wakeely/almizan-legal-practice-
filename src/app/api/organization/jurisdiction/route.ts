@@ -88,7 +88,7 @@ export async function PUT(req: Request) {
   if (r.ok === false) return r.response;
 
   // Role gate — same role convention as the rest of the app.
-  if (r.session.role !== "Managing Partner" && r.session.role !== "MANAGING_PARTNER") {
+  if (r.session.role !== "Managing Partner") {
     return NextResponse.json(
       { error: "Only the Managing Partner can change the firm's default jurisdiction." },
       { status: 403 },

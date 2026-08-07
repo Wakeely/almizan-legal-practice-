@@ -80,11 +80,8 @@ interface RagPanelProps {
 export default function RagPanel({ activeMatter }: RagPanelProps) {
   const { t, isRtl } = useLanguage();
   const { user } = useAuth();
-  // Accept both forms — see seed/route.ts for the inconsistency explanation.
-  // The Role type only lists the spaced form, but the DB may hold either.
   const role = user?.role as string | undefined;
-  const isManagingPartner =
-    role === 'MANAGING_PARTNER' || role === 'Managing Partner';
+  const isManagingPartner = role === 'Managing Partner';
 
   const [question, setQuestion] = useState('');
   const [includeMatter, setIncludeMatter] = useState(true);
