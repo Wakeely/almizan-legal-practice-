@@ -122,6 +122,11 @@ model User {
   renewalDate      String?
   biometricEnabled Boolean @default(false)
 
+  // ── Email verification — null = not verified, must verify before login ──
+  emailVerified     DateTime?   // null = not verified
+  emailVerifyToken  String?      // SHA-256 hash of the verification token
+  emailVerifyExpires DateTime?    // token expiry (24h from issue)
+
   // ── Student / promo codes — free limited access for marketing ──────────
   // accessKind: 'free' (default trial) | 'paid' (subscription) | 'promo' (student)
   // When 'promo', the limits below are enforced server-side. Promo values are

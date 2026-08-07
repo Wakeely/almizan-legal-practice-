@@ -158,7 +158,7 @@ export default function AuthModal({
   onSuccess,
 }: AuthModalProps) {
   const { isRtl } = useLanguage();
-  const { login, signup, resetPassword } = useAuth();
+  const { login, signup, resetPassword, resendVerification } = useAuth();
 
   // ── mode & ui state ──
   const [mode, setMode] = useState<AuthMode>(initialMode);
@@ -166,6 +166,7 @@ export default function AuthModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(null); // email waiting for verification
 
   // ── sign-in fields ──
   const [email, setEmail] = useState('');
@@ -293,7 +294,7 @@ export default function AuthModal({
     }
     setLoading(true);
     try {
-      await signup(
+      const result = await signup(
         {
           name: fullName,
           email: signupEmail,
@@ -307,6 +308,24 @@ export default function AuthModal({
         },
         signupPassword,
       );
+
+      // Email verification required — show "check your email" UI
+      if (result.requiresVerification) {
+        setVerificationEmail(result.email || signupEmail);
+        setSuccessMsg(
+          isRtl
+            ? 'تم إنشاء حسابك! أرسلنا رابط التحقق إلى بريدك الإلكتروني. يرجى التحقق قبل تسجيل الدخول.'
+            : 'Account created! We sent a verification link to your email. Please verify before signing in.',
+        );
+        // Switch to sign-in mode with email pre-filled
+        setEmail(result.email || signupEmail);
+        setPassword('');
+        setSignupStep(1);
+        // Don't close modal or call onSuccess — user must verify first
+        return;
+      }
+
+      // Fallback for non-verification flow (shouldn't happen but handle gracefully)
       setSuccessMsg(
         isRtl
           ? 'تم إنشاء حسابك بنجاح! جاري توجيهك...'
@@ -636,6 +655,41 @@ export default function AuthModal({
                     </>
                   )}
                 </button>
+
+                {/* Resend verification link */}
+                {verificationEmail && (
+                  <div className="flex items-center justify-center pt-1">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setLoading(true);
+                        setError(null);
+                        try {
+                          await resendVerification(verificationEmail);
+                          setSuccessMsg(
+                            isRtl
+                              ? 'تم إرسال رابط التحقق مرة أخرى!'
+                              : 'Verification link sent again!',
+                          );
+                        } catch {
+                          setError(
+                            isRtl
+                              ? 'فشل في إرسال الرابط. حاول مرة أخرى.'
+                              : 'Failed to send. Try again.',
+                          );
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading}
+                      className="text-xs font-semibold text-primary hover:text-primary/80 hover:underline cursor-pointer disabled:opacity-50"
+                    >
+                      {isRtl
+                        ? 'إعادة إرسال رابط التحقق'
+                        : 'Resend verification email'}
+                    </button>
+                  </div>
+                )}
 
                 {/* Bottom link to signup */}
                 <div className="flex items-center justify-center gap-1 pt-1 text-xs text-muted-foreground">

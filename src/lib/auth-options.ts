@@ -69,6 +69,15 @@ export const authOptions: NextAuthOptions = {
         });
         if (!user || !user.organization) return null;
 
+        // ── Email verification gate ──────────────────────────────────────
+        // Users MUST verify their email before they can log in.
+        // Returning null here causes NextAuth to reject the login with a
+        // generic error — the client then shows "verify your email" guidance.
+        if (!user.emailVerified) {
+          console.log(`[auth] Login rejected: email not verified for ${user.email}`);
+          return null;
+        }
+
         const ok = await verifyPassword(parsed.data.password, user.passwordHash);
         if (!ok) return null;
 

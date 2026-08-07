@@ -29,9 +29,10 @@ interface AuthContextValue {
     jurisdiction: string;
     accountType: "Law Firm" | "Solo Practitioner" | "Corporate Counsel" | "Client";
     studentCode?: string;
-  }, password?: string) => Promise<void>;
+  }, password?: string) => Promise<{ requiresVerification?: boolean; email?: string }>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<void>;
   upgradeSubscription: (tier: any, billingCycle: any) => Promise<boolean>;
   refresh: () => Promise<void>;
 }
@@ -71,12 +72,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       redirect: false,
     });
     if (!res || res.error) {
-      throw new Error("Invalid email or password");
+      // Distinguish between bad credentials and unverified email
+      // NextAuth returns generic error for both cases
+      throw new Error(
+        "Invalid credentials or email not verified. Check your inbox for the verification link."
+      );
     }
     await refresh();
   }, [refresh]);
 
-  const signup = useCallback(async (data: any, passwordArg?: string) => {
+  const signup = useCallback(async (data: any, passwordArg?: string): Promise<{ requiresVerification?: boolean; email?: string }> => {
     // The reference AuthModal calls signup({ ...fields }, password) — i.e.
     // password as the SECOND argument. We accept both forms: data.password OR
     // the explicit passwordArg, for backward compatibility with the ref UI.
@@ -91,9 +96,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const err = await res.json().catch(() => ({ error: "Registration failed" }));
       throw new Error(err.error || "Registration failed");
     }
-    // Auto-login after register — sets the HttpOnly cookie via NextAuth.
-    await login(data.email, password);
-  }, [login]);
+    const result = await res.json();
+    // Do NOT auto-login after register — email verification is required
+    // Return the verification requirement so the UI can show "check your email"
+    return {
+      requiresVerification: result.requiresVerification ?? false,
+      email: result.email,
+    };
+  }, []);
 
   const logout = useCallback(async () => {
     const { signOut } = await import("next-auth/react");
@@ -109,6 +119,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ email }),
     });
     if (!res.ok) throw new Error("Failed to send reset code");
+  }, []);
+
+  const resendVerification = useCallback(async (email: string) => {
+    const res = await fetch("/api/auth/resend-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) throw new Error("Failed to resend verification email");
   }, []);
 
   const upgradeSubscription = useCallback(async (tier: any, billingCycle: any) => {
@@ -132,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signup,
         logout,
         resetPassword,
+        resendVerification,
         upgradeSubscription,
         refresh,
       }}

@@ -10,6 +10,7 @@
 // - All inputs validated via Zod
 // - Rate-limited per IP via authRateLimit
 // - Audit log written on success
+// - EMAIL VERIFICATION REQUIRED: User cannot login until email is verified
 // =============================================================================
 
 import { NextResponse } from "next/server";
@@ -19,6 +20,12 @@ import { parseBody, registerSchema } from "@/lib/validation/auth";
 import { authRateLimit, getClientIp } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 import { validateStudentCode, redeemStudentCode, promoProfileFields } from "@/lib/student-access";
+import {
+  generateVerifyToken,
+  hashToken,
+  buildVerifyUrl,
+  sendVerificationEmail,
+} from "@/lib/email";
 
 function slugify(s: string): string {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || `firm-${Date.now()}`;
@@ -116,6 +123,9 @@ export async function POST(req: Request) {
 
     const user = org.users[0];
 
+    // Apply the promo code (atomically consumes it + snapshots limits onto user).
+    // If it unexpectedly fails after the account was created (e.g. a race where
+    // the code was consumed between our pre-check and now), roll the account back.
     if (data.studentCode) {
       const redeemed = await redeemStudentCode(data.studentCode, user.id);
       if (redeemed.ok === false) {
@@ -124,25 +134,48 @@ export async function POST(req: Request) {
       }
     }
 
-    const updatedUser = await db.user.findUnique({
-      where: { id: user.id },
-      include: { organization: true },
-    });
-    if (!updatedUser) {
-      return NextResponse.json(
-        { error: "Account created but could not be loaded" },
-        { status: 500 },
-      );
-    }
+    // ── Email Verification Setup ───────────────────────────────────────────
+    // Generate a token, store its hash + expiry on the user, then send email.
+    // The user CANNOT login until they verify their email.
+    const rawToken = generateVerifyToken();
+    const tokenHash = hashToken(rawToken);
+    const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerifyToken: tokenHash,
+        emailVerifyExpires: verifyExpires,
+        // emailVerified stays NULL — user must verify before login works
+      },
+    });
+
+    const verifyUrl = buildVerifyUrl(rawToken, user.email);
+
+    // Attempt to send verification email. If it fails, we still keep the
+    // account — the user can request a resend later.
+    const emailResult = await sendVerificationEmail({
+      to: user.email,
+      name: user.name,
+      verifyUrl,
+    });
+
+    // Audit the registration
     await audit(
-      { action: "auth.register", entity: "user", entityId: user.id, details: { email: user.email } },
+      { action: "auth.register", entity: "user", entityId: user.id, details: { email: user.email, emailSent: emailResult.ok } },
       req,
       { userId: user.id, organizationId: org.id },
     );
 
+    // Return success with verification required flag — DO NOT return session data
+    // DO NOT auto-login; client must show "check your email" UI
     return NextResponse.json(
-      { user: publicUser(updatedUser, updatedUser.organization) },
+      {
+        ok: true,
+        requiresVerification: true,
+        email: user.email,
+        ...(emailResult.ok ? {} : { warning: "Account created but verification email failed to send. You can request a resend after signing in." }),
+      },
       { status: 201 },
     );
   } catch (dbError: unknown) {
