@@ -181,6 +181,9 @@ model User {
   startedInvestigations CaseInvestigation[]
   investigationReviews  InvestigationReview[]
 
+  // Matter assignments (PRD v0.7 Fix 2) — which matters this attorney works
+  matterAssignments MatterAssignment[]
+
   @@index([deletedAt])
 }
 
@@ -321,12 +324,38 @@ model Matter {
   depositions      DepositionTranscript[]
   warRoomWitnesses WarRoomWitness[]
   warRoomExhibits  WarRoomExhibit[]
+  assignments      MatterAssignment[]
   // Audit log entries are queryable via AuditLog.matterId — no back-relation
   // needed; keeping AuditLog structurally independent prevents accidental
   // cascade-delete of audit history when a matter is deleted.
 
   @@index([organizationId])
   @@index([deletedAt])
+}
+
+// -----------------------------------------------------------------------------
+// Matter assignments — which attorneys work a case (PRD v0.7 Fix 2)
+// -----------------------------------------------------------------------------
+// A join table (not a single field on Matter) because a matter can reasonably
+// have more than one attorney (a lead + an associate helping). This is also
+// the permission basis for client invitations: only an assigned attorney (or
+// the Managing Partner via owner-override) can invite a client to a matter.
+//
+// Backfill: every existing Matter gets a MatterAssignment for its org's
+// Managing Partner(s) at migration time, so nothing currently working breaks.
+// New matters auto-create a MatterAssignment for their creator.
+model MatterAssignment {
+  id        String   @id @default(cuid())
+  matterId  String
+  matter    Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("attorney") // 'lead' | 'attorney' — room to distinguish later
+  createdAt DateTime @default(now())
+
+  @@unique([matterId, userId])
+  @@index([matterId])
+  @@index([userId])
 }
 
 // -----------------------------------------------------------------------------

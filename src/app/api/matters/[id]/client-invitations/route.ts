@@ -42,6 +42,23 @@ export async function POST(
     return NextResponse.json({ error: "Matter not found." }, { status: 404 });
   }
 
+  // PRD v0.7 Fix 2d: permission check — only an assigned attorney (or the
+  // Managing Partner via owner-override) can invite a client to this matter.
+  // Previously this was "any user in the org" — now it's restricted to the
+  // attorneys actually working the case.
+  if (r.session.role !== "Managing Partner") {
+    const assignment = await db.matterAssignment.findUnique({
+      where: { matterId_userId: { matterId, userId: r.session.id } },
+      select: { id: true },
+    });
+    if (!assignment) {
+      return NextResponse.json(
+        { error: "You are not assigned to this matter. Only assigned attorneys (or the Managing Partner) can invite clients." },
+        { status: 403 },
+      );
+    }
+  }
+
   const body = await req.json().catch((): null => null);
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {

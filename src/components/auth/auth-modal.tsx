@@ -179,7 +179,7 @@ export default function AuthModal({
   const [barId, setBarId] = useState('');
   const [jurisdiction, setJurisdiction] = useState('JO');
   const [accountType, setAccountType] = useState<
-    'Law Firm' | 'Solo Practitioner' | 'Corporate Counsel' | 'Client'
+    'Law Firm' | 'Solo Practitioner' | 'Corporate Counsel'
   >('Law Firm');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
@@ -891,13 +891,12 @@ export default function AuthModal({
                       <label className={labelCls}>
                         {isRtl ? 'نوع الحساب' : 'Account Type'}
                       </label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                         {(
                           [
                             ['Law Firm', isRtl ? 'مكتب محاماة' : 'Law Firm'],
                             ['Solo Practitioner', isRtl ? 'محامي فردي' : 'Solo Advocate'],
                             ['Corporate Counsel', isRtl ? 'مستشار مؤسسي' : 'Corporate Counsel'],
-                            ['Client', isRtl ? 'عميل' : 'Client'],
                           ] as const
                         ).map(([value, label]) => (
                           <button
@@ -915,6 +914,12 @@ export default function AuthModal({
                           </button>
                         ))}
                       </div>
+                      {/* PRD v0.7 Fix 1d: hint for clients who land on the signup page */}
+                      <p className="mt-2 text-[11px] text-muted-foreground">
+                        {isRtl
+                          ? 'هل أنت عميل لدى مكتب محاماة يستخدم المنصة؟ اطلب من محاميك إرسال دعوة إليك.'
+                          : 'Are you a client of a law firm using Al Mizan? Ask your attorney to send you an invite.'}
+                      </p>
                     </div>
 
                     {/* Jurisdiction + Bar ID row */}

@@ -5,6 +5,7 @@ import { useMatters } from "@/components/providers/matters-provider";
 import { useLanguage } from "@/components/providers/language-provider";
 import MattersModule from "@/components/matters/matters-module";
 import TasksModule from "@/components/tasks/tasks-module";
+import MatterAssignments from "@/components/matters/matter-assignments";
 
 export default function MattersPage() {
   const { activeMatter, matters, updateMatter } = useMatters();
@@ -29,6 +30,8 @@ export default function MattersPage() {
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         <div className="xl:col-span-5">
           <MattersModule activeMatter={activeMatter} onMatterUpdated={updateMatter} />
+          {/* PRD v0.7 Fix 2e: matter assignment management */}
+          <MatterAssignments matterId={activeMatter.id} />
         </div>
         <div className="xl:col-span-7">
           <TasksModule matterId={activeMatter.id} matters={matters} />

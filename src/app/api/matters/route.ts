@@ -81,6 +81,10 @@ export async function POST(req: Request) {
       statuteOfLimitations: data.statuteOfLimitations || null,
       statuteDeadline: data.statuteDeadline || null,
       organizationId: r.session.organizationId,
+      // PRD v0.7 Fix 2c: auto-assign the creator as the lead attorney
+      assignments: {
+        create: { userId: r.session.id, role: "lead" },
+      },
     },
   });
 

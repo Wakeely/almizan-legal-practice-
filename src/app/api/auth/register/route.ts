@@ -90,7 +90,21 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch((): null => null);
   const parsed = parseBody(registerSchema, body);
-  if (parsed.ok === false) return NextResponse.json({ error: parsed.error, fieldErrors: (parsed as any).fieldErrors }, { status: 400 });
+  if (parsed.ok === false) {
+    // PRD v0.7 Fix 1b: if the caller tried to register as "Client", give a
+    // clear, actionable error instead of the generic Zod message. The API is
+    // reachable directly, so we can't rely on the frontend not offering it.
+    const rawAccountType = (body as any)?.accountType;
+    if (rawAccountType === "Client") {
+      return NextResponse.json(
+        {
+          error: "Client accounts are created by invitation from your attorney. Ask your lawyer to send you an invite.",
+        },
+        { status: 400 },
+      );
+    }
+    return NextResponse.json({ error: parsed.error, fieldErrors: (parsed as any).fieldErrors }, { status: 400 });
+  }
   const data = parsed.data;
 
   const strength = validatePasswordStrength(data.password);
