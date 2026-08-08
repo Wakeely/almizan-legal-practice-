@@ -20,6 +20,7 @@ import { parseBody, registerSchema } from "@/lib/validation/auth";
 import { authRateLimit, getClientIp } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 import { validateStudentCode, redeemStudentCode, promoProfileFields } from "@/lib/student-access";
+import { getTierLimits } from "@/lib/subscription-limits";
 import {
   generateVerifyToken,
   hashToken,
@@ -132,13 +133,15 @@ export async function POST(req: Request) {
   const passwordHash = await hashPassword(data.password);
 
   try {
+    // PRD v0.8 §4.3: derive maxSeats from the tier table (single source of truth)
+    const freeTrialLimits = getTierLimits("Free Trial");
     const org = await db.organization.create({
       data: {
         name: data.firmName,
         slug: finalSlug,
         barAssociationId: data.barAssociationId || null,
         jurisdiction: data.jurisdiction,
-        maxSeats: 10, // PRD v0.6 §5.4 — authoritative seat limit on Organization
+        maxSeats: freeTrialLimits.maxSeats,
         users: {
           create: {
             email: data.email.toLowerCase(),
@@ -149,10 +152,10 @@ export async function POST(req: Request) {
             accountType: data.accountType,
             role: roleForAccountType(data.accountType),
             subscriptionTier: "Free Trial",
-            planStatus: "Active",
-            trialDaysLeft: 0,
+            planStatus: "Trial", // PRD v0.8 §3 — a new signup is on Trial, not Active
+            trialDaysLeft: 0,    // stored value is now ignored — computed at read time
             seats: 1,
-            maxSeats: 10,
+            maxSeats: freeTrialLimits.maxSeats,
             billingCycle: "Monthly",
           },
         },

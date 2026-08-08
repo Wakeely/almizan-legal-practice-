@@ -21,6 +21,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requirePlatformAdmin } from "@/lib/platform-admin";
 import { platformAudit } from "@/lib/audit";
+import { getTierLimits } from "@/lib/subscription-limits";
 
 const overrideSchema = z.object({
   reason: z.string().min(5, "A reason is required (min 5 characters).").max(500),
@@ -85,6 +86,23 @@ export async function PATCH(
   const before: Record<string, unknown> = {};
   for (const k of Object.keys(updates)) {
     before[k] = (user as any)[k];
+  }
+
+  // PRD v0.8 §4.3: when subscriptionTier changes, derive maxSeats from the
+  // tier table (single source of truth) and write it to BOTH the user row
+  // (legacy) AND the organization (authoritative per PRD v0.6 §5.4). This
+  // fixes the ternary bug where Free Trial fell through to the 50-seat default.
+  if (updates.subscriptionTier) {
+    const limits = getTierLimits(updates.subscriptionTier as string);
+    updates.maxSeats = limits.maxSeats;
+    // Also write to the org's authoritative maxSeats
+    await db.organization.update({
+      where: { id: user.organizationId },
+      data: { maxSeats: limits.maxSeats },
+    }).catch(() => {
+      // Non-fatal if the org update fails — the user-row maxSeats is the
+      // fallback the existing code reads.
+    });
   }
 
   // Apply the update

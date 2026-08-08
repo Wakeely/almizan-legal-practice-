@@ -17,6 +17,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import type { AccessKind, AiQuotaPeriod, PromoAllowance } from "@/lib/types";
+import { getTierLimits } from "@/lib/subscription-limits";
+import { isTrialExpired, maybeExpireTrial } from "@/lib/trial";
 
 export const ACCESS_FREE: AccessKind = "free";
 export const ACCESS_PAID: AccessKind = "paid";
@@ -25,6 +27,9 @@ export const ACCESS_PROMO: AccessKind = "promo";
 export const ERROR_MATTER_LIMIT = "PROMO_MATTER_LIMIT_REACHED";
 export const ERROR_AI_LIMIT = "PROMO_AI_LIMIT_REACHED";
 export const ERROR_EXPIRED = "PROMO_EXPIRED";
+export const ERROR_TRIAL_EXPIRED = "TRIAL_EXPIRED";
+export const ERROR_TIER_MATTER_LIMIT = "TIER_MATTER_LIMIT_REACHED";
+export const ERROR_TIER_AI_LIMIT = "TIER_AI_LIMIT_REACHED";
 
 /** Current UTC month key "YYYY-MM" used to scope a monthly AI quota. */
 export function currentMonthKey(d = new Date()): string {
@@ -93,32 +98,68 @@ export async function assertCanCreateMatter(session: SessionLike): Promise<
     where: { id: session.id },
     select: {
       accessKind: true,
+      subscriptionTier: true,
+      planStatus: true,
+      createdAt: true,
       promoMaxMatters: true,
       promoExpiresAt: true,
     },
   });
-  if (!user || !isPromo(user.accessKind as AccessKind)) return { ok: true };
+  if (!user) return { ok: true }; // defensive — shouldn't happen
 
-  const expiresAt = user.promoExpiresAt ? new Date(user.promoExpiresAt).getTime() : null;
-  if (expiresAt !== null && expiresAt < Date.now()) {
+  // ── Promo accounts: existing student-code-based limits (unchanged) ──────
+  if (isPromo(user.accessKind as AccessKind)) {
+    const expiresAt = user.promoExpiresAt ? new Date(user.promoExpiresAt).getTime() : null;
+    if (expiresAt !== null && expiresAt < Date.now()) {
+      return {
+        ok: false,
+        response: blockedResponse(
+          "Your student access has expired. Please upgrade to a paid plan to continue.",
+          ERROR_EXPIRED,
+        ),
+      };
+    }
+    const used = await db.matter.count({
+      where: { organizationId: session.organizationId, deletedAt: null },
+    });
+    if (used >= (user.promoMaxMatters ?? 0)) {
+      return {
+        ok: false,
+        response: blockedResponse(
+          `Student access limit reached: you can have up to ${user.promoMaxMatters} matters. Please upgrade to a paid plan to add more.`,
+          ERROR_MATTER_LIMIT,
+        ),
+      };
+    }
+    return { ok: true };
+  }
+
+  // ── Non-promo accounts: PRD v0.8 §4.2 — check tier limits ───────────────
+  // Lazy-expire the trial first so an expired trial blocks the same way a
+  // used-up promo does.
+  await maybeExpireTrial(session.id);
+  if (isTrialExpired(user)) {
     return {
       ok: false,
       response: blockedResponse(
-        "Your student access has expired. Please upgrade to a paid plan to continue.",
-        ERROR_EXPIRED,
+        "Your free trial has expired. Please upgrade to a paid plan to continue creating matters.",
+        ERROR_TRIAL_EXPIRED,
       ),
     };
   }
 
+  const limits = getTierLimits(user.subscriptionTier);
+  if (limits.maxMatters === null) return { ok: true }; // unlimited
+
   const used = await db.matter.count({
     where: { organizationId: session.organizationId, deletedAt: null },
   });
-  if (used >= user.promoMaxMatters) {
+  if (used >= limits.maxMatters) {
     return {
       ok: false,
       response: blockedResponse(
-        `Student access limit reached: you can have up to ${user.promoMaxMatters} matters. Please upgrade to a paid plan to add more.`,
-        ERROR_MATTER_LIMIT,
+        `Your plan (${user.subscriptionTier}) allows up to ${limits.maxMatters} matters. Please upgrade to add more.`,
+        ERROR_TIER_MATTER_LIMIT,
       ),
     };
   }
@@ -136,6 +177,10 @@ export async function assertAiQuota(userId: string): Promise<
     where: { id: userId },
     select: {
       accessKind: true,
+      subscriptionTier: true,
+      planStatus: true,
+      createdAt: true,
+      organizationId: true,
       promoAiQuota: true,
       promoAiUsed: true,
       promoAiQuotaPeriod: true,
@@ -143,52 +188,97 @@ export async function assertAiQuota(userId: string): Promise<
       promoExpiresAt: true,
     },
   });
-  if (!user || !isPromo(user.accessKind as AccessKind)) return { ok: true };
+  if (!user) return { ok: true }; // defensive
 
-  const expiresAt = user.promoExpiresAt ? new Date(user.promoExpiresAt).getTime() : null;
-  if (expiresAt !== null && expiresAt < Date.now()) {
+  // ── Promo accounts: existing student-code-based quota (unchanged) ────────
+  if (isPromo(user.accessKind as AccessKind)) {
+    const expiresAt = user.promoExpiresAt ? new Date(user.promoExpiresAt).getTime() : null;
+    if (expiresAt !== null && expiresAt < Date.now()) {
+      return {
+        ok: false,
+        response: blockedResponse(
+          "Your student access has expired. Please upgrade to a paid plan to continue.",
+          ERROR_EXPIRED,
+        ),
+      };
+    }
+
+    const monthKey = currentMonthKey();
+    const period = (user.promoAiQuotaPeriod as AiQuotaPeriod) ?? "total";
+    const quota = user.promoAiQuota ?? 0;
+    let used = user.promoAiUsed ?? 0;
+    let resetPeriod = false;
+
+    if (period === "monthly" && user.promoAiPeriodStart !== monthKey) {
+      used = 0;
+      resetPeriod = true;
+    }
+
+    if (used >= quota) {
+      return {
+        ok: false,
+        response: blockedResponse(
+          period === "monthly"
+            ? `Student AI usage limit reached for this month (${quota} calls). Please upgrade to a paid plan for more.`
+            : `Student AI usage limit reached (${quota} calls). Please upgrade to a paid plan for unlimited AI.`,
+          ERROR_AI_LIMIT,
+        ),
+      };
+    }
+
+    // Reserve this call now (atomic) — promo accounts use the on-user counter.
+    await db.user.update({
+      where: { id: userId },
+      data: resetPeriod
+        ? { promoAiUsed: 1, promoAiPeriodStart: monthKey }
+        : { promoAiUsed: { increment: 1 } },
+    });
+
+    return { ok: true };
+  }
+
+  // ── Non-promo accounts: PRD v0.8 §4.2 — count AiUsageLog rows this month ─
+  // Lazy-expire the trial first.
+  await maybeExpireTrial(userId);
+  if (isTrialExpired(user)) {
     return {
       ok: false,
       response: blockedResponse(
-        "Your student access has expired. Please upgrade to a paid plan to continue.",
-        ERROR_EXPIRED,
+        "Your free trial has expired. Please upgrade to a paid plan to continue using AI features.",
+        ERROR_TRIAL_EXPIRED,
       ),
     };
   }
 
-  const monthKey = currentMonthKey();
-  const period = (user.promoAiQuotaPeriod as AiQuotaPeriod) ?? "total";
-  const quota = user.promoAiQuota ?? 0;
-  let used = user.promoAiUsed ?? 0;
-  let resetPeriod = false;
+  const limits = getTierLimits(user.subscriptionTier);
+  if (limits.maxAiCallsPerMonth === null) return { ok: true }; // unlimited
 
-  // Monthly quota: the count belongs to the current month only; reset on rollover.
-  if (period === "monthly" && user.promoAiPeriodStart !== monthKey) {
-    used = 0;
-    resetPeriod = true;
-  }
+  // Count this month's AI calls for the user's org. AiUsageLog was built in
+  // Phase 2 §2.4 — we reuse it rather than inventing a new counter.
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
 
-  if (used >= quota) {
-    return {
-      ok: false,
-      response: blockedResponse(
-        period === "monthly"
-          ? `Student AI usage limit reached for this month (${quota} calls). Please upgrade to a paid plan for more.`
-          : `Student AI usage limit reached (${quota} calls). Please upgrade to a paid plan for unlimited AI.`,
-        ERROR_AI_LIMIT,
-      ),
-    };
-  }
-
-  // Reserve this call now (atomic). A failed downstream call still counts as an
-  // attempt — this mirrors common anti-abuse quota behaviour for promo tiers.
-  await db.user.update({
-    where: { id: userId },
-    data: resetPeriod
-      ? { promoAiUsed: 1, promoAiPeriodStart: monthKey }
-      : { promoAiUsed: { increment: 1 } },
+  const used = await db.aiUsageLog.count({
+    where: {
+      organizationId: user.organizationId,
+      createdAt: { gte: startOfMonth },
+      stub: false, // don't count stub calls (no real provider answered)
+    },
   });
 
+  if (used >= limits.maxAiCallsPerMonth) {
+    return {
+      ok: false,
+      response: blockedResponse(
+        `Your plan (${user.subscriptionTier}) allows ${limits.maxAiCallsPerMonth} AI calls per month. You've used ${used}. Please upgrade for more.`,
+        ERROR_TIER_AI_LIMIT,
+      ),
+    };
+  }
+
+  // Note: we do NOT increment a counter here — the AiUsageLog row written by
+  // dispatchAiText() (Phase 2) IS the counter. The next call will see it.
   return { ok: true };
 }
 

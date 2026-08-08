@@ -15,6 +15,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { db } from "@/lib/db";
 import { promoProfileFields } from "@/lib/student-access";
+import { computeTrialDaysLeft, maybeExpireTrial } from "@/lib/trial";
 import type { UserProfile } from "@/lib/types";
 
 export interface SessionUser {
@@ -91,23 +92,44 @@ export async function getFullUserProfile(): Promise<UserProfile | null> {
     return null;
   }
 
+  // PRD v0.8 §3: lazy trial expiry transition — flip planStatus to "Expired"
+  // if the trial is past 14 days. Reload if a transition might have happened.
+  await maybeExpireTrial(user.id);
+  let effectiveUser = user;
+  if (user.subscriptionTier === "Free Trial" && user.planStatus === "Trial") {
+    const refreshed = await db.user.findUnique({
+      where: { id: user.id },
+      include: { organization: true },
+    });
+    if (refreshed && !refreshed.deletedAt) {
+      effectiveUser = refreshed;
+    }
+  }
+
   // Safety: user must have an organization
-  if (!user.organization) {
+  if (!effectiveUser.organization) {
     console.warn(`[session] User ${session.id} has no organization`);
     return null;
   }
 
   // Safety: verify the loaded user matches the session email
   // This catches edge cases where DB state changed after token was issued
-  if (user.email.toLowerCase() !== session.email.toLowerCase()) {
+  if (effectiveUser.email.toLowerCase() !== session.email.toLowerCase()) {
     console.error(
       `[session] EMAIL MISMATCH! Session says ${session.email}, ` +
-      `DB has ${user.email} for userId=${session.id}`
+      `DB has ${effectiveUser.email} for userId=${session.id}`
     );
-    // Return null rather than wrong user's profile
     return null;
   }
 
+  return buildProfile(effectiveUser);
+}
+
+/**
+ * Build the public UserProfile from a freshly-loaded user row (with org).
+ * Extracted so the trial-expiry reload path can reuse the exact same shaping.
+ */
+function buildProfile(user: any): UserProfile {
   return {
     id: user.id,
     name: user.name,
@@ -121,7 +143,8 @@ export async function getFullUserProfile(): Promise<UserProfile | null> {
     avatarUrl: user.avatarUrl ?? undefined,
     subscriptionTier: user.subscriptionTier as UserProfile["subscriptionTier"],
     planStatus: user.planStatus as UserProfile["planStatus"],
-    trialDaysLeft: user.trialDaysLeft,
+    // PRD v0.8 §3: computed, not the stale stored number
+    trialDaysLeft: computeTrialDaysLeft(user),
     seats: user.seats,
     maxSeats: user.maxSeats,
     billingCycle: user.billingCycle as UserProfile["billingCycle"],

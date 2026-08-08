@@ -14,6 +14,7 @@ import { parseBody, loginSchema } from "@/lib/validation/auth";
 import { authRateLimit, getClientIp } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 import { promoProfileFields } from "@/lib/student-access";
+import { maybeExpireTrial, computeTrialDaysLeft } from "@/lib/trial";
 
 function publicUser(user: any, org: any) {
   return {
@@ -28,7 +29,8 @@ function publicUser(user: any, org: any) {
     accountType: user.accountType,
     subscriptionTier: user.subscriptionTier,
     planStatus: user.planStatus,
-    trialDaysLeft: user.trialDaysLeft,
+    // PRD v0.8 §3: trialDaysLeft is now COMPUTED, not the stale stored number
+    trialDaysLeft: computeTrialDaysLeft(user),
     seats: user.seats,
     maxSeats: user.maxSeats,
     billingCycle: user.billingCycle,
@@ -64,7 +66,20 @@ export async function POST(req: Request) {
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
 
-  await audit({ action: "auth.login", entity: "user", entityId: user.id, details: { email: user.email } }, req);
+  // PRD v0.8 §3: lazy trial expiry transition — flip planStatus to "Expired"
+  // if the trial is past its 14 days. Reloads the user after the transition
+  // so the returned planStatus reflects reality.
+  await maybeExpireTrial(user.id);
+  const freshUser = await db.user.findUnique({
+    where: { id: user.id },
+    include: { organization: true },
+  });
+  if (!freshUser) {
+    // Extremely unlikely race — fall back to the pre-expiry user.
+    return NextResponse.json({ user: publicUser(user, user.organization) });
+  }
 
-  return NextResponse.json({ user: publicUser(user, user.organization) });
+  await audit({ action: "auth.login", entity: "user", entityId: freshUser.id, details: { email: freshUser.email } }, req);
+
+  return NextResponse.json({ user: publicUser(freshUser, freshUser.organization) });
 }

@@ -1,5 +1,22 @@
 // =============================================================================
-// POST /api/auth/subscription — update user's subscription tier + billing cycle
+// POST /api/auth/subscription — request a subscription change
+// -----------------------------------------------------------------------------
+// PRD v0.8 §2 (LOCKDOWN): this route no longer lets a user grant themselves a
+// paid tier. Self-serve tier *upgrades* are disabled until a real payment
+// gateway exists (still Open Question 1 from the Phase 2 PRD).
+//
+// What this route still does:
+//   • Lets a user *request* an upgrade (creates an audit entry so the platform
+//     admin can see "user X wants to upgrade to Y" and action it manually via
+//     the Billing tab, which is already gated behind requirePlatformAdmin()).
+//   • Lets a user change their billingCycle preference (cosmetic — doesn't
+//     touch subscriptionTier or planStatus).
+//
+// What this route NO LONGER does:
+//   • Set subscriptionTier to anything. That write is now exclusively done by
+//     the platform admin Billing tab (PATCH /api/platform-admin/users/[id]/subscription)
+//     or by a future real payment-gateway callback. The open self-serve write
+//     was a working, callable, free self-upgrade hole — closed.
 // =============================================================================
 
 import { NextResponse } from "next/server";
@@ -7,30 +24,6 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/org";
 import { parseBody, subscriptionSchema } from "@/lib/validation/auth";
 import { audit } from "@/lib/audit";
-import { promoProfileFields, setPaidAccess } from "@/lib/student-access";
-
-function publicUser(user: any, org: any) {
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    firmName: org.name,
-    organizationId: org.id,
-    role: user.role,
-    barAssociationId: user.barAssociationId ?? org.barAssociationId ?? "",
-    jurisdiction: user.jurisdiction ?? org.jurisdiction,
-    accountType: user.accountType,
-    subscriptionTier: user.subscriptionTier,
-    planStatus: user.planStatus,
-    trialDaysLeft: user.trialDaysLeft,
-    seats: user.seats,
-    maxSeats: user.maxSeats,
-    billingCycle: user.billingCycle,
-    renewalDate: user.renewalDate ?? "",
-    biometricEnabled: user.biometricEnabled,
-    ...promoProfileFields(user),
-  };
-}
 
 export async function POST(req: Request) {
   const r = await requireUser();
@@ -41,27 +34,72 @@ export async function POST(req: Request) {
   if (parsed.ok === false) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const { tier, billingCycle } = parsed.data;
 
-  // Upgrading to a PAID tier supersedes any limited promo access (the extra
-  // `tier !== "Free Trial"` guard never downgrades a promo account back to a
-  // restricted tier when the user only toggles the default trial).
-  if (tier !== "Free Trial") {
-    await setPaidAccess(r.session.id);
+  // Load current state to compare
+  const user = await db.user.findUnique({
+    where: { id: r.session.id },
+    select: {
+      subscriptionTier: true,
+      planStatus: true,
+      billingCycle: true,
+      maxSeats: true,
+    },
+  });
+  if (!user) {
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
 
-  const updated = await db.user.update({
-    where: { id: r.session.id },
-    data: {
-      subscriptionTier: tier,
-      billingCycle,
-      planStatus: tier === "Free Trial" ? "Trial" : "Active",
-      trialDaysLeft: tier === "Free Trial" ? 14 : 0,
-      maxSeats: tier === "Solo Practice" ? 1 : tier === "Pro Practice" ? 10 : 50,
-      renewalDate: new Date(Date.now() + (billingCycle === "Annual" ? 365 : 30) * 24 * 3600 * 1000).toISOString().slice(0, 10),
-    },
-    include: { organization: true },
-  });
+  // ── Block self-serve tier upgrades ───────────────────────────────────────
+  // The user can no longer set their own subscriptionTier. If they're asking
+  // for a tier different from their current one, record the REQUEST (audit
+  // entry) but don't perform the write. Tell them to contact the platform
+  // admin or wait for the platform admin to apply it from the Billing tab.
+  if (tier !== user.subscriptionTier) {
+    await audit(
+      {
+        action: "auth.subscription.upgrade_requested",
+        entity: "user",
+        entityId: r.session.id,
+        details: {
+          currentTier: user.subscriptionTier,
+          requestedTier: tier,
+          billingCycle,
+        },
+      },
+      req,
+    );
 
-  await audit({ action: "auth.subscription.updated", entity: "user", entityId: updated.id, details: { tier, billingCycle } }, req);
+    return NextResponse.json(
+      {
+        error:
+          "Self-serve plan upgrades are currently disabled. Your upgrade request has been recorded and will be reviewed. To activate immediately, contact the platform administrator.",
+        upgradeRequested: true,
+        requestedTier: tier,
+      },
+      { status: 402 }, // 402 Payment Required — signals "payment/upgrade needed"
+    );
+  }
 
-  return NextResponse.json({ user: publicUser(updated, updated.organization) });
+  // ── Billing cycle preference only (same tier) ────────────────────────────
+  // If the tier is unchanged, we allow updating the billingCycle preference —
+  // this is cosmetic and doesn't grant any new access. The actual
+  // renewalDate / maxSeats are only written by the platform admin or a future
+  // payment gateway.
+  if (billingCycle !== user.billingCycle) {
+    await db.user.update({
+      where: { id: r.session.id },
+      data: { billingCycle },
+    });
+
+    await audit(
+      {
+        action: "auth.subscription.billing_cycle_changed",
+        entity: "user",
+        entityId: r.session.id,
+        details: { from: user.billingCycle, to: billingCycle },
+      },
+      req,
+    );
+  }
+
+  return NextResponse.json({ ok: true });
 }
