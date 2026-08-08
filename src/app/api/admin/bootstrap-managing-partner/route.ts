@@ -176,11 +176,13 @@ export async function POST(req: Request) {
         accountType: "Law Firm",
         role: "Managing Partner",
         // Sensible subscription defaults (match registration).
+        // PRD v0.8: trialDaysLeft is now computed (stored value ignored).
+        // maxSeats derives from the Free Trial tier limit (1, not 10).
         subscriptionTier: "Free Trial",
         planStatus: "Trial",
-        trialDaysLeft: 14,
+        trialDaysLeft: 0,
         seats: 1,
-        maxSeats: 10,
+        maxSeats: 1,
         billingCycle: "Monthly",
         // Multi-tenancy — critical.
         organizationId: org.id,

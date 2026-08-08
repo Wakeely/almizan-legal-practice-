@@ -93,7 +93,7 @@ export async function getFullUserProfile(): Promise<UserProfile | null> {
   }
 
   // PRD v0.8 §3: lazy trial expiry transition — flip planStatus to "Expired"
-  // if the trial is past 14 days. Reload if a transition might have happened.
+  // if the trial is past 3 days (TRIAL_DURATION_DAYS). Reload if a transition might have happened.
   await maybeExpireTrial(user.id);
   let effectiveUser = user;
   if (user.subscriptionTier === "Free Trial" && user.planStatus === "Trial") {

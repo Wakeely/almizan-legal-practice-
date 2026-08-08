@@ -8,8 +8,8 @@
 // Design:
 //   • Trial start = user.createdAt (reused, no new column needed for the common
 //     case — a Free Trial user's trial started when they registered).
-//   • Trial duration = 14 days.
-//   • trialDaysLeft becomes a COMPUTED value: max(0, 14 - daysSince(createdAt)).
+//   • Trial duration = 3 days (TRIAL_DURATION_DAYS).
+//   • trialDaysLeft becomes a COMPUTED value: max(0, TRIAL_DURATION_DAYS - daysSince(createdAt)).
 //   • planStatus gets explicitly flipped to "Expired" the first time the
 //     computed expiry is detected (lazy transition, not a cron requirement)
 //     — so the audit trail + any future reporting see a real status change.
@@ -18,7 +18,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 
-export const TRIAL_DURATION_DAYS = 14;
+export const TRIAL_DURATION_DAYS = 3;
 const TRIAL_DURATION_MS = TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000;
 
 interface TrialUser {

@@ -67,7 +67,7 @@ export async function POST(req: Request) {
   if (!ok) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
 
   // PRD v0.8 §3: lazy trial expiry transition — flip planStatus to "Expired"
-  // if the trial is past its 14 days. Reloads the user after the transition
+  // if the trial is past its 3 days (TRIAL_DURATION_DAYS). Reloads after the transition
   // so the returned planStatus reflects reality.
   await maybeExpireTrial(user.id);
   const freshUser = await db.user.findUnique({

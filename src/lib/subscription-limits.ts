@@ -30,8 +30,8 @@ export interface TierLimits {
 
 export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
   "Free Trial": {
-    maxMatters: 3,
-    maxAiCallsPerMonth: 20,
+    maxMatters: 2,
+    maxAiCallsPerMonth: 10,
     maxSeats: 1,
   },
   "Solo Practice": {
