@@ -124,6 +124,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           organizationId: user.organizationId,
           role: user.role,
+          primaryMatterId: user.primaryMatterId, // PRD v0.6 §5.1 — client matter scoping
         };
       },
     }),
@@ -139,6 +140,7 @@ export const authOptions: NextAuthOptions = {
         token.name = u.name;                 // Bind display name
         token.organizationId = u.organizationId; // Multi-tenant isolation
         token.role = u.role;                 // Authorization context
+        token.primaryMatterId = u.primaryMatterId ?? null; // Client matter scoping
       }
 
       // SAFETY: Ensure userId is never undefined if sub exists
@@ -156,6 +158,7 @@ export const authOptions: NextAuthOptions = {
         su.name = token.name;                // Display name
         su.organizationId = token.organizationId; // Multi-tenant scope
         su.role = token.role;                // Role-based UI/authorization
+        su.primaryMatterId = token.primaryMatterId; // Client matter scoping
       }
       return session;
     },

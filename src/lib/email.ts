@@ -187,3 +187,19 @@ export async function sendPasswordResetEmail(_params: {
   console.warn("[email] sendPasswordResetEmail called but not yet implemented");
   return { ok: false, error: "Password reset not yet implemented" };
 }
+
+// ── Internal generic sender (reused by invitations.ts) ──────────────────────
+
+/**
+ * Internal: send a pre-built email through the Resend client. Reused by
+ * the invitation system so it doesn't need to duplicate the Resend HTTP
+ * plumbing. Not exported outside the lib.
+ */
+export async function sendInvitationEmailInternal(params: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<SendEmailResult> {
+  return resendSend(params);
+}

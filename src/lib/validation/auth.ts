@@ -12,11 +12,14 @@ export const ROLE_VALUES = [
   "Client Representative",
 ] as const;
 
+// PRD v0.6 §4.3: "Client" is removed from public self-registration entirely.
+// A client account can only be created by accepting a matter-level invitation
+// from their attorney. The "Client Representative" role still exists — it's
+// assigned server-side at invite-acceptance, never chosen by the user.
 export const ACCOUNT_TYPE_VALUES = [
   "Law Firm",
   "Solo Practitioner",
   "Corporate Counsel",
-  "Client",
 ] as const;
 
 export const SUBSCRIPTION_TIER_VALUES = [

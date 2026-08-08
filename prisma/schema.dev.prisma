@@ -55,6 +55,9 @@ model Organization {
   suspendedAt         DateTime?
   suspendedReason     String?
 
+  // ── Seat capacity (PRD v0.6 §5.4) ────────────────────────────────────────
+  maxSeats            Int       @default(10)
+
   // Relations — every tenant-owned model lives here
   users                             User[]
   matters                           Matter[]
@@ -72,6 +75,7 @@ model Organization {
   conflictChecks                    ConflictCheck[]
   auditLogs                         AuditLog[]
   aiUsageLogs                       AiUsageLog[]
+  invitations                       Invitation[]
   sessions                          Session[]
   accounts                          Account[]
   investigations                    CaseInvestigation[]
@@ -130,6 +134,10 @@ model User {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  // Client matter scoping (PRD v0.6 §5.1) — null for non-client roles
+  primaryMatterId String?
+
+  deletedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -158,6 +166,28 @@ model StudentCode {
   updatedAt      DateTime @updatedAt
 
   @@index([isActive])
+}
+
+// -----------------------------------------------------------------------------
+// Invitations — teammate + client (PRD v0.6 §5.1)
+// -----------------------------------------------------------------------------
+model Invitation {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email           String
+  role            String
+  matterId        String?
+  tokenHash       String   @unique
+  invitedByUserId String
+  status          String   @default("pending")
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+  acceptedAt      DateTime?
+
+  @@index([organizationId, status])
+  @@index([email])
+  @@index([invitedByUserId])
 }
 
 // NextAuth standard models — kept org-scoped for isolation

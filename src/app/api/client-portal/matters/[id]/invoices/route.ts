@@ -9,7 +9,7 @@
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireUser, orgWhere, verifyMatterBelongsToOrg } from "@/lib/org";
+import { requireUser, orgWhere, verifyMatterBelongsToOrg, verifyMatterMatchesClientScope } from "@/lib/org";
 
 export async function GET(
   req: Request,
@@ -21,6 +21,11 @@ export async function GET(
 
   const owns = await verifyMatterBelongsToOrg(id, r.session);
   if (!owns) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // PRD v0.6 §6: client representatives can only see their own primary matter
+  if (!verifyMatterMatchesClientScope(id, r.session)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   // SERVER-SIDE FILTER: only show Sent + Paid invoices to clients
   // (Draft and Overdue are internal firm workflow states)

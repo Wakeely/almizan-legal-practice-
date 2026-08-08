@@ -73,6 +73,13 @@ model Organization {
   suspendedAt         DateTime?
   suspendedReason     String?
 
+  // ── Seat capacity (PRD v0.6 §5.4) ────────────────────────────────────────
+  // Authoritative seat limit for this org. Default 10. Set by the Managing
+  // Partner (self-serve, capped by their subscription tier) or by the platform
+  // admin. Client invites do NOT count against this limit (clients aren't
+  // paid "seats" in the usual SaaS sense — PRD §8 Open Q1).
+  maxSeats            Int       @default(10)
+
   // Relations — every tenant-owned model lives here
   users                             User[]
   matters                           Matter[]
@@ -90,6 +97,7 @@ model Organization {
   conflictChecks                    ConflictCheck[]
   auditLogs                         AuditLog[]
   aiUsageLogs                       AiUsageLog[]
+  invitations                       Invitation[]
   sessions                          Session[]
   accounts                          Account[]
   investigations                    CaseInvestigation[]
@@ -154,6 +162,13 @@ model User {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  // ── Client matter scoping (PRD v0.6 §5.1) ────────────────────────────────
+  // Null for every non-client role. Set once at invite-acceptance for a Client
+  // Representative. Every client-portal route adds `matterId: session.user.primaryMatterId`
+  // to its scoping — this is the field that makes "client sees only their own case"
+  // true rather than just intended.
+  primaryMatterId String?
+
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -190,6 +205,38 @@ model StudentCode {
   updatedAt      DateTime @updatedAt
 
   @@index([isActive])
+}
+
+// -----------------------------------------------------------------------------
+// Invitations — teammate + client (PRD v0.6 §5.1)
+// -----------------------------------------------------------------------------
+// Two distinct invite paths share this model:
+//   • Teammate invites (Senior Associate / In-House Counsel / Legal Executive):
+//     Managing-Partner-only, matterId is null.
+//   • Client invites (Client Representative): any attorney with access to the
+//     specific matter can invite, matterId is set, role is hard-coded server-side.
+//
+// Token discipline mirrors email verification: random 32-byte token, only the
+// SHA-256 hash stored (tokenHash), 7-day expiry, single-use (status flips to
+// 'accepted' immediately on accept). Revoking sets status to 'revoked' — the
+// accept route checks status, not just token existence.
+model Invitation {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email           String
+  role            String   // 'Senior Associate' | 'In-House Counsel' | 'Legal Executive' | 'Client Representative'
+  matterId        String?  // set when inviting a client tied to a specific matter
+  tokenHash       String   @unique // SHA-256 hash — raw token never stored
+  invitedByUserId String
+  status          String   @default("pending") // 'pending' | 'accepted' | 'revoked' | 'expired'
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+  acceptedAt      DateTime?
+
+  @@index([organizationId, status])
+  @@index([email])
+  @@index([invitedByUserId])
 }
 
 // NextAuth standard models — kept org-scoped for isolation

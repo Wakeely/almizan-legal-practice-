@@ -95,3 +95,24 @@ export async function verifyMatterBelongsToOrg(
   });
   return !!matter;
 }
+
+/**
+ * PRD v0.6 §6 — the single most important line item in the whole PRD.
+ *
+ * For Client Representative users: verifies that the matter in the URL is
+ * exactly the one they were invited to (session.primaryMatterId). Returns
+ * true for non-client roles (they're scoped by org, not by primaryMatterId).
+ *
+ * Every client-portal route MUST call this in addition to
+ * verifyMatterBelongsToOrg(). Getting this wrong means a client can see
+ * another client's case.
+ */
+export function verifyMatterMatchesClientScope(
+  matterId: string,
+  session: SessionUser,
+): boolean {
+  // Non-client roles are not matter-scoped at the user level
+  if (session.role !== "Client Representative") return true;
+  // Client representatives must be scoped to their one primary matter
+  return session.primaryMatterId === matterId;
+}

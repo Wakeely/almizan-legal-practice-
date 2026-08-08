@@ -37,6 +37,10 @@ function slugify(s: string): string {
  * Every registration creates a NEW Organization — the user is always the
  * owner of that new firm workspace. Role names reflect their position within
  * THEIR organization only (not a global "site admin" concept).
+ *
+ * PRD v0.6 §4.3: "Client" is no longer a valid public registration account
+ * type. Client accounts are created exclusively via matter-level invitations
+ * (POST /api/matters/[id]/client-invitations → POST /api/invitations/accept).
  */
 function roleForAccountType(accountType: string): string {
   switch (accountType) {
@@ -46,8 +50,6 @@ function roleForAccountType(accountType: string): string {
       return "Managing Partner";        // Single-lawyer firm owner
     case "Corporate Counsel":
       return "In-House Counsel";        // Legal team member at a company
-    case "Client":
-      return "Client Representative";   // Client portal user
     default:
       return "Managing Partner";        // Safe default for unknown types
   }
@@ -122,6 +124,7 @@ export async function POST(req: Request) {
         slug: finalSlug,
         barAssociationId: data.barAssociationId || null,
         jurisdiction: data.jurisdiction,
+        maxSeats: 10, // PRD v0.6 §5.4 — authoritative seat limit on Organization
         users: {
           create: {
             email: data.email.toLowerCase(),

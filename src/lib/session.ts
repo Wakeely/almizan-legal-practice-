@@ -23,6 +23,7 @@ export interface SessionUser {
   name: string;
   organizationId: string;
   role: string;
+  primaryMatterId?: string | null; // PRD v0.6 §5.1 — set for Client Representatives
 }
 
 /**
@@ -55,6 +56,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     name: u.name,
     organizationId: u.organizationId,
     role: u.role,
+    primaryMatterId: u.primaryMatterId ?? null,
   };
 }
 

@@ -697,6 +697,7 @@ function UsersTab({ mfaEnabled }: { mfaEnabled: boolean }) {
               <tr>
                 <th className="text-left p-3 font-medium">User</th>
                 <th className="text-left p-3 font-medium hidden md:table-cell">Organization</th>
+                <th className="text-left p-3 font-medium hidden lg:table-cell">Account</th>
                 <th className="text-left p-3 font-medium hidden lg:table-cell">Role</th>
                 <th className="text-center p-3 font-medium">Status</th>
                 <th className="text-right p-3 font-medium">Actions</th>
@@ -704,10 +705,10 @@ function UsersTab({ mfaEnabled }: { mfaEnabled: boolean }) {
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={5} className="text-center p-6 text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={6} className="text-center p-6 text-muted-foreground">Loading…</td></tr>
               )}
               {!loading && users.length === 0 && (
-                <tr><td colSpan={5} className="text-center p-6 text-muted-foreground">No users.</td></tr>
+                <tr><td colSpan={6} className="text-center p-6 text-muted-foreground">No users.</td></tr>
               )}
               {users.map((u) => (
                 <tr key={u.id} className="border-b last:border-0 hover:bg-muted/30">
@@ -716,6 +717,7 @@ function UsersTab({ mfaEnabled }: { mfaEnabled: boolean }) {
                     <div className="text-[11px] text-muted-foreground">{u.email}</div>
                   </td>
                   <td className="p-3 hidden md:table-cell text-xs">{u.organization?.name ?? "—"}</td>
+                  <td className="p-3 hidden lg:table-cell text-xs">{u.accountType ?? "—"}</td>
                   <td className="p-3 hidden lg:table-cell">
                     <Badge variant="outline" className="text-[10px]">{u.role}</Badge>
                   </td>

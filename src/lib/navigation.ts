@@ -7,6 +7,7 @@ import {
   Sword,
   Receipt,
   Search,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -26,7 +27,8 @@ export type WorkspaceView =
   | "ai"
   | "warroom"
   | "billing"
-  | "investigation";
+  | "investigation"
+  | "team"; // PRD v0.6 §5.3 — Managing Partner team management
 
 export interface NavItem {
   id: WorkspaceView;
@@ -50,6 +52,7 @@ export const VIEW_PATHS: Readonly<Record<WorkspaceView, string>> = {
   warroom: "war-room",
   billing: "billing",
   investigation: "investigation",
+  team: "team",
 };
 
 /** Inverse lookup: path segment → WorkspaceView (for highlighting the nav). */
@@ -103,6 +106,7 @@ export const WORKSPACE_VIEWS: WorkspaceView[] = [
   "warroom",
   "billing",
   "investigation",
+  "team",
 ];
 
 /** The canonical list of main navigation items. */
@@ -115,6 +119,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "warroom", labelAr: "غرفة العمليات", labelEn: "War Room", icon: Sword, href: `${WORKSPACE_BASE}/war-room` },
   { id: "billing", labelAr: "الفواتير", labelEn: "Billing", icon: Receipt, href: `${WORKSPACE_BASE}/billing` },
   { id: "investigation", labelAr: "التحقيق", labelEn: "Investigation", icon: Search, href: `${WORKSPACE_BASE}/investigation` },
+  { id: "team", labelAr: "الفريق", labelEn: "Team", icon: Users, href: `${WORKSPACE_BASE}/team` },
 ];
 
 /** Grouped sections used by the desktop sidebar (items referenced by id). */
@@ -148,6 +153,12 @@ export const NAV_SECTIONS: NavSection[] = [
     labelAr: "المالية",
     labelEn: "Financial",
     itemIds: ["billing"],
+  },
+  {
+    id: "admin",
+    labelAr: "الإدارة",
+    labelEn: "Administration",
+    itemIds: ["team"],
   },
 ];
 
